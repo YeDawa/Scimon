@@ -11,6 +11,7 @@ use image::ImageFormat;
 use crate::{
     args_cli::Flags,
     consts::uris::Uris,
+    addons::chatgpt::ChatGPT,
     configs::settings::Settings,
     system::providers::Providers,
     generator::qr_code::GenQrCode,
@@ -18,11 +19,6 @@ use crate::{
     ui::{
         ui_base::UI,
         success_alerts::SuccessAlerts,
-    },
-
-    addons::{
-        scihub::SciHub,
-        chatgpt::ChatGPT,
     },
 
     utils::{
@@ -75,7 +71,7 @@ impl Tasks {
                         let qrcode_size = value.as_i64().expect("Invalid qrcode_size value. Must be an integer.") as usize;
             
                         let name = FileNameRemote::new(url).get();
-                        let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
+                        let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[6]) {
                             ChatGPT::new(&url, "").title()?.to_string().replace(" ", "_")
                         } else {
                             name
@@ -112,11 +108,6 @@ impl Tasks {
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-            let scihub_url = SciHub::new(&line_url).get_pdf().await?;
-            MakeDownload.download_doi(&scihub_url, &scihub_url, path).await?;
-        }
-
-        if line_url.contains(Uris::PROVIDERS_DOMAINS[7]) {
             ChatGPT::new(&line_url, &path).convert().await?;
         }
 

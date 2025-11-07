@@ -83,20 +83,4 @@ impl MakeDownload {
         Ok("".to_string())
     }
 
-    pub async fn download_doi(&self, line_url: &str, url: &str, path: &str) -> Result<String, Box<dyn Error>> {
-        let result = self.make(&line_url, path).await;
-            
-        match result {
-            Ok(file) => {
-                let file_path = &format!("{}{}", &path, &file);
-                SuccessAlerts::download(&file, url, false);
-                return Ok(file_path.to_string())
-            },
-
-            Err(e) => ErrorsAlerts::download(e, url),
-        }
-
-        Ok("".to_string())
-    }
-
 }

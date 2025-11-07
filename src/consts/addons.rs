@@ -17,8 +17,5 @@ impl Addons {
 
     // Chat GPT Content Class
     pub const CHATGPT_CONTENT_CLASS: &'static str = ".markdown.prose.w-full.break-words.dark\\:prose-invert.dark";
-
-    // Download DOI using Annas Archive
-    pub const ANNAS_ARCHIVE_ENDPOINT: &'static str = "https://annas-archive.org/scidb/";
     
 }

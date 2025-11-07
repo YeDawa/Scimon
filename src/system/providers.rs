@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use crate::{
-    system::doi::DOI,
     consts::uris::Uris,
     addons::wikipedia::Wikipedia,
     
@@ -61,14 +60,11 @@ impl Providers {
 
         let domain = Domain::new(&self.url);
         let wikipedia = Wikipedia::new(&self.url);
-        let doi = DOI::new(&self.url);
 
         if domain.check(Uris::PROVIDERS_DOMAINS[0]) {
             (request_uri, filename) = wikipedia.wikipedia();
         } else if domain.check(Uris::PROVIDERS_DOMAINS[1]) {
             (request_uri, filename) = wikipedia.wikisource();
-        } else if domain.check(Uris::PROVIDERS_DOMAINS[8]) {
-            (request_uri, filename) = doi.scihub_name();
         } else {
             (request_uri, filename) = self.generic().await?;
         }
