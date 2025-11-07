@@ -2,7 +2,11 @@ use std::error::Error;
 
 use crate::{
     consts::uris::Uris,
-    addons::wikipedia::Wikipedia,
+
+    addons::{
+        scihub::SciHub,
+        wikipedia::Wikipedia,
+    },
     
     utils::{
         url::UrlMisc,
@@ -55,19 +59,19 @@ impl Providers {
     }
 
     pub async fn get_from_provider(&self) -> Result<(String, String), Box<dyn Error>> {
-        let filename;
-        let request_uri;
-
         let domain = Domain::new(&self.url);
         let wikipedia = Wikipedia::new(&self.url);
+        let scihub = SciHub::new(&self.url);
 
-        if domain.check(Uris::PROVIDERS_DOMAINS[0]) {
-            (request_uri, filename) = wikipedia.wikipedia();
-        } else if domain.check(Uris::PROVIDERS_DOMAINS[1]) {
-            (request_uri, filename) = wikipedia.wikisource();
+        let (request_uri, filename) = if domain.check(Uris::PROVIDERS_DOMAINS[0]) {
+            wikipedia.wikipedia()
+        } else if domain.check(Uris::PROVIDERS_DOMAINS[2]) {
+            wikipedia.wikisource()
+        } else if domain.check(Uris::PROVIDERS_DOMAINS[7]) {
+            scihub.name()
         } else {
-            (request_uri, filename) = self.generic().await?;
-        }
+            return self.generic().await;
+        };
 
         Ok((request_uri, filename))
     }

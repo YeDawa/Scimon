@@ -11,10 +11,14 @@ use image::ImageFormat;
 use crate::{
     args_cli::Flags,
     consts::uris::Uris,
-    addons::chatgpt::ChatGPT,
     configs::settings::Settings,
     system::providers::Providers,
     generator::qr_code::GenQrCode,
+
+    addons::{
+        scihub::SciHub,
+        chatgpt::ChatGPT,
+    },
     
     ui::{
         ui_base::UI,
@@ -109,6 +113,11 @@ impl Tasks {
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
             ChatGPT::new(&line_url, &path).convert().await?;
+        }
+
+        if line_url.contains(Uris::PROVIDERS_DOMAINS[7]) {
+            let url = SciHub::new(&line_url).get_url();
+            MakeDownload.download_doi(&line_url, &url, path).await?;
         }
 
         if !Providers::new(&line_url).check_provider_domain() {

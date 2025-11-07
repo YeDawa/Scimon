@@ -2,7 +2,7 @@ pub struct Uris;
 
 impl Uris {
 
-    pub const PROVIDERS_DOMAINS: [&'static str; 7] = [
+    pub const PROVIDERS_DOMAINS: [&'static str; 8] = [
         "wikipedia.org",
         "wikisource.org",
         "raw.githubusercontent.com",
@@ -10,9 +10,11 @@ impl Uris {
         "bitbucket.org",
         "codeberg.org",
         "chatgpt.com",
+        "sci-hub.se",
     ];
 
     pub const WIKIPEDIA_API_REQUEST_PDF: &'static str = "https://en.wikipedia.org/api/rest_v1/page/pdf/";
     pub const WIKISOURCE_API_REQUEST_PDF: &'static str = "https://en.wikisource.org/api/rest_v1/page/pdf/";
-    
+    pub const SCIHUB_PROXY_REQUEST_PDF: &'static str = "https://tools.monlib.net/scihub?url=";
+
 }
