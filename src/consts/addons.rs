@@ -2,7 +2,7 @@ pub struct Addons;
 
 impl Addons {
 
-    pub const DOWNLOAD_FILES_URI: &'static str = "https://raw.githubusercontent.com/Gausix/Scimon/main/";
+    pub const DOWNLOAD_FILES_URI: &'static str = "https://raw.githubusercontent.com/YeDawa/Scimon/main/";
     pub const DEFAULT_CSS_STYLE: &'static str = "https://addons.scimon.dev/static/md-default.css";
 
     // Scimon
