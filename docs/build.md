@@ -5,7 +5,7 @@
 If you don't already have the project on your local machine, you need to clone the repository from Git. Open a terminal and run:
 
 ```sh
-git clone https://github.com/Gausix/Scimon.git
+git clone https://github.com/YeDawa/Scimon.git
 ```
 
 ### 2. Setup Your Environment
