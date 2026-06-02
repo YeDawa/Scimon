@@ -43,16 +43,19 @@ impl ChatGPT {
         Ok(title)
     }
 
+    pub fn custom_name(&self, file_name: &str) -> String {
+        if let Some(custom_name) = &self.custom_name {
+            format!("{}", custom_name.replace(" ", "_"))
+        } else {
+            format!("{}", &file_name.replace(" ", "_"))
+        }
+    }
+
     pub async fn convert(&self) -> Result<(), Box<dyn Error>> {
         let (file_name, html_content) = self.get_content()?;
         let styled_html = Templates.generic(&html_content);
 
-        let file = if let Some(custom_name) = &self.custom_name {
-            format!("{}", custom_name.replace(" ", "_"))
-        } else {
-            format!("{}", &file_name.replace(" ", "_"))
-        };
-
+        let file = self.custom_name(&file_name);
         let path = format!("{}{}", &self.path, &file);
         let data_url = encode(&styled_html);
 
