@@ -16,6 +16,12 @@ impl Addons {
     pub const README_TEMPLATE_LINK: &'static str = "https://readme.scimon.dev/";
 
     // Chat GPT Content Class
-    pub const CHATGPT_CONTENT_CLASS: &'static str = "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1";
+    pub const CHATGPT_CONTENT_CLASS: &'static str = "section[data-turn=\"assistant\"]";
+
+    // Chat GPT Content H4 Class
+    pub const CHATGPT_CONTENT_H4_CLASS: &'static str = "<div class=\"relative h-6 w-6\"></div></div>";
+
+    // Chat GPT Content Class Alternative (Reasoning Text)
+    pub const CHATGPT_CONTENT_CLASS_ALT: &'static str = r#"(?is)<div class="w-full leading-relaxed font-normal text-token-text-tertiary">.*?</div>\s*"#;
     
 }

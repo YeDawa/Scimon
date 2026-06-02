@@ -6,6 +6,7 @@ use crate::{
     utils::scraping::Scraping,
     generator::templates::Templates,
     ui::success_alerts::SuccessAlerts,
+    helpers::chatgpt_cleaner::ChatGPTCleaner,
 };
 
 pub struct ChatGPT {
@@ -26,12 +27,15 @@ impl ChatGPT {
 
     fn get_content(&self) -> Result<(String, String), Box<dyn Error>> {
         let scraping = Scraping::new(&self.url);
-
         let content = scraping.get_html()?;
+
         let title = scraping.title(&content);
         let html_content = scraping.content(&content, Addons::CHATGPT_CONTENT_CLASS);
-    
-        Ok((title, html_content))
+
+        let stripped_content = ChatGPTCleaner.strip_html_header(&html_content);
+        let final_content = ChatGPTCleaner.strip_reasoning_text(&stripped_content);
+
+        Ok((title, final_content))
     }
 
     pub fn title(&self) -> Result<String, Box<dyn Error>> {

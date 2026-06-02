@@ -70,3 +70,6 @@ site/
 *.dll
 *.so
 *.dylib
+
+# Ignore html files
+*.html
