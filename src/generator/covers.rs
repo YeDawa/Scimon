@@ -14,9 +14,11 @@ use std::{
 use crate::{
     syntax::vars::Vars,
     utils::file::FileUtils,
+    helpers::pdfium::PdfiumHelper,
 
     ui::{
         ui_base::UI,
+        helpers_alerts::HelpersAlerts,
         success_alerts::SuccessAlerts,
     },
 };
@@ -65,6 +67,11 @@ impl Covers {
             
             FileUtils.create_path(&covers_path);
             UI::section_header("Extracting covers", "normal");
+            
+            if let Err(e) = PdfiumHelper.ensure_pdfium_binary().await {
+                HelpersAlerts::pdfium_download_failed(&e.to_string());
+                return Err(e); 
+            }
 
             for entry in WalkDir::new(&pdf_path) {
                 let entry = entry?;

@@ -64,3 +64,9 @@ credentials.json
 
 site/
 .vercel
+
+# Ignore binaries files
+*.exe
+*.dll
+*.so
+*.dylib
