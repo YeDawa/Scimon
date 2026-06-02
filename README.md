@@ -27,27 +27,27 @@ The key strength of Monset lies in its user-friendly design. The syntax is intui
 
 For more help and document, see our documentation:
 
-- [How to build](https://scimon.dev/build)
-- [Basic usage](https://scimon.dev/basic-usage)
-- [Flags](https://scimon.dev/flags)
-- [Scrape](https://scimon.dev/scrape)
-- [Providers](https://scimon.dev/providers)
-- [Monset](https://scimon.dev/monset/what-is)
-  - [Downloads Block](https://scimon.dev/monset/download-block)
-  - [Readme Block](https://scimon.dev/monset/readme-block)
-  - [Commands Block](https://scimon.dev/monset/commands-block)
-  - [Compress folder](https://scimon.dev/monset/compress)
-  - [Open links](https://scimon.dev/monset/open-links)
-  - [Markdown render](https://scimon.dev/monset/markdown-render)
-  - [Style](https://scimon.dev/monset/style)
-  - [Print](https://scimon.dev/monset/prints)
-  - [Covers](https://scimon.dev/monset/covers)
-  - [QR Code](https://scimon.dev/monset/qrcode)
-  - [Math](https://scimon.dev/monset/math)
-- [Configs](https://scimon.dev/configs/index)
-  - [Scimon.yml file](https://scimon.dev/configs/scimon.yml-file)
-  - [.env file](https://scimon.dev/configs/env-file)
-- [External Resources Usage](https://scimon.dev/external-resources)
+- [How to build](https://docs.scimon.dev/build)
+- [Basic usage](https://docs.scimon.dev/basic-usage)
+- [Flags](https://docs.scimon.dev/flags)
+- [Scrape](https://docs.scimon.dev/scrape)
+- [Providers](https://docs.scimon.dev/providers)
+- [Monset](https://docs.scimon.dev/monset/what-is)
+  - [Downloads Block](https://docs.scimon.dev/monset/download-block)
+  - [Readme Block](https://docs.scimon.dev/monset/readme-block)
+  - [Commands Block](https://docs.scimon.dev/monset/commands-block)
+  - [Compress folder](https://docs.scimon.dev/monset/compress)
+  - [Open links](https://docs.scimon.dev/monset/open-links)
+  - [Markdown render](https://docs.scimon.dev/monset/markdown-render)
+  - [Style](https://docs.scimon.dev/monset/style)
+  - [Print](https://docs.scimon.dev/monset/prints)
+  - [Covers](https://docs.scimon.dev/monset/covers)
+  - [QR Code](https://docs.scimon.dev/monset/qrcode)
+  - [Math](https://docs.scimon.dev/monset/math)
+- [Configs](https://docs.scimon.dev/configs/index)
+  - [Scimon.yml file](https://docs.scimon.dev/configs/scimon.yml-file)
+  - [.env file](https://docs.scimon.dev/configs/env-file)
+- [External Resources Usage](https://docs.scimon.dev/external-resources)
 
 ## Example of code and execute
 
@@ -81,7 +81,6 @@ commands {
 ```
 
 > [!note]
->
 > Save as `scimon.mon`
 
 Run the command:
