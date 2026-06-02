@@ -12,11 +12,6 @@ use std::{
 };
 
 use crate::{
-    system::{
-        pdf::Pdf,
-        providers::Providers,
-    },
-
     ui::{
         ui_base::UI,
         errors_alerts::ErrorsAlerts,
@@ -29,18 +24,27 @@ use crate::{
         file::FileUtils,
         validation::Validate,
     },
+
+    system::{
+        pdf::Pdf,
+        providers::Providers,
+    },
 };
 
 pub struct MakeDownload;
 
 impl MakeDownload {
 
-    async fn make(&self, url: &str, path: &str) -> Result<String, Box<dyn Error>> {
+    async fn make(&self, url: &str, path: &str, final_name: &str) -> Result<String, Box<dyn Error>> {
         UrlMisc::check_url_status(url).await?;
 
-        let (request_uri, filename) = Providers::new(url).get_from_provider().await?;
+        let (request_uri, mut filename) = Providers::new(url).get_from_provider().await?;
         let response = reqwest::get(&request_uri).await?;
         let total_size = Remote.get_file_size(&request_uri).await?;
+
+        if !final_name.is_empty() {
+            filename = final_name.to_string();
+        }
 
         let pb = ProgressBar::new(total_size);
         pb.set_style(UI::pb_template());
@@ -51,7 +55,6 @@ impl MakeDownload {
         let mut reader = Cursor::new(content);
 
         let _ = Validate::file_type(&filename, ".pdf");
-    
         let mut buffer = [0; 8192];
         while let Ok(size) = reader.read(&mut buffer) {
             if size == 0 { break; }
@@ -63,9 +66,9 @@ impl MakeDownload {
         Ok(filename)
     }
 
-    pub async fn download_line(&self, line_url: &str, url: &str, path: &str) -> Result<String, Box<dyn Error>> {
+    pub async fn download_line(&self, line_url: &str, url: &str, path: &str, final_name: Option<&str>) -> Result<String, Box<dyn Error>> {
         if Pdf.is_pdf_file(&line_url).await? || Providers::new(url).valid_provider_domain() && !line_url.contains(".md") {
-            let result = self.make(&line_url, path).await;
+            let result = self.make(&line_url, path, final_name.unwrap_or("")).await;
             
             match result {
                 Ok(file) => {
@@ -83,9 +86,8 @@ impl MakeDownload {
         Ok("".to_string())
     }
 
-    pub async fn download_doi(&self, line_url: &str, url: &str, path: &str) -> Result<String, Box<dyn Error>> {
-        let result = self.make(&line_url, path).await;
-            
+    pub async fn download_doi(&self, line_url: &str, url: &str, path: &str, final_name: &str) -> Result<String, Box<dyn Error>> {
+        let result = self.make(&line_url, path, &final_name).await;
         match result {
             Ok(file) => {
                 let file_path = &format!("{}{}", &path, &file);

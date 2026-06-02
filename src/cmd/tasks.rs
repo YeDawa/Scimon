@@ -56,7 +56,7 @@ impl Tasks {
         Ok(())
     }
 
-    pub async fn qr_codes(&self, contents: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn qr_codes(&self, contents: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
         if let Some(qrcode_path) = Vars.get_qrcode(contents) {
             UI::section_header("QR Codes", "normal");
 
@@ -76,7 +76,7 @@ impl Tasks {
             
                         let name = FileNameRemote::new(url).get();
                         let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-                            ChatGPT::new(&url, "").title()?.to_string().replace(" ", "_")
+                            ChatGPT::new(&url, "", custom_name).title()?.to_string().replace(" ", "_")
                         } else {
                             name
                         };
@@ -94,7 +94,7 @@ impl Tasks {
         Ok(())
     }
 
-    pub async fn download(&self, contents: Option<&str>, url: &str, path: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
+    pub async fn download(&self, contents: Option<&str>, url: &str, path: &str, custom_name: Option<&str>, flags: &Flags) -> Result<(), Box<dyn Error>> {
         let mut line_url = Cow::Borrowed(
             url.trim()
         );
@@ -108,20 +108,20 @@ impl Tasks {
         }
 
         if let Some(contents) = contents {
-            Markdown.create(&contents, &line_url, &path).await?;
+            Markdown.create(&contents, &url, &path).await?;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-            ChatGPT::new(&line_url, &path).convert().await?;
+            ChatGPT::new(&line_url, &path, custom_name).convert().await?;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-            let url = SciHub::new(&line_url).get_url();
-            MakeDownload.download_doi(&line_url, &url, path).await?;
+            let scihub_url = SciHub::new(&url).get_url();
+            MakeDownload.download_doi(&line_url, &scihub_url, path, custom_name.expect("Custom name is required for DOI downloads")).await?;
         }
 
         if !Providers::new(&line_url).check_provider_domain() {
-            MakeDownload.download_line(&line_url, url, path).await?;
+            MakeDownload.download_line(&line_url, &url, path, custom_name).await?;
         }
 
         Ok(())

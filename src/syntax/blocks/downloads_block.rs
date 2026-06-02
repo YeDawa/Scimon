@@ -27,6 +27,7 @@ use crate::{
 
     syntax::{
         vars::Vars,
+        extended::Extended,
         macro_handler::MacroHandler, 
         blocks::readme_block::ReadMeBlock, 
     },
@@ -63,6 +64,12 @@ impl DownloadsBlock {
             seen_urls.insert(final_url.to_string());
 
             if !MacroHandler::handle_check_macro_line(&line, "ignore") {
+                let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(&line) {
+                    custom_name
+                } else {
+                    "".to_string()
+                };
+
                 if !final_url.is_empty() && is_url(&final_url) && final_url.starts_with("http") {
                     let contents = contents.to_string();
                     let url = final_url.clone();
@@ -70,7 +77,7 @@ impl DownloadsBlock {
                     let flags = flags.clone();
                     
                     let task = task::spawn(async move {
-                        let _ = Tasks.download(Some(&contents), &url, &path, &flags).await;
+                        let _ = Tasks.download(Some(&contents), &url, &path, Some(&final_name), &flags).await;
                     });
 
                     tasks.push(task);
@@ -109,7 +116,7 @@ impl DownloadsBlock {
 
             Compress::new(&contents).get()?;
             Covers::new(&contents).get().await?;
-            Tasks.qr_codes(&contents).await?;
+            Tasks.qr_codes(&contents, None).await?;
             Math::new(&contents).render()?;
             
             Vars.get_open(&contents, flags.no_open_link).await;
@@ -148,7 +155,7 @@ impl DownloadsBlock {
 
             Compress::new(&contents).get()?;
             Covers::new(&contents).get().await?;
-            TasksRaw.qr_codes(&contents).await?;
+            TasksRaw.qr_codes(&contents, None).await?;
             Math::new(&contents).render()?;
             
             Vars.get_open(&contents, flags.no_open_link).await;

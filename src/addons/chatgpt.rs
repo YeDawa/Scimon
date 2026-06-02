@@ -11,14 +11,16 @@ use crate::{
 pub struct ChatGPT {
     url: String,
     path: String,
+    custom_name: Option<String>,
 }
 
 impl ChatGPT {
 
-    pub fn new(url: &str, path: &str) -> Self {
+    pub fn new(url: &str, path: &str, custom_name: Option<&str>) -> Self {
         Self {
             url: url.to_string(),
-            path: path.to_string()
+            path: path.to_string(),
+            custom_name: custom_name.map(|s| s.to_string()),
         }
     }
 
@@ -41,7 +43,12 @@ impl ChatGPT {
         let (file_name, html_content) = self.get_content()?;
         let styled_html = Templates.generic(&html_content);
 
-        let file = format!("{}.pdf", &file_name.replace(" ", "_"));
+        let file = if let Some(custom_name) = &self.custom_name {
+            format!("{}.pdf", custom_name.replace(" ", "_"))
+        } else {
+            format!("{}.pdf", &file_name.replace(" ", "_"))
+        };
+        
         let path = format!("{}{}", &self.path, &file);
         let data_url = encode(&styled_html);
 

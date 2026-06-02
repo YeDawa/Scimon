@@ -41,7 +41,7 @@ impl TasksRaw {
         Ok(())
     }
 
-    pub async fn qr_codes(&self, contents: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn qr_codes(&self, contents: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
         if let Some(qrcode_path) = Vars.get_qrcode(contents) {
             UI::section_header("QR Codes", "normal");
 
@@ -61,7 +61,7 @@ impl TasksRaw {
             
                         let name = FileNameRemote::new(url).get();
                         let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-                            ChatGPT::new(&url, "").title()?.to_string().replace(" ", "_")
+                            ChatGPT::new(&url, "", custom_name).title()?.to_string().replace(" ", "_")
                         } else {
                             name
                         };
