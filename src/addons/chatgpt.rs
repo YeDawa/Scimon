@@ -44,11 +44,11 @@ impl ChatGPT {
         let styled_html = Templates.generic(&html_content);
 
         let file = if let Some(custom_name) = &self.custom_name {
-            format!("{}.pdf", custom_name.replace(" ", "_"))
+            format!("{}", custom_name.replace(" ", "_"))
         } else {
-            format!("{}.pdf", &file_name.replace(" ", "_"))
+            format!("{}", &file_name.replace(" ", "_"))
         };
-        
+
         let path = format!("{}{}", &self.path, &file);
         let data_url = encode(&styled_html);
 

@@ -8,8 +8,12 @@ impl Extended {
 
         if let Some((_, name_part)) = clean_line.split_once(" as ") {
             let clean_name = name_part.trim().trim_matches('"');
-            let custom_name = format!("{}.pdf", clean_name.trim_end_matches(".pdf"));
-            Some(custom_name)
+
+            if clean_name.ends_with(".pdf") {
+                return Some(clean_name.to_string());
+            } else {
+                return Some(format!("{}.pdf", clean_name));
+            }
         } else {
             None
         }

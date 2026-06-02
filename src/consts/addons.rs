@@ -16,6 +16,6 @@ impl Addons {
     pub const README_TEMPLATE_LINK: &'static str = "https://readme.scimon.dev/";
 
     // Chat GPT Content Class
-    pub const CHATGPT_CONTENT_CLASS: &'static str = ".markdown.prose.w-full.break-words.dark\\:prose-invert.dark";
+    pub const CHATGPT_CONTENT_CLASS: &'static str = "min-h-8 text-message relative flex w-full flex-col items-end gap-2 text-start break-words whitespace-normal outline-none keyboard-focused:focus-ring [.text-message+&]:mt-1";
     
 }
