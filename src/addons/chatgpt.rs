@@ -32,10 +32,10 @@ impl ChatGPT {
         let title = scraping.title(&content);
         let html_content = scraping.content(&content, Addons::CHATGPT_CONTENT_CLASS);
 
-        let stripped_content = ChatGPTCleaner.strip_html_header(&html_content);
-        let final_content = ChatGPTCleaner.strip_reasoning_text(&stripped_content);
+        let stripped_html_header = ChatGPTCleaner.strip_html_header(&html_content);
+        let stripped_reasoning_text = ChatGPTCleaner.strip_reasoning_text(&stripped_html_header);
 
-        Ok((title, final_content))
+        Ok((title, stripped_reasoning_text))
     }
 
     pub fn title(&self) -> Result<String, Box<dyn Error>> {
