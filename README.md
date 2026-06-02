@@ -52,26 +52,38 @@ For more help and document, see our documentation:
 ## Example of code and execute
 
 ```monset
+@name "Scimon"
+@version "1.0.0"
+@description "Scimon is a simple and powerful tool for downloading files, generating QR codes, compressing folders, and more."
+@author "Kremilly"
+@license "MIT"
+@privacy "Public"
+@homepage "https://kremilly.com"
+
 path "downloads/"
+
 open "https://github.com/kremilly"
 
 compress "folder.zip"
 
-covers "covers/"
+covers "downloads/covers/"
+qrcode "downloads/qrcodes/"
 
-qrcode "qrcodes/"
+math "2 + 2" > downloads/math.png
+math "2 + 3" > downloads/math1.png
 
 print "Hello, World!"
 
-math "2 + 2 = 4" > path/to/output.png
-
-style "https://raw.githubusercontent.com/sindresorhus/github-markdown-css/main/github-markdown.css"
-
-readme "https://gist.githubusercontent.com/Kremilly/5fd360d994bb0fe108b648d0e4c9e92f/raw/5f180716411e11fc352188c805c0707ac96d70a0/readme-example.md"
+readme "https://gist.githubusercontent.com/Kremilly/5fd360d994bb0fe108b648d0e4c9e92f/raw/1ede0877f2bd023e77674eb89f4a0eb7d8f7e7da/readme-example.md"
 
 downloads {
+    https://arxiv.org/pdf/2203.08877 as "arxiv_paper.pdf"
+    https://chatgpt.com/share/67c3f647-0bac-8005-abbb-012c3c1dafcc as "chatgpt_conversation.pdf"
     https://arxiv.org/pdf/2405.01513 !ignore
+    https://www.sci-hub.se/10.1626/JCS.66.427
     https://raw.githubusercontent.com/facebook/react/main/README.md
+    https://cs.uwaterloo.ca/~jimmylin/publications/Busch_etal_ICDE2012.pdf
+    https://raw.githubusercontent.com/h4cknlearn/architecture101/main/README.md !ignore
     https://pt.wikisource.org/wiki/Manifesto_da_Guerrilha_do_Livre_Acesso !ignore
 }
 
