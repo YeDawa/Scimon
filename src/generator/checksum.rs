@@ -52,7 +52,11 @@ impl Checksum {
         }
     
         let hash = hasher.finalize();
-        Ok(format!("{:x}", hash))
+        let hash_string: String = hash.iter()
+            .map(|byte| format!("{:02x}", byte))
+            .collect();
+
+        Ok(hash_string)
     }
     
     pub fn files(&self) -> IoResult<()> {

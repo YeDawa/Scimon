@@ -53,7 +53,7 @@ impl Covers {
     
         let _ = page
             .render_with_config(&render_config)?
-            .as_image()
+            .as_image()?
             .into_rgb8() 
             .save_with_format(output, ImageFormat::Jpeg)?;
 

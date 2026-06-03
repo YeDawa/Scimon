@@ -2,7 +2,7 @@ extern crate colored;
 extern crate figlet_rs;
 
 use colored::*;
-use figlet_rs::FIGfont;
+use figlet_rs::FIGlet;
 use indicatif::ProgressStyle;
 
 use crate::{
@@ -19,7 +19,7 @@ impl UI {
     pub fn header() {
         if Settings.get("ui.show_header", "BOOLEAN") == true {
             let name = StrUtils.capitalize(Global::APP_NAME);
-            let standard_font = FIGfont::standard().unwrap();
+            let standard_font = FIGlet::standard().unwrap();
             
             if let Some(title) = standard_font.convert(&name) {
                 println!("{}", &title.to_string().bold().cyan());

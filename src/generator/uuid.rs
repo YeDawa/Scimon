@@ -1,5 +1,9 @@
 use std::fmt;
-use rand::Rng;
+
+use rand::{
+    rng, 
+    RngExt
+}; 
 
 pub struct Uuid([u8; 16]);
 
@@ -7,7 +11,6 @@ impl fmt::Display for Uuid {
 
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let bytes = &self.0;
-        
         write!(
             f,
             "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
@@ -22,17 +25,20 @@ impl fmt::Display for Uuid {
 
 impl Uuid {
 
-    pub fn v4() -> String {
-        let mut rng = rand::thread_rng();
+    pub fn new(bytes: [u8; 16]) -> Self {
+        Uuid(bytes)
+    }
+
+    pub fn v4(&self) -> String {
+        let mut r = rng(); 
         let mut uuid_bytes = [0u8; 16];
     
-        rng.fill(&mut uuid_bytes);
-    
+        r.fill(&mut uuid_bytes);   
         uuid_bytes[6] = (uuid_bytes[6] & 0x0F) | 0x40;
         uuid_bytes[8] = (uuid_bytes[8] & 0x3F) | 0x80;
     
         let uuid = Uuid(uuid_bytes);
         uuid.to_string()
     }
-
+    
 }

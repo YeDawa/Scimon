@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 
 pub struct FileName {
     ext: String,
@@ -18,18 +18,17 @@ impl FileName {
     
     pub fn gen(&self) -> String {
         let charset_len: usize = self.pattern.len();
-        let mut rng = rand::thread_rng();
-    
+
+        let mut rng = rand::rng(); 
         let random_string: String = (0..self.length)
             .map(|_| {
-                let idx = rng.gen_range(0..charset_len);
+                // 3. `gen_range()` is now `random_range()`
+                let idx = rng.random_range(0..charset_len);
                 self.pattern.chars().nth(idx).unwrap()
             })
             .collect();
     
-        format!(
-            "{}.{}", random_string, self.ext
-        )
+        format!("{}.{}", random_string, self.ext)
     }
 
 }
