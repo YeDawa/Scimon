@@ -23,5 +23,8 @@ impl Addons {
 
     // Chat GPT Content Class Alternative (Reasoning Text)
     pub const CHATGPT_CONTENT_CLASS_ALT: &'static str = r#"(?is)<div class="w-full leading-relaxed font-normal text-token-text-tertiary">.*?</div>\s*"#;
+
+    // Gemini Content Class
+    pub const GEMINI_CONTENT_CLASS: &'static str = "div.response-container-content";
     
 }
