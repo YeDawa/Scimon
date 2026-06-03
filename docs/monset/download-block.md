@@ -54,6 +54,20 @@ In this example:
 
 - The URL `https://example.com/file1.pdf` will be omitted from the download process because it is followed by the `!ignore` directive.
 
+#### Auto-renameing Files
+
+When downloading files, you can also specify a custom name for the downloaded file using the `as` variable. This allows you to rename the file as it is saved to your system.
+
+#### Example Usage:
+
+```plaintext
+https://example.com/file1.pdf as "new_name.pdf"
+```
+
+In this example:
+
+- The URL `https://example.com/file1.pdf` will be downloaded and saved as `new_name.pdf` instead of its original name.
+
 ### Summary
 
 1. **Download URLs**: List URLs line by line. Append `!ignore` to skip specific URLs.
