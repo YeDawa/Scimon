@@ -11,7 +11,7 @@ impl Addons {
 
     // Monlib Package Manager
     pub const MONLIB_API_ENV: &'static str = "MONLIB_API_KEY";
-    pub const MONLIB_API_REQUEST: &'static str = "https://api.monlib.net/";
+    pub const MONLIB_API_REQUEST: &'static str = "https://system.monlib.net/";
 
     pub const README_TEMPLATE_LINK: &'static str = "https://readme.scimon.dev/";
 
