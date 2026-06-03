@@ -114,8 +114,8 @@ impl DownloadsBlock {
             UI::section_header("downloads", "normal");
             self.block(&contents, downloads_content, &path, flags).await?;
 
-            Compress::new(&contents).get()?;
             Covers::new(&contents).get().await?;
+            Compress::new(&contents).get()?;
             Tasks.qr_codes(&contents, None).await?;
             Math::new(&contents).render()?;
             

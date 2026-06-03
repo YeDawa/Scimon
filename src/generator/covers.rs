@@ -6,7 +6,7 @@ use std::{
     error::Error,
 
     path::{
-        Path,
+        Path, 
         PathBuf
     },
 };
@@ -35,28 +35,21 @@ impl Covers {
         }
     }
 
-    async fn render(input: &Path, output: &Path, file: &str) -> Result<(), Box<dyn Error>> {
-        let bindings = Pdfium::bind_to_library(
-            Pdfium::pdfium_platform_library_name_at_path("./"),
-        )
-        .or_else(|_| Pdfium::bind_to_system_library())?;
-    
-        let pdfium = Pdfium::new(bindings);
-    
+    async fn render(pdfium: &Pdfium, input: &Path, output: &Path, file: &str) -> Result<(), Box<dyn Error>> {
         let render_config = PdfRenderConfig::new()
             .set_target_width(2000)
             .set_maximum_height(2000)
             .rotate_if_landscape(PdfPageRenderRotation::Degrees90, true);
-    
+
         let document = pdfium.load_pdf_from_file(input, None)?;
-        let page = document.pages().get(0).expect("Page 0 not found.");
-    
-        let _ = page
+        let page = document.pages().get(0).expect("Error loading page: page not found");
+
+        let image = page
             .render_with_config(&render_config)?
             .as_image()?
-            .into_rgb8() 
-            .save_with_format(output, ImageFormat::Jpeg)?;
-
+            .into_rgb8();
+            
+        image.save_with_format(output, ImageFormat::Jpeg)?;
         SuccessAlerts::cover_generated(file);
         Ok(())
     }
@@ -73,6 +66,10 @@ impl Covers {
                 return Err(e); 
             }
 
+            let bindings = Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path("./"))
+                .or_else(|_| Pdfium::bind_to_system_library())?;
+
+            let pdfium = Pdfium::new(bindings);
             for entry in WalkDir::new(&pdf_path) {
                 let entry = entry?;
                 let path = entry.path();
@@ -83,12 +80,11 @@ impl Covers {
                     let output_path = PathBuf::from(format!("{}{}", covers_path, new_name));
 
                     let output_file = format!("{}{}", covers_path, new_name);
-                    let _ = Self::render(path, &output_path, &output_file).await;
+                    let _ = Self::render(&pdfium, path, &output_path, &output_file).await;
                 }
             }
         }
 
         Ok(())
     }
-
 }
