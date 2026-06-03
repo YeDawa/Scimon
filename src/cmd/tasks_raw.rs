@@ -8,8 +8,6 @@ use crate::{
     consts::uris::Uris,
     configs::settings::Settings,
     generator::qr_code::GenQrCode,
-
-    addons::chatgpt::ChatGPT,
     
     ui::{
         ui_base::UI,
@@ -24,6 +22,11 @@ use crate::{
     syntax::{
         vars::Vars,
         macro_handler::MacroHandler,
+    },
+
+    addons::{
+        gemini::Gemini,
+        chatgpt::ChatGPT,
     },
 };
 
@@ -62,6 +65,8 @@ impl TasksRaw {
                         let name = FileNameRemote::new(url).get();
                         let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
                             ChatGPT::new(&url, "", custom_name).title()?.to_string().replace(" ", "_")
+                        } else if url.contains(Uris::PROVIDERS_DOMAINS[8]) {
+                            Gemini::new(&url, "", custom_name).title()?.to_string().replace(" ", "_")
                         } else {
                             name
                         };

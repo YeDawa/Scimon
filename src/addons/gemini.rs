@@ -34,6 +34,11 @@ impl Gemini {
         Ok((title, html_content))
     }
 
+    pub fn title(&self) -> Result<String, Box<dyn Error>> {
+        let (title, _) = self.get_content()?;
+        Ok(title)
+    }
+
     pub fn custom_name(&self, file_name: &str) -> String {
         if let Some(custom_name) = &self.custom_name {
             format!("{}", custom_name.replace(" ", "_"))
