@@ -16,8 +16,8 @@ impl ChatGPTCleaner {
 
     pub fn strip_reasoning_text(&self, text: &str) -> String {
         let re = Regex::new(Addons::CHATGPT_CONTENT_CLASS_ALT).unwrap();
-        let texto_limpo = re.replace_all(text, "");
-        texto_limpo.trim().to_string()
+        let clean_text = re.replace_all(text, "");
+        clean_text.trim().to_string()
     }
 
 }
