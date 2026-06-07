@@ -6,7 +6,10 @@ use std::{
 };
 
 use crate::{
-    security::py_rules::*,
+    security::{
+        py_rules::*,
+        js_rules::*,
+    },
 
     ui::{
         ui_base::UI,
@@ -59,6 +62,8 @@ impl SecurityRules {
             Ok(content) => {
                 let (violations, is_safe) = if language == "Python" {
                     PyRules.rules(&content)
+                } else if language == "JavaScript" {
+                    JsRules.rules(&content)
                 } else {
                     (Vec::new(), true)
                 };
