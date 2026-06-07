@@ -71,4 +71,5 @@ impl JsRules {
 
         (violations, is_safe)
     }
+    
 }
