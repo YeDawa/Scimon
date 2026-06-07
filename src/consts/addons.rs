@@ -26,5 +26,8 @@ impl Addons {
 
     // Gemini Content Class
     pub const GEMINI_CONTENT_CLASS: &'static str = "div.response-container-content";
+
+    // Security entropy threshold
+    pub const MAX_SAFE_ENTROPY: f64 = 5.96;
     
 }

@@ -43,4 +43,15 @@ impl SecurityAlerts {
         );
     }
 
+    pub fn high_entropy(source: &str, entropy: f64) {
+        let current_datetime = General.date_time();
+
+        eprintln!(
+            "{} {}: HIGH ENTROPY ({:.2}). Potentially unsafe", 
+            current_datetime.red().bold(), 
+            source.yellow().bold(), 
+            entropy
+        );
+    }
+
 }

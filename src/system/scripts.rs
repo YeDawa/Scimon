@@ -15,12 +15,20 @@ use crate::{
     consts::folders::Folders,
     system::plataforms::Plataforms,
     regexp::regex_core::CoreRegExp,
-    security::security_rules::SecurityRules,
-    ui::errors_commands_alerts::ErrorsCommandsAlerts,
+    
+    ui::{
+        security_alerts::SecurityAlerts,
+        errors_commands_alerts::ErrorsCommandsAlerts,
+    },
 
     utils::{
         remote::Remote,
         file::FileUtils,
+    },
+
+    security::{
+        entropy::Entropy,
+        security_rules::SecurityRules,
     },
 };
 
@@ -63,6 +71,13 @@ impl Scripts {
             } else {
                 line_trimmed.to_string()
             };
+
+            if let Ok((entropy, is_high)) = Entropy.calculate(script.as_bytes()) {
+                if is_high {
+                    SecurityAlerts::high_entropy(&script, entropy);
+                    return Ok(());
+                }
+            }
 
             if !SecurityRules.scan_script(&script).await? {
                 return Ok(());
