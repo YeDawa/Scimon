@@ -65,7 +65,6 @@ impl Scripts {
             };
 
             let (_, is_safe) = SecurityRules.scan_script(&script).await?;
-
             if !is_safe {
                 return Ok(());
             }
