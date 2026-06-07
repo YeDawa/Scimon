@@ -74,6 +74,8 @@ impl Scripts {
                 self.exec(&script, "python")?;
             } else if script.ends_with(".js") || script.ends_with(".mjs") || script.ends_with(".cjs") || script.ends_with(".jsx") {
                 self.exec(&script, "node")?;
+            } else if script.ends_with(".ts") || script.ends_with(".tsx") {
+                self.exec(&script, "tsc")?;
             } else {
                 ErrorsCommandsAlerts::unsupported(&script);
             }
