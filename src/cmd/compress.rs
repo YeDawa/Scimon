@@ -67,7 +67,7 @@ impl Compress {
             let mut zip = zip::ZipWriter::new(output_file);
             let options: FileOptions<ExtendedFileOptions> = FileOptions::default()
                 .compression_method(CompressionMethod::Deflated)
-                .compression_level(Some(compress_level.into())) // Max compression level
+                .compression_level(Some(compress_level.into()))
                 .unix_permissions(0o755);
 
             for entry in WalkDir::new(&folder_path) {
