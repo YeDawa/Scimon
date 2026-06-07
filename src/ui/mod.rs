@@ -6,4 +6,5 @@ pub mod helpers_alerts;
 pub mod success_alerts;
 pub mod compress_alerts;
 pub mod checksum_alerts;
+pub mod security_alerts;
 pub mod errors_commands_alerts;

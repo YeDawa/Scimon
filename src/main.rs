@@ -11,6 +11,7 @@ mod render;
 mod monlib;
 mod helpers;
 mod configs;
+mod security;
 mod args_cli;
 mod handlers;
 mod generator;

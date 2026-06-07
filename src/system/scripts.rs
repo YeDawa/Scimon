@@ -15,6 +15,7 @@ use crate::{
     consts::folders::Folders,
     system::plataforms::Plataforms,
     regexp::regex_core::CoreRegExp,
+    security::security_rules::SecurityRules,
     ui::errors_commands_alerts::ErrorsCommandsAlerts,
 
     utils::{
@@ -63,9 +64,15 @@ impl Scripts {
                 line_trimmed.to_string()
             };
 
+            let (_, is_safe) = SecurityRules.scan_script(&script).await?;
+
+            if !is_safe {
+                return Ok(());
+            }
+
             if script.ends_with(".py") {
                 self.exec(&script, "python")?;
-            } else if line_trimmed.ends_with(".js") {
+            } else if script.ends_with(".js") || script.ends_with(".mjs") || script.ends_with(".cjs") || script.ends_with(".jsx") {
                 self.exec(&script, "node")?;
             } else {
                 ErrorsCommandsAlerts::unsupported(&script);
