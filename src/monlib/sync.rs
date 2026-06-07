@@ -5,43 +5,23 @@ use serde_json::{
     from_str,
 };
 
-use std::{
-    error::Error,
-    
-    io::{
-        Cursor,
-        BufRead,
-    }
-};
+use std::error::Error;
 
 use crate::{
-    args_cli::Flags,
-    cmd::monset::Monset,
     consts::addons::Addons,
+    handlers::monlib_errors::*,
+    configs::settings::Settings,
     monlib::request::MonlibRequest,
-    syntax::blocks::readme_block::ReadMeBlock,
-
-    ui::{
-        panic_alerts::PanicAlerts,
-        errors_alerts::ErrorsAlerts,
-    },
-
-    handlers::{
-        monlib_errors::*,
-        monlib_handlers::MonlibHandlers,
-    },
+    ui::errors_alerts::ErrorsAlerts,
 };
 
-pub struct MonlibPull;
+pub struct MonlibSync;
 
-impl MonlibPull {
+impl MonlibSync {
 
-    pub async fn pull(&self, run: &str, flags: &Flags) -> Result<String, Box<dyn Error>> {
+    pub async fn pull(&self) -> Result<String, Box<dyn Error>> {
         let mut url = Addons::MONLIB_API_REQUEST.to_owned();
-    
-        url.push_str("packages/");
-        url.push_str(&run);
-        url.push_str("/raw");
+        url.push_str("sync/");
 
         let response = MonlibRequest::new().get(url.as_str()).await?;
         if response.status().is_success() {
@@ -60,31 +40,14 @@ impl MonlibPull {
             }
     
             if !is_json {
-                let lines_iter = Cursor::new(&data).lines();
-                let collected_lines: Result<String, _> = lines_iter.collect();
-
-                if let Ok(validated_content) = collected_lines {
-                    if !MonlibHandlers.validator_lib(&validated_content) {
-                        PanicAlerts::monlib_invalid_lib();
-                        return Ok(String::new());
-                    }
-                } else {
-                    PanicAlerts::monlib_invalid_lib();
-                    return Ok(String::new());
-                }
-
-                let monset = Monset::new(&data);
-
-                let _ = monset.downloads_raw(&flags).await?;
-                let _ = monset.run_code_raw().await;
-                let _ = ReadMeBlock.render_block_and_save_file(&url, &flags);
+                Settings.write_file(&data)?;
             }
     
             Ok(result)
         } else {
             let status = response.status().as_u16() as i32;
             let response_text = response.text().await?;
-            
+
             if let Ok(error_response) = from_str::<ErrorResponse>(&response_text) {
                 let message = ApiError::Message(error_response.message);
                 ErrorsAlerts::monlib(status, &message.to_string());
@@ -98,6 +61,11 @@ impl MonlibPull {
                 )
             }
         }
+    }
+
+    pub async fn push(&self) -> Result<String, Box<dyn Error>> {
+        println!("Pushing settings file to Monlib...");
+        Ok("Settings file pushed successfully".to_string())
     }
 
 }

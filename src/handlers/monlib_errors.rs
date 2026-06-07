@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct ErrorResponse {
-    pub error: String,
+    pub message: String,
 }
 
 #[derive(Debug)]

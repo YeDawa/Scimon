@@ -15,6 +15,7 @@ use crate::{
     monlib::{
         pull::MonlibPull,
         push::MonlibPush,
+        sync::MonlibSync,
         logout::MonlibLogout,
     },
 
@@ -50,6 +51,16 @@ impl Scimon {
             "login" => println!("monlib login"),
             "logout" => MonlibLogout.logout(),
             _ => (),
+        };
+
+        Ok(())
+    }
+
+    async fn sync(&self, cmd: &str) -> Result<(), Box<dyn Error>> {
+        match cmd {
+            "pull" => MonlibSync.pull().await?,
+            "push" => MonlibSync.push().await?,
+            _ => "Invalid command".to_string(),
         };
 
         Ok(())
@@ -101,6 +112,10 @@ impl Scimon {
 
                 Commands::Auth { option } => {
                     let _ = self.monlib(&option);
+                },
+
+                Commands::Settings { cmd } => {
+                    let _ = self.sync(&cmd).await;
                 },
             }
         }

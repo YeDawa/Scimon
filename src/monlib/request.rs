@@ -22,7 +22,7 @@ impl MonlibRequest {
         Self { api_key }
     }
 
-    pub async fn pull(&self, url: &str) -> Result<Response, Error> {
+    pub async fn get(&self, url: &str) -> Result<Response, Error> {
         let client = Client::builder().danger_accept_invalid_certs(true).build().unwrap();
 
         let response = client

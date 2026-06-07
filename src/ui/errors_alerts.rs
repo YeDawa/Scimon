@@ -25,7 +25,15 @@ impl ErrorsAlerts {
         eprintln!(
             "{} {}", 
             current_datetime.red().bold(), 
-            e
+            e.red()
+        );
+    }
+
+    pub fn monlib(status: i32, e: &str) {
+        eprintln!(
+            "Status: {}. Message: {}",
+            status.to_string().yellow(),
+            e.red()
         );
     }
 
@@ -36,7 +44,7 @@ impl ErrorsAlerts {
         eprintln!(
             "{} {} (from {})", 
             current_datetime.red().bold(), 
-            e, url.cyan()
+            e.red(), url.cyan()
         );
     }
 

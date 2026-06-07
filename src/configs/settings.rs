@@ -1,8 +1,12 @@
 use serde_yaml::Value::String as SerdeValue;
 
 use std::{
-    fs::File,
     error::Error,
+
+    fs::{
+        File,
+        write,
+    },
 
     io::{
         Read,
@@ -93,6 +97,18 @@ impl Settings {
             open::with(settings_path, editor)?;
         }
         
+        Ok(())
+    }
+
+    pub fn write_file(&self, content: &str) -> Result<(), Box<dyn Error>> {
+        let app_folder = &*Folders::APP_FOLDER;
+        let app_name = Global::APP_NAME;
+
+        let settings_path = app_folder.join(
+            format!("{}.yml", app_name.to_lowercase())
+        );
+
+        write(settings_path, content)?;
         Ok(())
     }
 

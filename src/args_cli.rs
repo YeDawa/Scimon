@@ -60,4 +60,10 @@ pub enum Commands {
         /// Authentification for Monlib
         option: String,
     },
+
+    /// Sync setting's file with the Monlib
+    Settings {
+        /// Pull or push settings file
+        cmd: String,
+    },
 }
