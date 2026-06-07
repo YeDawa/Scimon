@@ -50,7 +50,7 @@ impl SecurityRules {
         println!();
     }
 
-    pub async fn scan_script(&self, source: &str) -> Result<(Vec<String>, bool), Box<dyn Error>> {
+    pub async fn scan_script(&self, source: &str) -> Result<bool, Box<dyn Error>> {
         let language = if source.ends_with(".py") {
             "Python"
         } else if source.ends_with(".js") || source.ends_with(".mjs") || source.ends_with(".cjs") || source.ends_with(".jsx") {
@@ -74,7 +74,7 @@ impl SecurityRules {
                 };
 
                 self.print_scan_report(source, is_safe, &violations);
-                Ok((violations, is_safe))
+                Ok(is_safe)
             }
 
             Err(e) => {

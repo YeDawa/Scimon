@@ -64,8 +64,7 @@ impl Scripts {
                 line_trimmed.to_string()
             };
 
-            let (_, is_safe) = SecurityRules.scan_script(&script).await?;
-            if !is_safe {
+            if !SecurityRules.scan_script(&script).await? {
                 return Ok(());
             }
 
