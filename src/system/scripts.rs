@@ -12,10 +12,11 @@ use std::{
 };
 
 use crate::{
+    args_cli::Flags,
     consts::folders::Folders,
     system::plataforms::Plataforms,
     regexp::regex_core::CoreRegExp,
-    
+
     ui::{
         security_alerts::SecurityAlerts,
         errors_commands_alerts::ErrorsCommandsAlerts,
@@ -61,7 +62,7 @@ impl Scripts {
         Ok(())
     }
 
-    pub async fn read(&self, line_trimmed: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn read(&self, line_trimmed: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
         if line_trimmed.len() >= 3 {
             let script = if line_trimmed.starts_with("http") {
                 let path = Folders::SCRIPTS_FOLDER.to_str().unwrap_or_default().to_string();
@@ -72,15 +73,17 @@ impl Scripts {
                 line_trimmed.to_string()
             };
 
-            if let Ok((entropy, is_high)) = Entropy.calculate(script.as_bytes()) {
-                if is_high {
-                    SecurityAlerts::high_entropy(&script, entropy);
+            if !flags.no_secure {
+                if let Ok((entropy, is_high)) = Entropy.calculate(script.as_bytes()) {
+                    if is_high {
+                        SecurityAlerts::high_entropy(&script, entropy);
+                        return Ok(());
+                    }
+                }
+
+                if !SecurityRules.scan_script(&script).await? {
                     return Ok(());
                 }
-            }
-
-            if !SecurityRules.scan_script(&script).await? {
-                return Ok(());
             }
 
             if script.ends_with(".py") {

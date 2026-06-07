@@ -84,16 +84,16 @@ impl Monset {
         Ok(())
     }
 
-    pub async fn run_code(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn run_code(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
         let mut reader = self.read_file().await?;
-        RunnerBlock.read_lines(&mut reader).await?;
+        RunnerBlock.read_lines(&mut reader, flags).await?;
 
         Ok(())
     }
 
-    pub async fn run_code_raw(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn run_code_raw(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
         let content = self.run.clone();
-        RunnerBlock.read_lines_raw(&content).await?;
+        RunnerBlock.read_lines_raw(&content, flags).await?;
 
         Ok(())
     }

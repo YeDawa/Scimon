@@ -19,6 +19,10 @@ pub struct Flags {
     /// Disable the !readme directive
     pub no_readme: bool,
 
+    #[arg(long, global = true)]
+    /// Disable the secure mode for the running of code
+    pub no_secure: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }

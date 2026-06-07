@@ -76,7 +76,7 @@ impl MonlibPull {
                 let monset = Monset::new(&data);
 
                 let _ = monset.downloads_raw(&flags).await?;
-                let _ = monset.run_code_raw().await;
+                let _ = monset.run_code_raw(&flags).await;
                 let _ = ReadMeBlock.render_block_and_save_file(&url, &flags);
             }
     

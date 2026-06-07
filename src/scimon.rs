@@ -87,7 +87,7 @@ impl Scimon {
                     let monset = Monset::new(&file);
 
                     let _ = monset.downloads(&flags_clone).await;
-                    let _ = monset.run_code().await;
+                    let _ = monset.run_code(&flags_clone).await;
                     let _ = ReadMeBlock.render_block_and_save_file(&file, &flags_clone);
                 },
 
