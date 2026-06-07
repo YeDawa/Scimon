@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::security::rules::Rules;
+use crate::security::rules::rules::Rules;
 
 pub struct JsRules;
 

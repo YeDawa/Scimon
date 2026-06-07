@@ -6,15 +6,16 @@ use std::{
 };
 
 use crate::{
-    security::{
-        py_rules::*,
-        js_rules::*,
-    },
-
     ui::{
         ui_base::UI,
         security_alerts::SecurityAlerts,
-    }
+    },
+
+    security::rules::{
+        py_rules::*,
+        js_rules::*,
+        ts_rules::*,
+    },
 };
 
 pub struct SecurityRules;
@@ -54,6 +55,8 @@ impl SecurityRules {
             "Python"
         } else if source.ends_with(".js") || source.ends_with(".mjs") || source.ends_with(".cjs") || source.ends_with(".jsx") {
             "JavaScript"
+        } else if source.ends_with(".ts") || source.ends_with(".tsx") {
+            "TypeScript"
         } else {
             "Unknown"
         };
@@ -64,6 +67,8 @@ impl SecurityRules {
                     PyRules.rules(&content)
                 } else if language == "JavaScript" {
                     JsRules.rules(&content)
+                } else if language == "TypeScript" {
+                    TsRules.rules(&content)
                 } else {
                     (Vec::new(), true)
                 };
