@@ -57,7 +57,7 @@ impl Render {
                 function offsetTop(el) {
                     var top = 0;
                     while (el) { top += el.offsetTop || 0; el = el.offsetParent; }
-                    
+
                     return top;
                 }
 
@@ -70,6 +70,7 @@ impl Render {
 
                     if (id.startsWith('label-'))
                         return document.getElementById('item-' + id.slice(6));
+                        
                     return null;
                 }
 
