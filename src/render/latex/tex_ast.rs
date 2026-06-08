@@ -1,5 +1,3 @@
-use std::fs;
-
 use crate::render::latex::{
     nodes::Nodes,
     bibtex::BibTextRender,
@@ -164,13 +162,28 @@ impl LatexNode {
             // Bibliography
             LatexNode::Bibliography(file) => {
                 let mut html = String::from("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
-                let bib_content = fs::read_to_string(format!("{}.bib", file)).unwrap_or_default();
-                let (bib_db, _) = BibTextRender::process_document(&bib_content);
-                ctx.bib_database = bib_db;
+                
+                let source = if file.starts_with("http://") || file.starts_with("https://") {
+                    file.clone()
+                } else {
+                    format!("{}.bib", file)
+                };
 
-                for key in &ctx.used_citations {
-                    if let Some(entry) = ctx.bib_database.get(key) { html.push_str(&format!("<li id=\"ref-{}\">{}, <em>{}</em>, {}.</li>", key, entry.author, entry.title, entry.year)); } 
-                    else { html.push_str(&format!("<li><strong style='color:red;'>Error: Ref '{}' not found!</strong></li>", key)); }
+                let bib_content = BibTextRender::fetch_bibliography(&source).unwrap_or_default();
+                ctx.bib_database = BibTextRender::parse_bibtex(&bib_content);
+
+                for key in ctx.bib_database.keys() {
+                    if let Some(entry) = ctx.bib_database.get(key) {
+                        html.push_str(&format!(
+                            "<li id=\"ref-{}\">{}, <em>{}</em>, {}.</li>",
+                            key, entry.author, entry.title, entry.year
+                        ));
+                    } else {
+                        html.push_str(&format!(
+                            "<li><strong style='color:red;'>Error: Ref '{}' not found!</strong></li>",
+                            key
+                        ));
+                    }
                 }
 
                 html.push_str("</ol>");

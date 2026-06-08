@@ -1,4 +1,3 @@
-use reqwest::blocking::get;
 use std::{
     fs,
     collections::HashMap,
@@ -17,8 +16,12 @@ impl BibTextRender {
 
     pub fn fetch_bibliography(source: &str) -> Result<String, String> {
         if source.starts_with("http://") || source.starts_with("https://") {
-            let response = get(source).map_err(|e| e.to_string())?;
-            response.text().map_err(|e| e.to_string())
+            ureq::get(source)
+                .call()
+                .map_err(|e| e.to_string())?
+                .body_mut()
+                .read_to_string()
+                .map_err(|e| e.to_string())
         } else {
             fs::read_to_string(source).map_err(|e| e.to_string())
         }
@@ -53,35 +56,6 @@ impl BibTextRender {
         }
 
         db
-    }
-
-    pub fn process_document(input: &str) -> (HashMap<String, BibEntry>, String) {
-        let mut bib_db = HashMap::new();
-        let mut main_content = input.to_string();
-
-        if let Some(start) = main_content.find(r"\bibliography{") {
-            if let Some(end) = main_content[start..].find('}') {
-                let end_idx = start + end + 1;
-                let source = &main_content[start + 14..start + end];
-                
-                if let Ok(content) = Self::fetch_bibliography(source) {
-                    bib_db = Self::parse_bibtex(&content);
-                }
-                
-                let mut html_list = String::from(r#"<div class="bibliography"><h3>References</h3><ul>"#);
-                for (key, entry) in &bib_db {
-                    html_list.push_str(&format!(
-                        r#"<li id="ref-{}"><strong>{}</strong>. <em>{}</em> ({})</li>"#,
-                        key, entry.author, entry.title, entry.year
-                    ));
-                }
-                
-                html_list.push_str("</ul></div>");
-                main_content.replace_range(start..end_idx, &html_list);
-            }
-        }
-
-        (bib_db, main_content)
     }
 
 }
