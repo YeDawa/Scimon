@@ -746,6 +746,7 @@ impl Parser {
                     // \text{...} inside math — render as plain HTML text span
                     "text" | "textrm" | "mathrm" if self.in_document => {
                         let content = self.parse_braces_content();
+                        
                         nodes.push(LatexNode::Text(
                             format!("<span class=\"math-text\">{}</span>", content)
                         ));
