@@ -115,7 +115,9 @@ impl LatexNode {
             }
             
             // Refs & TOC
-            LatexNode::Label(_) => String::new(),
+            LatexNode::Label(name) => {
+                format!("<span id=\"label-{}\"></span>", name)
+            }
 
             // Cross-references
             LatexNode::Ref(key) => {
@@ -130,10 +132,9 @@ impl LatexNode {
                 format!("<a href=\"#{}-{}\" class=\"cross-ref\">{}</a>", html_id_prefix, num, num)
             }
             
+            // Page references
             LatexNode::PageRef(label) => {
-                let num = ctx.labels.get(label).cloned().unwrap_or_else(|| "??".to_string());
-                let html_id_prefix = if label.starts_with("ref-") { "ref" } else { "item" };
-                format!("<a href=\"#{}-{}\" class=\"cross-ref\">{}</a>", html_id_prefix, num, num)
+                format!("<span class=\"cross-ref pageref\" data-ref=\"{}\">??</span>", label)
             }
 
             // Table of Contents

@@ -35,7 +35,7 @@ impl Templates {
 
     pub fn latex(content: &str) -> String {
         format!(
-            r#"<!DOCTYPE html>
+            r##"<!DOCTYPE html>
             <html lang="pt-BR">
             <head>
                 <meta charset="UTF-8">
@@ -125,6 +125,9 @@ impl Templates {
                     .font-LARGE {{ font-size: 1.8em; }}
                     .font-huge {{ font-size: 2.0em; }}
                     .font-Huge {{ font-size: 2.5em; }}
+
+                    /* Cursor Pointer for Refs */
+                    .cursor-pointer {{ cursor: pointer; }}
                     
                     /* Responsive */
                     @media (max-width: 768px) {{
@@ -139,6 +142,23 @@ impl Templates {
                 
                 <script>
                     document.addEventListener('DOMContentLoaded', (event) => {{
+                        const A4_HEIGHT_PX = 1122;
+                        document.body.getBoundingClientRect();
+
+                        document.querySelectorAll(".pageref").forEach(el => {{
+                            const refId = el.dataset.ref;
+                            el.classList.add("cursor-pointer");
+                            const target = document.getElementById("label-" + refId);
+
+                            if (target) {{
+                                const offsetY = target.getBoundingClientRect().top + window.scrollY;
+                                const page = Math.floor(offsetY / A4_HEIGHT_PX) + 1;
+                                el.textContent = page;
+                            }} else {{
+                                el.textContent = "??";
+                            }}
+                        }});
+
                         document.querySelectorAll('pre code, .code-block').forEach((el) => {{
                             hljs.highlightElement(el);
                         }});
@@ -150,7 +170,7 @@ impl Templates {
                     {}
                 </div>
             </body>
-            </html>"#, content
+            </html>"##, content
         )
     }
 
