@@ -328,8 +328,14 @@ impl Parser {
                         nodes.push(LatexNode::SmallCaps(Parser::new(&self.parse_braces_content()).parse(true)));
                     }
 
-                    "tiny" | "small" | "large" | "huge" if self.in_document => {
-                        let rest_of_content = self.parse_text(); 
+                    "tiny" | "small" | "large" | "Large" | "LARGE" | "huge" | "Huge" | "HUGE" if self.in_document => {
+                        let mut rest_of_content = String::new();
+                        
+                        while self.pos < self.chars.len() {
+                            rest_of_content.push(self.chars[self.pos]);
+                            self.pos += 1;
+                        }
+                        
                         nodes.push(LatexNode::FontSize(
                             command.clone(), 
                             Parser::new(&rest_of_content).parse(true)
@@ -377,6 +383,11 @@ impl Parser {
                 }
 
                 nodes.push(LatexNode::MathInline(Parser::new(&math_block).parse(true)));
+            } else if current == '{' && self.in_document {
+                let content = self.parse_braces_content();
+                nodes.extend(Parser::new(&content).parse(true));
+            } else if current == '}' && self.in_document {
+                self.pos += 1;
             } else {
                 let text = self.parse_text();
 
@@ -386,6 +397,7 @@ impl Parser {
                     if self.in_document { 
                         nodes.push(LatexNode::Text(special_char.to_string())); 
                     }
+                    
                     self.pos += 1;
                 } else if self.in_document && !text.trim().is_empty() { 
                     nodes.push(LatexNode::Text(text)); 

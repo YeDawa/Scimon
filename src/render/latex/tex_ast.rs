@@ -65,11 +65,14 @@ impl LatexNode {
             LatexNode::Monospace(nodes) => format!("<code>{}</code>", Nodes::render(nodes, ctx)),
             LatexNode::SmallCaps(nodes) => format!("<span style=\"font-variant: small-caps;\">{}</span>", Nodes::render(nodes, ctx)),
             
-            // Font size
-            LatexNode::FontSize(size, nodes) => format!("<span style=\"font-size: {}\">{}</span>", size, Nodes::render(nodes, ctx)),
-            
             // Vertical space
             LatexNode::VSpace(size) => format!("<div style=\"height: {}\"></div>", size),
+
+            // Font size with predefined classes
+            LatexNode::FontSize(size, nodes) => {
+                let inner_html = Nodes::render(nodes, ctx);
+                format!("<span class=\"font-{}\">{}</span>", size, inner_html)
+            }
             
             // Links
             LatexNode::Url(url) => format!("<a href=\"{}\">{}</a>", url, url),

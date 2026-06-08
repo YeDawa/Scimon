@@ -116,6 +116,15 @@ impl Templates {
                     .cite {{ color: #27ae60; text-decoration: none; font-weight: 600; padding: 0 2px; }}
                     .cite:hover {{ text-decoration: underline; }}
                     .bibliography {{ background: #fbfcfc; padding: 25px 40px; border-left: 4px solid #27ae60; border-radius: 6px; margin-top: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }}
+
+                    /* Font Sizes */
+                    .font-tiny {{ font-size: 0.6em; }}
+                    .font-small {{ font-size: 0.85em; }}
+                    .font-large {{ font-size: 1.2em; }}
+                    .font-Large {{ font-size: 1.4em; }}
+                    .font-LARGE {{ font-size: 1.8em; }}
+                    .font-huge {{ font-size: 2.0em; }}
+                    .font-Huge {{ font-size: 2.5em; }}
                     
                     /* Responsive */
                     @media (max-width: 768px) {{
