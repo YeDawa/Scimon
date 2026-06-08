@@ -147,7 +147,8 @@ impl LatexNode {
                 ctx.chap_num += 1;
                 ctx.sec_num = 0;
                 ctx.subsec_num = 0;
-                let num = format!("{}", ctx.chap_num);
+                let num = ctx.chap_num.to_string();
+                ctx.toc.push((1, num.clone(), title.clone()));
                 format!("<h1 id=\"item-{}\">{} &nbsp;&nbsp; {}</h1>", num, num, title)
             }
 
@@ -155,7 +156,8 @@ impl LatexNode {
                 ctx.sec_num += 1;
                 ctx.subsec_num = 0;
                 ctx.subsubsec_num = 0;
-                let num = format!("{}", ctx.sec_num);
+                let num = ctx.sec_num.to_string();
+                ctx.toc.push((2, num.clone(), title.clone()));
                 format!("<h2 id=\"item-{}\">{} &nbsp;&nbsp; {}</h2>", num, num, title)
             }
 
@@ -163,12 +165,14 @@ impl LatexNode {
                 ctx.subsec_num += 1;
                 ctx.subsubsec_num = 0;
                 let num = format!("{}.{}", ctx.sec_num, ctx.subsec_num);
+                ctx.toc.push((3, num.clone(), title.clone()));
                 format!("<h3 id=\"item-{}\">{} &nbsp;&nbsp; {}</h3>", num, num, title)
             }
 
             LatexNode::Subsubsection(title) => {
                 ctx.subsubsec_num += 1;
                 let num = format!("{}.{}.{}", ctx.sec_num, ctx.subsec_num, ctx.subsubsec_num);
+                ctx.toc.push((4, num.clone(), title.clone()));
                 format!("<h4 id=\"item-{}\">{} &nbsp;&nbsp; {}</h4>", num, num, title)
             }
 
@@ -240,6 +244,7 @@ impl LatexNode {
                 let num = ctx.eq_num.to_string();
                 // Ensure any \label inside this block resolves to this eq number
                 Misc::register_inner_labels(nodes, &num, ctx);
+
                 format!(
                     "<div class=\"math-block\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
                     num,
@@ -287,19 +292,16 @@ impl LatexNode {
             }
 
             LatexNode::PageRef(label) => {
-                // The anchor for a section/eq/figure is always id="item-{num}".
-                // The span id="label-{key}" only exists when \label appears
-                // explicitly in the body — it may not exist for section labels.
-                // So we use item-{num} as both href and data-ref when the label
-                // is resolved; fall back to label-{key} for unknown labels.
                 let (href, data_ref) = if let Some(num) = ctx.labels.get(label) {
                     (format!("item-{}", num), format!("item-{}", num))
                 } else {
                     (format!("label-{}", label), format!("label-{}", label))
                 };
+                let num = ctx.labels.get(label).cloned().unwrap_or_else(|| "??".to_string());
+                
                 format!(
-                    "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"{}\">??</a>",
-                    href, data_ref
+                    "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"{}\">{}</a>",
+                    href, data_ref, num
                 )
             }
 
@@ -371,22 +373,9 @@ impl LatexNode {
             // ----------------------------------------------------------------
             // TOC
             // ----------------------------------------------------------------
-            LatexNode::TableOfContents => {
-                let mut html = String::from("<div class=\"toc\"><h2>Summary</h2><ul>");
-                for (level, num, title) in &ctx.toc {
-                    let indent = match level {
-                        2 => "margin-left: 25px;",
-                        3 => "margin-left: 50px;",
-                        _ => "",
-                    };
-                    html.push_str(&format!(
-                        "<li style=\"{}\"><a href=\"#item-{}\"><strong>{}</strong> {}</a></li>",
-                        indent, num, num, title
-                    ));
-                }
-                html.push_str("</ul></div>");
-                html
-            }
+            LatexNode::TableOfContents =>
+                // Filled in after the full render pass by LaTex::build_toc()
+                "__TOC_PLACEHOLDER__".to_string(),
 
             // ----------------------------------------------------------------
             // Floats

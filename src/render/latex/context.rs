@@ -89,15 +89,12 @@ impl RenderContext {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Citation helpers
-    // -----------------------------------------------------------------------
-
     /// Register a citation key and return its 1-based number.
     pub fn register_citation(&mut self, key: &str) -> usize {
         if let Some(&n) = self.citation_map.get(key) {
             return n;
         }
+
         let n = self.citation_order.len() + 1;
         self.citation_order.push(key.to_string());
         self.citation_map.insert(key.to_string(), n);
@@ -128,4 +125,5 @@ impl RenderContext {
         html.push_str("</ol>");
         html
     }
+
 }

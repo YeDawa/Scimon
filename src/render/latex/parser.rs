@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use crate::render::latex::{
-    misc::Misc,
-    tex_ast::LatexNode,
-};
+use crate::render::latex::tex_ast::LatexNode;
 
 // ---------------------------------------------------------------------------
 // Greek letters, operators and other math symbols supported as \commands
@@ -132,6 +129,7 @@ pub struct Parser {
     pub current_section: usize,
     pub current_subsection: usize,
     pub current_table: usize,
+    pub current_equation: usize,
 }
 
 impl Parser {
@@ -145,6 +143,7 @@ impl Parser {
             current_section: 0,
             current_subsection: 0,
             current_table: 0,
+            current_equation: 0,
         }
     }
 
@@ -392,6 +391,7 @@ impl Parser {
                 }
 
                 match command.as_str() {
+
                     // --------------------------------------------------------
                     // Preamble / metadata (allowed outside \begin{document})
                     // --------------------------------------------------------
@@ -439,7 +439,10 @@ impl Parser {
                     // --------------------------------------------------------
                     "begin" => {
                         let env = self.parse_braces_content();
+
                         if env == "table" { self.current_table += 1; }
+
+                        // Consume optional placement [htbp] etc.
                         self.parse_optional_arg();
 
                         if env == "document" {
@@ -487,20 +490,32 @@ impl Parser {
                             nodes.push(LatexNode::Table(rows));
 
                         } else if env == "table" && self.in_document {
-                            // floating table environment – just parse its contents
                             let raw = self.read_until_end("table");
-                            nodes.extend(Parser::new(raw.trim()).parse(true, labels));
+                            // Pre-register \label{tab:…} with the current table number
+                            Self::extract_and_register_labels(&raw, &self.current_table.to_string(), "tab:", labels);
+                            let mut sub = Parser::new(raw.trim());
+                            sub.current_table      = self.current_table;
+                            sub.current_section    = self.current_section;
+                            sub.current_chapter    = self.current_chapter;
+                            sub.current_subsection = self.current_subsection;
+                            sub.current_equation   = self.current_equation;
+                            nodes.extend(sub.parse(true, labels));
 
                         } else if env == "figure" && self.in_document {
                             let raw = self.read_until_end("figure");
-                            nodes.extend(Parser::new(raw.trim()).parse(true, labels));
+                            Self::extract_and_register_labels(&raw, &self.current_section.to_string(), "fig:", labels);
+                            let mut sub = Parser::new(raw.trim());
+                            sub.current_section    = self.current_section;
+                            sub.current_chapter    = self.current_chapter;
+                            sub.current_equation   = self.current_equation;
+                            sub.current_table      = self.current_table;
+                            sub.current_subsection = self.current_subsection;
+                            nodes.extend(sub.parse(true, labels));
 
                         } else if (env == "equation" || env == "equation*") && self.in_document {
                             let raw = self.read_until_end(&env);
-                            // Determine what equation number this will get (+1 of current)
-                            // and pre-register any \label inside so \ref resolves correctly.
-                            let next_eq = Misc::ctx_eq_num_peek(labels) + 1;
-                            Misc::extract_and_register_labels(&raw, &next_eq.to_string(), "eq:", labels);
+                            self.current_equation += 1;
+                            Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
                             nodes.push(LatexNode::EquationBlock(
                                 Parser::new(raw.trim()).parse(true, labels)
                             ));
@@ -512,8 +527,8 @@ impl Parser {
                                 || env == "flalign"  || env == "flalign*") && self.in_document
                         {
                             let raw = self.read_until_end(&env);
-                            let next_eq = Misc::ctx_eq_num_peek(labels) + 1;
-                            Misc::extract_and_register_labels(&raw, &next_eq.to_string(), "eq:", labels);
+                            self.current_equation += 1;
+                            Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
                             nodes.push(LatexNode::AlignBlock(
                                 Parser::new(raw.trim()).parse(true, labels)
                             ));
@@ -865,8 +880,21 @@ impl Parser {
                             self.current_chapter.to_string()
                         } else if label_name.starts_with("subsec:") {
                             format!("{}.{}", self.current_section, self.current_subsection)
-                        } else {
+                        } else if label_name.starts_with("eq:") || label_name.starts_with("eqn:") {
+                            self.current_equation.to_string()
+                        } else if label_name.starts_with("fig:") {
+                            // fig counter not tracked in parser yet; use section as fallback
                             self.current_section.to_string()
+                        } else if label_name.starts_with("sec:") {
+                            self.current_section.to_string()
+                        } else {
+                            // Generic label — use whatever was most recently set
+                            // (equation takes priority over section for inline labels)
+                            if self.current_equation > 0 {
+                                self.current_equation.to_string()
+                            } else {
+                                self.current_section.to_string()
+                            }
                         };
                         labels.insert(label_name.clone(), target_value);
                         nodes.push(LatexNode::Label(label_name));
@@ -1113,6 +1141,36 @@ impl Parser {
             rows.push(cells);
         }
         rows
+    }
+
+    // -----------------------------------------------------------------------
+    // Helper: scan raw LaTeX for \label{key} and pre-register in `labels` with
+    // `value`, so \ref resolves correctly before counters are incremented.
+    // Pass prefix = "" to register all labels, or e.g. "eq:" to filter.
+    // -----------------------------------------------------------------------
+    fn extract_and_register_labels(
+        raw: &str,
+        value: &str,
+        prefix: &str,
+        labels: &mut HashMap<String, String>,
+    ) {
+        let tag = "\\label{";
+        let mut pos = 0;
+        while pos + tag.len() <= raw.len() {
+            if raw[pos..].starts_with(tag) {
+                pos += tag.len();
+                let start = pos;
+                while pos < raw.len() && raw.as_bytes()[pos] != b'}' {
+                    pos += 1;
+                }
+                let key = &raw[start..pos];
+                if prefix.is_empty() || key.starts_with(prefix) {
+                    labels.insert(key.to_string(), value.to_string());
+                }
+            } else {
+                pos += 1;
+            }
+        }
     }
 
 }

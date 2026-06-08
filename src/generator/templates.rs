@@ -255,6 +255,12 @@ impl Templates {
                             t = setTimeout(resolvePageRefs, 150);
                         }});
 
+                        document.querySelectorAll("[data-ref]").forEach(function(el) {{
+                            var id = el.getAttribute("data-ref");
+                            var target = document.getElementById(id);
+                            console.log("data-ref:", id, "→ target:", target, "→ absTop:", target ? target.getBoundingClientRect().top : "NOT FOUND");
+                        }});
+
                         window.resolvePageRefs = resolvePageRefs;
                     }})();
                 </script>
