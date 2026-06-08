@@ -165,14 +165,17 @@ impl LatexNode {
             LatexNode::Bibliography(file) => {
                 let mut html = String::from("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
                 let bib_content = fs::read_to_string(format!("{}.bib", file)).unwrap_or_default();
-                ctx.bib_database = BibTextRender::parse_bibtex(&bib_content);
+                let (bib_db, _) = BibTextRender::process_document(&bib_content);
+                ctx.bib_database = bib_db;
 
                 for key in &ctx.used_citations {
                     if let Some(entry) = ctx.bib_database.get(key) { html.push_str(&format!("<li id=\"ref-{}\">{}, <em>{}</em>, {}.</li>", key, entry.author, entry.title, entry.year)); } 
                     else { html.push_str(&format!("<li><strong style='color:red;'>Error: Ref '{}' not found!</strong></li>", key)); }
                 }
 
-                html.push_str("</ol>"); html
+                html.push_str("</ol>");
+                println!("Bibliography HTML: {}", html);
+                html
             }
 
             // Mermaid diagrams
