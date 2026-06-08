@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fs::read_to_string,
     collections::HashMap,
 };
 
@@ -23,7 +23,7 @@ impl BibTextRender {
                 .read_to_string()
                 .map_err(|e| e.to_string())
         } else {
-            fs::read_to_string(source).map_err(|e| e.to_string())
+            read_to_string(source).map_err(|e| e.to_string())
         }
     }
 
