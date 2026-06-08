@@ -63,9 +63,11 @@ impl RenderContext {
         if let Some(&n) = self.citation_map.get(key) {
             return n;
         }
+
         let n = self.citation_order.len() + 1;
         self.citation_order.push(key.to_string());
         self.citation_map.insert(key.to_string(), n);
+
         n
     }
 
@@ -73,9 +75,11 @@ impl RenderContext {
         if self.pending_footnotes.is_empty() {
             return String::new();
         }
+
         let mut html = String::from(
             "<hr class=\"footnote-rule\"/><ol class=\"footnote-list\">"
         );
+
         let footnotes = std::mem::take(&mut self.pending_footnotes);
         for (num, content) in footnotes {
             html.push_str(&format!(
@@ -83,6 +87,7 @@ impl RenderContext {
                 num, content, num
             ));
         }
+        
         html.push_str("</ol>");
         html
     }
