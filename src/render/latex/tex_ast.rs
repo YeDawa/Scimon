@@ -151,6 +151,7 @@ impl LatexNode {
                     if let Some(entry) = ctx.bib_database.get(key) { html.push_str(&format!("<li id=\"ref-{}\">{}, <em>{}</em>, {}.</li>", key, entry.author, entry.title, entry.year)); } 
                     else { html.push_str(&format!("<li><strong style='color:red;'>Error: Ref '{}' not found!</strong></li>", key)); }
                 }
+                
                 html.push_str("</ol>"); html
             }
 
