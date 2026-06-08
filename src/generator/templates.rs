@@ -92,10 +92,39 @@ impl Templates {
                     .eq-number {{ position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 0.8em; font-style: normal; color: #95a5a6; }}
                     sup, sub {{ font-size: 0.75em; line-height: 0; position: relative; vertical-align: baseline; }}
                     sup {{ top: -0.5em; }} sub {{ bottom: -0.25em; }}
-                    .latex-frac {{ display: inline-block; vertical-align: middle; margin: 0 0.2em; text-align: center; }}
-                    .frac-num {{ display: block; border-bottom: 1px solid #2c3e50; padding: 0 0.2em; line-height: 1.2; }}
-                    .frac-den {{ display: block; padding: 0 0.2em; line-height: 1.2; }}
-                    
+                    .latex-frac {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        vertical-align: middle;
+                        text-align: center;
+                        margin: 0 0.2em;
+                        font-size: 0.9em;
+                    }}
+                    .frac-num {{ border-bottom: 1px solid currentColor; padding: 0 0.2em; }}
+                    .frac-den {{ padding: 0 0.2em; }}
+
+                    /* Matrix */
+                    .latex-matrix-wrap {{
+                        display: inline-flex;
+                        align-items: center;
+                        vertical-align: middle;
+                    }}
+                    .matrix-delim {{
+                        font-size: 2em;
+                        line-height: 1;
+                        font-weight: 200;
+                        font-family: 'Cambria Math', 'Times New Roman', serif;
+                    }}
+                    .latex-matrix {{
+                        display: inline-grid;
+                        column-gap: 0.6em;
+                        row-gap: 0.25em;
+                        margin: 0 0.1em;
+                        text-align: center;
+                        align-items: center;
+                    }}
+                    .matrix-cell {{ display: contents; }}
+
                     /* Code Blocks (Syntax Highlighting) */
                     pre {{ margin: 30px; border-radius: 8px; }}
                     pre code {{ font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.9em; padding: 20px !important; border-radius: 8px; line-height: 1.6; }}
@@ -128,32 +157,24 @@ impl Templates {
                     .font-huge {{ font-size: 2.0em; }}
                     .font-Huge {{ font-size: 2.5em; }}
 
-                    /* Cursor Pointer for Refs */
-                    .cursor-pointer {{ cursor: pointer; }}
+                    /* Footnotes */
+                    .footnote-rule {{ margin-top: 60px; border: none; border-top: 1px solid #eaeaea; }}
+                    .footnote-list {{ font-size: 0.85em; color: #666; padding-left: 25px; }}
+                    .footnote-ref a {{ color: #e67e22; font-weight: 600; text-decoration: none; font-size: 0.8em; vertical-align: super; }}
+                    .footnote-back {{ color: #aaa; text-decoration: none; margin-left: 4px; }}
 
-                    .latex-frac {{
-                        display: inline-flex;
-                        flex-direction: column;
-                        vertical-align: middle;
-                        text-align: center;
-                        margin: 0 0.2em;
-                        font-size: 0.9em;
-                    }}
+                    /* Abstract */
+                    .abstract {{ background: #f8f9fa; border-left: 4px solid #2980b9; padding: 20px 30px; margin: 30px 0; border-radius: 0 6px 6px 0; }}
+                    .abstract-title {{ margin: 0 0 10px; font-size: 1em; color: #2980b9; }}
 
-                    .frac-num {{
-                        border-bottom: 1px solid currentColor;
-                        padding: 0 0.2em;
-                    }}
+                    /* Theorems */
+                    .latex-theorem {{ background: #f9f9f9; border-left: 4px solid #8e44ad; padding: 15px 20px; margin: 20px 0; border-radius: 0 6px 6px 0; }}
+                    .latex-proof {{ border-left-color: #27ae60; }}
 
-                    .frac-den {{
-                        padding: 0 0.2em;
-                    }}
+                    /* Math text / operators */
+                    .math-text {{ font-style: normal; font-family: 'Lora', Georgia, serif; }}
+                    .math-op {{ font-style: normal; font-family: 'Cambria Math', 'Times New Roman', serif; margin-right: 0.15em; }}
 
-                    sub, sup {{
-                        font-size: 0.7em;
-                        line-height: 0;
-                    }}
-                    
                     /* Responsive */
                     @media (max-width: 768px) {{
                         .document-container {{ padding: 30px 20px; }}
@@ -164,36 +185,61 @@ impl Templates {
                     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
                     mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
                 </script>
-                
-                <script>
-                    document.addEventListener('DOMContentLoaded', (event) => {{
-                        const A4_HEIGHT_PX = 1122;
-                        document.body.getBoundingClientRect();
-
-                        document.querySelectorAll(".pageref").forEach(el => {{
-                            const refId = el.dataset.ref;
-                            el.classList.add("cursor-pointer");
-                            const target = document.getElementById("label-" + refId);
-
-                            if (target) {{
-                                const offsetY = target.getBoundingClientRect().top + window.scrollY;
-                                const page = Math.floor(offsetY / A4_HEIGHT_PX) + 1;
-                                el.textContent = page;
-                            }} else {{
-                                el.textContent = "??";
-                            }}
-                        }});
-
-                        document.querySelectorAll('pre code, .code-block').forEach((el) => {{
-                            hljs.highlightElement(el);
-                        }});
-                    }});
-                </script>
             </head>
             <body>
                 <div class="document-container">
                     {}
                 </div>
+
+                <script>
+                    // -------------------------------------------------------
+                    // pageref: resolve \pageref{{}} after full layout
+                    // Must run AFTER content is in the DOM and fonts/images
+                    // have loaded — that is why this script is at end of body.
+                    // -------------------------------------------------------
+                    (function () {{
+                        // A4 at 96 dpi = 1122 px.  The document-container has
+                        // 40px top padding on <body>, so we subtract that offset
+                        // before dividing, making page 1 start at the first line
+                        // of actual content rather than the grey background.
+                        var BODY_TOP_OFFSET = 40;
+                        var PAGE_HEIGHT_PX  = 1122;
+
+                        function absTop(el) {{
+                            var rect = el.getBoundingClientRect();
+                            return rect.top + (window.scrollY || document.documentElement.scrollTop);
+                        }}
+
+                        function pageOf(el) {{
+                            var top = Math.max(0, absTop(el) - BODY_TOP_OFFSET);
+                            return Math.floor(top / PAGE_HEIGHT_PX) + 1;
+                        }}
+
+                        function resolvePageRefs() {{
+                            document.querySelectorAll("[data-ref]").forEach(function (ref) {{
+                                var targetId = ref.getAttribute("data-ref");
+                                var target   = document.getElementById(targetId);
+                                ref.textContent = target ? String(pageOf(target)) : "??";
+                            }});
+                        }}
+
+                        // Wait for fonts + images so layout is stable
+                        if (document.fonts && document.fonts.ready) {{
+                            document.fonts.ready.then(resolvePageRefs);
+                        }} else {{
+                            window.addEventListener("load", resolvePageRefs);
+                        }}
+
+                        // Re-run on resize (reflow changes positions)
+                        var t;
+                        window.addEventListener("resize", function () {{
+                            clearTimeout(t);
+                            t = setTimeout(resolvePageRefs, 150);
+                        }});
+
+                        window.resolvePageRefs = resolvePageRefs;
+                    }})();
+                </script>
             </body>
             </html>"##, content
         )

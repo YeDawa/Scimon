@@ -1,4 +1,5 @@
 use crate::render::latex::{
+    misc::Misc,
     nodes::Nodes,
     bibtex::BibTextRender,
     context::RenderContext,
@@ -61,7 +62,6 @@ pub enum LatexNode {
     Image(String),
     Caption(String),
     Table(Vec<Vec<Vec<LatexNode>>>),
-
     /// Inline math matrix — open/close delimiters + grid of cells
     Matrix {
         open:  &'static str,
@@ -238,8 +238,8 @@ impl LatexNode {
             LatexNode::EquationBlock(nodes) => {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
-                
-                Self::register_inner_labels(nodes, &num, ctx);
+                // Ensure any \label inside this block resolves to this eq number
+                Misc::register_inner_labels(nodes, &num, ctx);
                 format!(
                     "<div class=\"math-block\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
                     num,
@@ -251,7 +251,7 @@ impl LatexNode {
             LatexNode::AlignBlock(nodes) => {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
-                Self::register_inner_labels(nodes, &num, ctx);
+                Misc::register_inner_labels(nodes, &num, ctx);
                 format!(
                     "<div class=\"math-block math-align\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
                     num,
@@ -286,8 +286,17 @@ impl LatexNode {
                 format!("<a href=\"#{}-{}\" class=\"cross-ref\">{}</a>", prefix, num, num)
             }
 
-            LatexNode::PageRef(label) =>
-                format!("<span class=\"cross-ref pageref\" data-ref=\"{}\">??</span>", label),
+            LatexNode::PageRef(label) => {
+                let anchor = if let Some(num) = ctx.labels.get(label) {
+                    format!("item-{}", num)
+                } else {
+                    format!("label-{}", label)
+                };
+                format!(
+                    "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"label-{}\">??</a>",
+                    anchor, label
+                )
+            }
 
             LatexNode::Cite(key) => {
                 let number = ctx.register_citation(key);
@@ -320,6 +329,7 @@ impl LatexNode {
                 let bib_content = BibTextRender::fetch_bibliography(&source).unwrap_or_default();
                 ctx.bib_database = BibTextRender::parse_bibtex(&bib_content);
 
+                // Render in citation order if we have one, otherwise alphabetical
                 let keys_ordered: Vec<String> = if !ctx.citation_order.is_empty() {
                     ctx.citation_order.clone()
                 } else {
@@ -419,22 +429,27 @@ impl LatexNode {
                 let mut cells_html = String::new();
                 for row in rows {
                     for cell in row {
+                        // inline-flex keeps sub/sup attached to their base glyph
+                        // instead of becoming independent grid items (display:contents bug)
                         cells_html.push_str(&format!(
                             "<span class=\"matrix-cell\">{}</span>",
                             Nodes::render(cell, ctx)
                         ));
                     }
+                    // Pad short rows so the grid stays rectangular
                     for _ in row.len()..col_count {
                         cells_html.push_str("<span class=\"matrix-cell\"></span>");
                     }
                 }
                 format!(
                     "<span class=\"latex-matrix-wrap\">\
-                        <span class=\"matrix-delim\">{}</span>\
-                        <span class=\"latex-matrix\" style=\"grid-template-columns: repeat({}, auto);\">{}</span>\
-                        <span class=\"matrix-delim\">{}</span>\
-                    </span>",
-                    open, col_count, cells_html, close
+                        <span class=\"matrix-delim\">{open}</span>\
+                        <span class=\"latex-matrix\" \
+                              style=\"grid-template-columns: repeat({col_count}, auto);\">\
+                            {cells_html}\
+                        </span>\
+                        <span class=\"matrix-delim\">{close}</span>\
+                    </span>"
                 )
             }
 
@@ -475,14 +490,6 @@ impl LatexNode {
                     "<div class=\"title-block\">\n  <h1>{}</h1>\n  <div class=\"author\">{}</div>\n  {}</div>",
                     ctx.doc_title, ctx.doc_author, date_html
                 )
-            }
-        }
-    }
-
-    fn register_inner_labels(nodes: &[LatexNode], value: &str, ctx: &mut RenderContext) {
-        for node in nodes {
-            if let LatexNode::Label(name) = node {
-                ctx.labels.insert(name.clone(), value.to_string());
             }
         }
     }

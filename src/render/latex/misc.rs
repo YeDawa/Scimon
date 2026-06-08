@@ -1,5 +1,10 @@
 use std::collections::HashMap;
 
+use crate::render::latex::{
+    tex_ast::LatexNode,
+    context::RenderContext,
+};
+
 pub struct Misc;
 
 impl Misc {
@@ -9,6 +14,14 @@ impl Misc {
             .filter_map(|v| v.parse::<usize>().ok())
             .max()
             .unwrap_or(0)
+    }
+
+    pub fn register_inner_labels(nodes: &[LatexNode], value: &str, ctx: &mut RenderContext) {
+        for node in nodes {
+            if let LatexNode::Label(name) = node {
+                ctx.labels.insert(name.clone(), value.to_string());
+            }
+        }
     }
 
     pub fn extract_and_register_labels(
