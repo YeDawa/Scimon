@@ -5,8 +5,8 @@
 <p align='center'><b>Unleash your knowledge.</b></p>
 
 <p align='center'>
-	<a href='https://github.com/Scibun/Scibun/actions/workflows/rust.yml'><img src='https://img.shields.io/github/actions/workflow/status/scibun/scimon/rust.yml?style=flat-square'/></a>
-	<img src='https://img.shields.io/github/license/Scibun/Scimon?style=flat-square'/>
+	<a href='https://github.com/YeDawa/Scimon/actions/workflows/rust.yml'><img src='https://img.shields.io/github/actions/workflow/status/YeDawa/Scimon/rust.yml?style=flat-square'/></a>
+	<img src='https://img.shields.io/github/license/YeDawa/Scimon?style=flat-square'/>
 </p>
 
 <p align='center'>
