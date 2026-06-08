@@ -1,5 +1,4 @@
 use crate::render::latex::{
-    misc::Misc,
     nodes::Nodes,
     bibtex::BibTextRender,
     context::RenderContext,
@@ -62,6 +61,11 @@ pub enum LatexNode {
     Image(String),
     Caption(String),
     Table(Vec<Vec<Vec<LatexNode>>>),
+    /// Wrapper for \begin{table}...\end{table} — increments tab_num first,
+    /// then renders children so \caption sees the correct counter.
+    TableFloat(Vec<LatexNode>),
+    /// Wrapper for \begin{figure}...\end{figure}
+    FigureFloat(Vec<LatexNode>),
     /// Inline math matrix — open/close delimiters + grid of cells
     Matrix {
         open:  &'static str,
@@ -243,8 +247,7 @@ impl LatexNode {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
                 // Ensure any \label inside this block resolves to this eq number
-                Misc::register_inner_labels(nodes, &num, ctx);
-
+                Self::register_inner_labels(nodes, &num, ctx);
                 format!(
                     "<div class=\"math-block\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
                     num,
@@ -256,7 +259,7 @@ impl LatexNode {
             LatexNode::AlignBlock(nodes) => {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
-                Misc::register_inner_labels(nodes, &num, ctx);
+                Self::register_inner_labels(nodes, &num, ctx);
                 format!(
                     "<div class=\"math-block math-align\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
                     num,
@@ -292,16 +295,19 @@ impl LatexNode {
             }
 
             LatexNode::PageRef(label) => {
+                // The anchor for a section/eq/figure is always id="item-{num}".
+                // The span id="label-{key}" only exists when \label appears
+                // explicitly in the body — it may not exist for section labels.
+                // So we use item-{num} as both href and data-ref when the label
+                // is resolved; fall back to label-{key} for unknown labels.
                 let (href, data_ref) = if let Some(num) = ctx.labels.get(label) {
                     (format!("item-{}", num), format!("item-{}", num))
                 } else {
                     (format!("label-{}", label), format!("label-{}", label))
                 };
-                let num = ctx.labels.get(label).cloned().unwrap_or_else(|| "??".to_string());
-                
                 format!(
-                    "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"{}\">{}</a>",
-                    href, data_ref, num
+                    "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"{}\">??</a>",
+                    href, data_ref
                 )
             }
 
@@ -380,6 +386,20 @@ impl LatexNode {
             // ----------------------------------------------------------------
             // Floats
             // ----------------------------------------------------------------
+            // TableFloat increments tab_num FIRST so \caption inside sees the
+            // correct number regardless of where it appears in the float body.
+            LatexNode::TableFloat(children) => {
+                ctx.tab_num += 1;
+                ctx.last_counter = ctx.tab_num.to_string();
+                Nodes::render(children, ctx)
+            }
+
+            LatexNode::FigureFloat(children) => {
+                ctx.fig_num += 1;
+                ctx.last_counter = ctx.fig_num.to_string();
+                Nodes::render(children, ctx)
+            }
+
             LatexNode::Caption(text) =>
                 format!(
                     "<div class=\"caption\"><strong>Figure/Table {}:</strong> {}</div>",
@@ -484,6 +504,17 @@ impl LatexNode {
                     "<div class=\"title-block\">\n  <h1>{}</h1>\n  <div class=\"author\">{}</div>\n  {}</div>",
                     ctx.doc_title, ctx.doc_author, date_html
                 )
+            }
+        }
+    }
+
+    /// Walk a flat node list and update ctx.labels for every Label node found,
+    /// assigning it `value`. Called before rendering equation bodies so that
+    /// any \ref to an equation label resolves to the correct equation number.
+    fn register_inner_labels(nodes: &[LatexNode], value: &str, ctx: &mut RenderContext) {
+        for node in nodes {
+            if let LatexNode::Label(name) = node {
+                ctx.labels.insert(name.clone(), value.to_string());
             }
         }
     }

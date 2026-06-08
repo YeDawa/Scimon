@@ -440,8 +440,6 @@ impl Parser {
                     "begin" => {
                         let env = self.parse_braces_content();
 
-                        if env == "table" { self.current_table += 1; }
-
                         // Consume optional placement [htbp] etc.
                         self.parse_optional_arg();
 
@@ -491,6 +489,7 @@ impl Parser {
 
                         } else if env == "table" && self.in_document {
                             let raw = self.read_until_end("table");
+                            self.current_table += 1;
                             // Pre-register \label{tab:…} with the current table number
                             Self::extract_and_register_labels(&raw, &self.current_table.to_string(), "tab:", labels);
                             let mut sub = Parser::new(raw.trim());
@@ -499,7 +498,8 @@ impl Parser {
                             sub.current_chapter    = self.current_chapter;
                             sub.current_subsection = self.current_subsection;
                             sub.current_equation   = self.current_equation;
-                            nodes.extend(sub.parse(true, labels));
+                            let children = sub.parse(true, labels);
+                            nodes.push(LatexNode::TableFloat(children));
 
                         } else if env == "figure" && self.in_document {
                             let raw = self.read_until_end("figure");
@@ -510,7 +510,8 @@ impl Parser {
                             sub.current_equation   = self.current_equation;
                             sub.current_table      = self.current_table;
                             sub.current_subsection = self.current_subsection;
-                            nodes.extend(sub.parse(true, labels));
+                            let children = sub.parse(true, labels);
+                            nodes.push(LatexNode::FigureFloat(children));
 
                         } else if (env == "equation" || env == "equation*") && self.in_document {
                             let raw = self.read_until_end(&env);
@@ -1172,5 +1173,4 @@ impl Parser {
             }
         }
     }
-
 }
