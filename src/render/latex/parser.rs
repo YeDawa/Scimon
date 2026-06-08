@@ -774,6 +774,7 @@ impl Parser {
                         let arg = self.parse_argument();
                         nodes.extend(arg);
                     }
+                    
                     "underset" | "overset" if self.in_document => {
                         let _over = self.parse_argument();
                         let base = self.parse_argument();
@@ -821,14 +822,18 @@ impl Parser {
                     "hspace" | "hspace*" if self.in_document => {
                         nodes.push(LatexNode::HSpace(self.parse_braces_content()));
                     }
+
                     "noindent" | "indent" | "centering" | "raggedright"
                     | "raggedleft" | "clearpage" | "cleardoublepage"
                     | "smallskip" | "medskip" | "bigskip" => {}
+
                     "newline" if self.in_document => nodes.push(LatexNode::LineBreak),
                     "newpage" | "pagebreak" if self.in_document => nodes.push(LatexNode::NewPage),
+
                     "par" if self.in_document => nodes.push(LatexNode::Text("\n\n".to_string())),
                     "nobreakspace" if self.in_document =>
                         nodes.push(LatexNode::Text("\u{00A0}".to_string())),
+
                     "rule" if self.in_document => {
                         self.parse_optional_arg();
                         self.parse_braces_content();
@@ -842,7 +847,7 @@ impl Parser {
                     "url" if self.in_document => {
                         nodes.push(LatexNode::Url(self.parse_braces_content()));
                     }
-                    
+
                     "href" if self.in_document => {
                         let link_url = self.parse_braces_content();
                         let link_text = self.parse_argument();
