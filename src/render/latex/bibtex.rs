@@ -23,6 +23,7 @@ impl BibTextRender {
                     if let Some(pos) = block.find(field) {
                         let start_val = block[pos..].find('{').unwrap_or(0) + pos + 1;
                         let end_val = block[start_val..].find('}').unwrap_or(0) + start_val;
+                        
                         block[start_val..end_val].trim().to_string()
                     } else {
                         String::new()
