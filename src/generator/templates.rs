@@ -35,59 +35,111 @@ impl Templates {
 
     pub fn latex(content: &str) -> String {
         format!(
-           r#"<!DOCTYPE html>
+            r#"<!DOCTYPE html>
             <html lang="pt-BR">
             <head>
                 <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                
+                <link rel="preconnect" href="https://fonts.googleapis.com">
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+                
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+                
                 <style>
-                    body {{ font-family: 'Computer Modern', serif; font-size: 18px; line-height: 1.6; padding: 40px; max-width: 800px; margin: 0 auto; color: #333; }}
+                    /* Typography & Base */
+                    body {{
+                        background-color: #f4f6f8;
+                        font-family: 'Lora', 'Computer Modern', Georgia, serif;
+                        font-size: 18px;
+                        line-height: 1.7;
+                        color: #2c3e50;
+                        margin: 0;
+                        padding: 40px 20px;
+                    }}
                     
-                    .title-block {{ text-align: center; margin-bottom: 50px; padding-bottom: 20px; border-bottom: 2px solid #eee; }}
-                    .title-block h1 {{ font-size: 2.2em; margin: 0 0 10px 0; color: #111; }}
-                    .title-block .author {{ font-size: 1.2em; color: #555; font-style: italic; }}
+                    .document-container {{
+                        background-color: #ffffff;
+                        max-width: 850px;
+                        margin: 0 auto;
+                        padding: 60px 80px;
+                        border-radius: 12px;
+                    }}
+                    
+                    /* Headings & Title */
+                    .title-block {{ text-align: center; margin-bottom: 60px; padding-bottom: 25px; border-bottom: 1px solid #eaeaea; }}
+                    .title-block h1 {{ font-size: 2.6em; margin: 0 0 15px 0; color: #1a252f; font-weight: 600; line-height: 1.2; }}
+                    .title-block .author {{ font-size: 1.25em; color: #7f8c8d; font-style: italic; }}
 
-                    h2 {{ border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #111; margin-top: 40px; }}
-                    h3 {{ color: #222; margin-top: 30px; }}
+                    h2 {{ border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; color: #1a252f; margin-top: 50px; font-weight: 600; }}
+                    h3 {{ color: #2c3e50; margin-top: 35px; font-weight: 600; }}
                     
                     /* Lists & TOC */
-                    ul, ol {{ background: #fdfdfd; padding: 15px 40px; border: 1px solid #eee; border-radius: 5px; }}
-                    .toc {{ background: #f9f9f9; padding: 20px; border-left: 4px solid #333; border-radius: 5px; margin: 15px 0; }}
-                    .toc ul {{ border: none; background: transparent; padding: 0; list-style: none; }}
-                    .toc li {{ margin-bottom: 5px; }}
-                    .toc a {{ text-decoration: none; color: #0056b3; }}
-                    .toc a:hover {{ text-decoration: underline; }}
+                    ul, ol {{ background: #fbfcfc; padding: 20px 20px 20px 50px; border-left: 3px solid #ecf0f1; border-radius: 0 8px 8px 0; margin: 20px 0; }}
+                    .toc {{ background: #f8f9fa; padding: 25px; border-left: 4px solid #3498db; border-radius: 6px; margin: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }}
+                    .toc ul {{ border: none; background: transparent; padding: 0; margin: 0; list-style: none; }}
+                    .toc li {{ margin-bottom: 8px; font-size: 0.95em; }}
+                    .toc a {{ text-decoration: none; color: #2980b9; transition: color 0.2s; }}
+                    .toc a:hover {{ color: #1abc9c; text-decoration: underline; }}
                     
                     /* Math */
-                    .math-inline {{ font-family: 'Cambria Math', 'Times New Roman', serif; font-style: italic; background: #f7f7f7; padding: 2px 6px; border-radius: 3px; white-space: nowrap; }}
-                    .math-block {{ font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 1.3em; text-align: center; margin: 30px 0; padding: 15px; background: #fcfcfc; border-left: 4px solid #0056b3; overflow-x: auto; font-style: italic; position: relative; }}
-                    .eq-number {{ position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 0.8em; font-style: normal; color: #555; }}
+                    .math-inline {{ font-family: 'Cambria Math', 'Times New Roman', serif; font-style: italic; background: #fdf2e9; padding: 2px 6px; border-radius: 4px; white-space: nowrap; color: #d35400; }}
+                    .math-block {{ font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 1.3em; text-align: center; margin: 35px 0; padding: 20px; background: #fdfefe; border-left: 4px solid #e74c3c; overflow-x: auto; font-style: italic; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }}
+                    .eq-number {{ position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 0.8em; font-style: normal; color: #95a5a6; }}
                     sup, sub {{ font-size: 0.75em; line-height: 0; position: relative; vertical-align: baseline; }}
                     sup {{ top: -0.5em; }} sub {{ bottom: -0.25em; }}
                     .latex-frac {{ display: inline-block; vertical-align: middle; margin: 0 0.2em; text-align: center; }}
-                    .frac-num {{ display: block; border-bottom: 1px solid #333; padding: 0 0.2em; line-height: 1.2; }}
+                    .frac-num {{ display: block; border-bottom: 1px solid #2c3e50; padding: 0 0.2em; line-height: 1.2; }}
                     .frac-den {{ display: block; padding: 0 0.2em; line-height: 1.2; }}
                     
+                    /* Code Blocks (Syntax Highlighting) */
+                    pre {{ margin: 30px; border-radius: 8px; }}
+                    pre code {{ font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.9em; padding: 20px !important; border-radius: 8px; line-height: 1.6; }}
+                    .code-block {{ margin: 30px 10px; padding-left: 5px; padding-right: 5px; border-radius: 8px; overflow: hidden; }}
+                    
                     /* Visuals & Cross-Refs */
-                    .latex-image {{ display: block; margin: 30px auto 10px; max-width: 100%; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }}
-                    .caption {{ text-align: center; font-size: 0.9em; color: #666; margin-bottom: 30px; }}
-                    .cross-ref {{ color: #d9534f; font-weight: bold; text-decoration: none; padding: 0 2px; }}
-                    .cross-ref:hover {{ text-decoration: underline; }}
+                    .latex-image {{ display: block; margin: 40px auto 15px; max-width: 100%; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); }}
+                    .caption {{ text-align: center; font-size: 0.9em; color: #7f8c8d; margin-bottom: 35px; font-style: italic; }}
+                    .cross-ref {{ color: #e67e22; font-weight: 600; text-decoration: none; padding: 0 2px; transition: color 0.2s; }}
+                    .cross-ref:hover {{ color: #d35400; text-decoration: underline; }}
                     
-                    .code-block {{ background: #282c34; color: #abb2bf; padding: 20px; border-radius: 8px; overflow-x: auto; font-family: 'Courier New', monospace; font-size: 0.9em; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }}
-                    .latex-table {{ border-collapse: collapse; margin: 20px auto; font-size: 0.95em; min-width: 50%; box-shadow: 0 0 20px rgba(0, 0, 0, 0.05); }}
-                    .latex-table td {{ padding: 12px 15px; border: 1px solid #ddd; text-align: center; }}
-                    .latex-table tr:nth-of-type(even) {{ background-color: #f9f9f9; }}
+                    /* Tables (LaTeX Booktabs Style) */
+                    .latex-table {{ border-collapse: collapse; margin: 40px auto; font-size: 0.95em; min-width: 70%; background: #fff; }}
+                    .latex-table th {{ padding: 15px; border-top: 2px solid #2c3e50; border-bottom: 1px solid #2c3e50; font-weight: 600; text-align: center; color: #1a252f; }}
+                    .latex-table td {{ padding: 12px 15px; border-bottom: 1px solid #ecf0f1; text-align: center; }}
+                    .latex-table tr:last-child td {{ border-bottom: 2px solid #2c3e50; }}
+                    .latex-table tr:hover {{ background-color: #f8f9fa; }}
                     
-                    .cite {{ color: #0056b3; text-decoration: none; font-weight: bold; padding: 0 2px; }}
-                    .bibliography {{ background: #fdfdfd; padding: 20px 40px; border: 1px solid #eee; border-radius: 5px; }}
+                    /* Citations & Bibliography */
+                    .cite {{ color: #27ae60; text-decoration: none; font-weight: 600; padding: 0 2px; }}
+                    .cite:hover {{ text-decoration: underline; }}
+                    .bibliography {{ background: #fbfcfc; padding: 25px 40px; border-left: 4px solid #27ae60; border-radius: 6px; margin-top: 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }}
+                    
+                    /* Responsive */
+                    @media (max-width: 768px) {{
+                        .document-container {{ padding: 30px 20px; }}
+                    }}
                 </style>
+                
                 <script type="module">
                     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
                     mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
                 </script>
+                
+                <script>
+                    document.addEventListener('DOMContentLoaded', (event) => {{
+                        document.querySelectorAll('pre code, .code-block').forEach((el) => {{
+                            hljs.highlightElement(el);
+                        }});
+                    }});
+                </script>
             </head>
             <body>
-                {}
+                <div class="document-container">
+                    {}
+                </div>
             </body>
             </html>"#, content
         )
