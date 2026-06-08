@@ -90,19 +90,6 @@ impl Parser {
 
         if self.peek() == Some('{') {
             Parser::new(&self.parse_braces_content()).parse(true, &mut HashMap::new())
-        } else if self.peek() == Some('\\') {
-            let mut cmd = String::new();
-            cmd.push(self.next_char().unwrap());
-            
-            while let Some(c) = self.peek() {
-                if c.is_alphabetic() {
-                    cmd.push(self.next_char().unwrap());
-                } else {
-                    break;
-                }
-            }
-            
-            Parser::new(&cmd).parse(true, &mut HashMap::new())
         } else {
             vec![LatexNode::Text(self.next_char().unwrap_or(' ').to_string())]
         }
@@ -134,78 +121,11 @@ impl Parser {
                     }
                 }
 
-                let cmd_str = if !command.is_empty() {
-                    command
-                } else if self.pos < self.chars.len() {
-                    let c = self.chars[self.pos].to_string();
-                    self.pos += 1;
-
-                    c
-                } else {
-                    String::new()
-                };
-
-                match cmd_str.as_str() {
-                    "[" if self.in_document => {
-                        let mut math_block = String::new();
-
-                        while self.pos < self.chars.len() {
-                            let lookahead: String = self.chars[self.pos..].iter().take(2).collect();
-
-                            if lookahead == "\\]" {
-                                self.pos += 2;
-                                break;
-                            }
-
-                            math_block.push(self.chars[self.pos]);
-                            self.pos += 1;
-                        }
-                        
-                        nodes.push(LatexNode::EquationBlock(Parser::new(&math_block).parse(true, labels)));
-                    }
-
-                    "(" if self.in_document => {
-                        let mut math_block = String::new();
-
-                        while self.pos < self.chars.len() {
-                            let lookahead: String = self.chars[self.pos..].iter().take(2).collect();
-
-                            if lookahead == "\\)" { 
-                                self.pos += 2;
-                                break;
-                            }
-
-                            math_block.push(self.chars[self.pos]);
-                            self.pos += 1;
-                        }
-                        
-                        nodes.push(LatexNode::MathInline(Parser::new(&math_block).parse(true, labels)));
-                    }
-
-                    "left" | "right" if self.in_document => {}
-
+                match command.as_str() {
                     "section" if self.in_document => {
                         self.current_section += 1;
                         nodes.push(LatexNode::Section(self.parse_braces_content()));
                     }
-
-                    "mathbf" if self.in_document => {
-                        nodes.push(LatexNode::MathBold(self.parse_argument()));
-                    }
-
-                    "hat" if self.in_document => {
-                        nodes.push(LatexNode::MathHat(self.parse_argument()));
-                    }
-
-                    "widehat" if self.in_document => {
-                        nodes.push(LatexNode::MathHat(self.parse_argument()));
-                    }
-
-                    "mathrm" | "text" if self.in_document => {
-                        nodes.extend(self.parse_argument());
-                    }
-
-                    "limits" => {}
 
                     "begin" => {
                         let env = self.parse_braces_content();
@@ -340,15 +260,9 @@ impl Parser {
                             }
 
                             let mut rows = Vec::new();
+
                             for row_str in table_block.split(r"\\") {
-                                let clean_row = row_str
-                                    .replace("\\hline", "")
-                                    .replace("\\toprule", "")
-                                    .replace("\\midrule", "")
-                                    .replace("\\bottomrule", "")
-                                    .trim()
-                                    .to_string();
-                                    
+                                let clean_row = row_str.replace("\\hline", "").trim().to_string();
                                 if !clean_row.is_empty() {
                                     let mut cells = Vec::new();
 
@@ -389,62 +303,7 @@ impl Parser {
                             }
 
                             nodes.push(LatexNode::EquationBlock(Parser::new(&math_block).parse(true, labels)));
-                        } else if (env == "align" || env == "align*") && self.in_document {
-                            let mut block = String::new();
-                            let end_tag = format!("\\end{{{}}}", env);
-
-                            while self.pos < self.chars.len() {
-                                let lookahead: String = self.chars[self.pos..].iter().take(end_tag.len()).collect();
-                                if lookahead == end_tag {
-                                    self.pos += end_tag.len(); 
-                                    break;
-                                }
-
-                                if let Some(c) = self.next_char() { block.push(c); }
-                            }
-
-                            let mut rows = Vec::new();
-                            for row_str in block.split(r"\\") {
-                                let clean_row = row_str.trim().to_string();
-                                if !clean_row.is_empty() {
-                                    let mut cells = Vec::new();
-                                    for cell_str in clean_row.split('&') {
-                                        cells.push(Parser::new(cell_str.trim()).parse(true, labels));
-                                    }
-                                    rows.push(cells);
-                                }
-                            }
-
-                            nodes.push(LatexNode::Align(rows, env == "align*"));
-                        } else if env.ends_with("matrix") && self.in_document {
-                            let mut block = String::new();
-                            let end_tag = format!("\\end{{{}}}", env);
-
-                            while self.pos < self.chars.len() {
-                                let lookahead: String = self.chars[self.pos..].iter().take(end_tag.len()).collect();
-                                if lookahead == end_tag {
-                                    self.pos += end_tag.len(); 
-                                    break;
-                                }
-
-                                if let Some(c) = self.next_char() { block.push(c); }
-                            }
-
-                            let mut rows = Vec::new();
-                            for row_str in block.split(r"\\") {
-                                let clean_row = row_str.trim().to_string();
-                                if !clean_row.is_empty() {
-                                    let mut cells = Vec::new();
-                                    for cell_str in clean_row.split('&') {
-                                        cells.push(Parser::new(cell_str.trim()).parse(true, labels));
-                                    }
-                                    rows.push(cells);
-                                }
-                            }
-
-                            nodes.push(LatexNode::Matrix(env.clone(), rows));
                         }
-                        // ===> ATÉ AQUI <===
                     }
                     
                     "end" => {
@@ -472,19 +331,9 @@ impl Parser {
                     "textit" if self.in_document => nodes.push(LatexNode::Italic(Parser::new(&self.parse_braces_content()).parse(true, labels))),
                     "math" if self.in_document => nodes.push(LatexNode::MathInline(self.parse_argument())),
                     "frac" if self.in_document => { let num = self.parse_argument(); let den = self.parse_argument(); nodes.push(LatexNode::Fraction { num, den }); }
-                    "sqrt" if self.in_document => { nodes.push(LatexNode::Sqrt(self.parse_argument())); }
+                    "sqrt" if self.in_document => { let arg = self.parse_argument(); nodes.push(LatexNode::Text("√(".to_string())); nodes.extend(arg); nodes.push(LatexNode::Text(")".to_string())); }
                     "int" | "infty" | "pi" | "alpha" | "beta" | "gamma" | "Delta" if self.in_document => {
-                        let symbol = match cmd_str.as_str() {
-                            "int" => "∫", 
-                            "infty" => "∞", 
-                            "pi" => "π", 
-                            "alpha" => "α", 
-                            "beta" => "β", 
-                            "gamma" => "γ", 
-                            "Delta" => "Δ", 
-                            _=> ""
-                        };
-
+                        let symbol = match command.as_str() { "int"=>"∫", "infty"=>"∞", "pi"=>"π", "alpha"=>"α", "beta"=>"β", "gamma"=>"γ", "Delta"=>"Δ", _=>"" };
                         nodes.push(LatexNode::Text(symbol.to_string()));
                     }
 
@@ -527,7 +376,7 @@ impl Parser {
                         }
                         
                         nodes.push(LatexNode::FontSize(
-                            cmd_str.clone(), 
+                            command.clone(), 
                             Parser::new(&rest_of_content).parse(true, labels)
                         ));
                     }
@@ -565,54 +414,28 @@ impl Parser {
                         nodes.push(LatexNode::Label(label_name));
                     }
 
-                    "hline" => {}
-
-                    _ => {
-                        if self.in_document {
-                            nodes.push(LatexNode::Command(cmd_str));
-                        }
-                    }
+                    "hline" => {} 
+                    _ => {}
                 }
             } else if current == '^' && self.in_document {
                 self.pos += 1; nodes.push(LatexNode::Superscript(self.parse_argument()));
             } else if current == '_' && self.in_document {
                 self.pos += 1; nodes.push(LatexNode::Subscript(self.parse_argument()));
-            } else if current == '$' {
+            } else if current == '$' && self.in_document {
                 self.pos += 1;
-                
-                let is_block = if self.peek() == Some('$') {
-                    self.pos += 1;
-                    true
-                } else {
-                    false
-                };
-
                 let mut math_block = String::new();
 
-                while self.pos < self.chars.len() {
-                    if is_block {
-                        let lookahead: String = self.chars[self.pos..].iter().take(2).collect();
-                        if lookahead == "$$" {
-                            self.pos += 2;
-                            break;
-                        }
-                    } else {
-                        if self.chars[self.pos] == '$' {
-                            self.pos += 1;
-                            break;
-                        }
+                while let Some(&c) = self.chars.get(self.pos) {
+                    if c == '$' {
+                        self.pos += 1;
+                        break;
                     }
 
-                    math_block.push(self.chars[self.pos]);
+                    math_block.push(c);
                     self.pos += 1;
                 }
 
-                let parsed_math = Parser::new(&math_block).parse(true, labels);
-                if is_block {
-                    nodes.push(LatexNode::EquationBlock(parsed_math));
-                } else {
-                    nodes.push(LatexNode::MathInline(parsed_math));
-                }
+                nodes.push(LatexNode::MathInline(Parser::new(&math_block).parse(true, labels)));
             } else if current == '{' && self.in_document {
                 let content = self.parse_braces_content();
                 nodes.extend(Parser::new(&content).parse(true, labels));
