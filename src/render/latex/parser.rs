@@ -41,7 +41,7 @@ impl Parser {
             if c == '\\' || c == '{' || c == '}' || c == '^' || c == '_' || c == '%' || c == '$' { 
                 break; 
             }
-            
+
             text.push(c); self.pos += 1;
         }
         
@@ -362,6 +362,21 @@ impl Parser {
                 self.pos += 1; nodes.push(LatexNode::Superscript(self.parse_argument()));
             } else if current == '_' && self.in_document {
                 self.pos += 1; nodes.push(LatexNode::Subscript(self.parse_argument()));
+            } else if current == '$' && self.in_document {
+                self.pos += 1;
+                let mut math_block = String::new();
+
+                while let Some(&c) = self.chars.get(self.pos) {
+                    if c == '$' {
+                        self.pos += 1;
+                        break;
+                    }
+
+                    math_block.push(c);
+                    self.pos += 1;
+                }
+
+                nodes.push(LatexNode::MathInline(Parser::new(&math_block).parse(true)));
             } else {
                 let text = self.parse_text();
 
