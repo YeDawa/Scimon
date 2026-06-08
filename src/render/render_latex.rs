@@ -1,4 +1,7 @@
-use std::error::Error;
+use std::{
+    error::Error,
+    collections::HashMap,
+};
 
 use crate::{
     system::pdf::Pdf, 
@@ -24,7 +27,8 @@ impl RenderLaTex {
 
     pub fn render(&self, content: &str) -> String {
         let mut parser = Parser::new(&content);
-        let document_ast = parser.parse(false);
+        let mut labels = HashMap::new();
+        let document_ast = parser.parse(false, &mut labels);
 
         let mut context = RenderContext::new();
         Nodes::pre_pass(&document_ast, &mut context);
