@@ -4,12 +4,12 @@ use std::{
 };
 
 use crate::{
-    system::pdf::Pdf, 
+    system::pdf::Pdf,
     generator::templates::Templates,
     ui::success_alerts::SuccessAlerts,
 
     utils::{
-        remote::Remote, 
+        remote::Remote,
         file::FileUtils,
         file_name_remote::FileNameRemote,
     },
@@ -26,31 +26,36 @@ pub struct LaTex;
 impl LaTex {
 
     pub fn render(&self, content: &str) -> String {
-        let mut parser = Parser::new(&content);
         let mut labels = HashMap::new();
-        let document_ast = parser.parse(false, &mut labels);
+        let document_ast = Parser::new(content).parse(false, &mut labels);
 
-        let mut context = RenderContext::new();
+        let mut context = RenderContext::new(labels);
         Nodes::pre_pass(&document_ast, &mut context);
-        context.reset_counters();
-        
-        let html_body = Nodes::render(&document_ast, &mut context);
+        // context.reset_counters();
+
+        let mut html_body = Nodes::render(&document_ast, &mut context);
+
+        let footnotes = context.flush_footnotes();
+        if !footnotes.is_empty() {
+            html_body.push_str(&footnotes);
+        }
+
         Templates::latex(&html_body)
     }
 
     pub async fn create_pdf(&self, path: &str, url: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
-        let content = Remote.content(&url).await?;
-        let html = &self.render(&content);
-        
+        let content = Remote.content(url).await?;
+        let html = self.render(&content);
+
         let original_name = FileNameRemote::new(url).get();
-        let new_filename = if let Some(custom_name) = custom_name {
-            FileUtils.replace_extension(custom_name, "pdf")
+        let new_filename = if let Some(name) = custom_name {
+            FileUtils.replace_extension(name, "pdf")
         } else {
             FileUtils.replace_extension(&original_name, "pdf")
         };
 
-        let output_path = FileUtils.get_output_path(&path, &new_filename);
-        Pdf.create_pdf(html, output_path, url).await?;
+        let output_path = FileUtils.get_output_path(path, &new_filename);
+        Pdf.create_pdf(&html, output_path, url).await?;
         SuccessAlerts::download_and_generated_pdf(&new_filename, url);
         Ok(())
     }
