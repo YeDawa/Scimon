@@ -1132,10 +1132,11 @@ impl Parser {
         labels: &mut HashMap<String, String>,
     ) -> Vec<Vec<Vec<LatexNode>>> {
         let mut rows = Vec::new();
+        
         for row_str in raw.split(r"\\") {
             let trimmed = row_str.trim();
             if trimmed.is_empty() { continue; }
-            
+
             let mut cells = Vec::new();
             for cell in trimmed.split('&') {
                 cells.push(Parser::new(cell.trim()).parse(true, labels));
@@ -1143,6 +1144,7 @@ impl Parser {
 
             rows.push(cells);
         }
+
         rows
     }
 
