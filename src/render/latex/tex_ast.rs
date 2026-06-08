@@ -61,11 +61,14 @@ pub enum LatexNode {
     Image(String),
     Caption(String),
     Table(Vec<Vec<Vec<LatexNode>>>),
+
     /// Wrapper for \begin{table}...\end{table} — increments tab_num first,
     /// then renders children so \caption sees the correct counter.
     TableFloat(Vec<LatexNode>),
+
     /// Wrapper for \begin{figure}...\end{figure}
     FigureFloat(Vec<LatexNode>),
+    
     /// Inline math matrix — open/close delimiters + grid of cells
     Matrix {
         open:  &'static str,
@@ -180,7 +183,7 @@ impl LatexNode {
                 ctx.subsubsec_num += 1;
                 let num = format!("{}.{}.{}", ctx.sec_num, ctx.subsec_num, ctx.subsubsec_num);
                 ctx.toc.push((4, num.clone(), title.clone()));
-                
+
                 format!("<h4 id=\"item-{}\">{} &nbsp;&nbsp; {}</h4>", num, num, title)
             }
 
