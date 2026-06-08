@@ -111,13 +111,45 @@ impl Parser {
                 }
 
                 match command.as_str() {
-                    "title" => nodes.push(LatexNode::Title(self.parse_braces_content())),
-                    "author" => nodes.push(LatexNode::Author(self.parse_braces_content())),
                     "begin" => {
                         let env = self.parse_braces_content();
 
                         if env == "document" {
                             self.in_document = true;
+                        }else if (env == "lstlisting" || env == "verbatim") && self.in_document {
+                            let mut options = String::new();
+                            while self.peek().map_or(false, |c| c.is_whitespace()) {
+                                self.next_char();
+                            }
+                            
+                            if self.peek() == Some('[') {
+                                self.next_char();
+                                
+                                while let Some(c) = self.next_char() {
+                                    if c == ']' {
+                                        break;
+                                    }
+
+                                    options.push(c);
+                                }
+                            }
+
+                            let mut raw_code = String::new();
+                            let end_tag = format!("\\end{{{}}}", env);
+
+                            while self.pos < self.chars.len() {
+                                let lookahead: String = self.chars[self.pos..].iter().take(end_tag.len()).collect();
+                                if lookahead == end_tag {
+                                    self.pos += end_tag.len();
+                                    break;
+                                }
+
+                                if let Some(c) = self.next_char() {
+                                    raw_code.push(c);
+                                }
+                            }
+
+                            nodes.push(LatexNode::CodeBlock(raw_code.trim_matches('\n').to_string()));
                         } else if env == "itemize" && self.in_document {
                             let mut items = Vec::new(); 
                             let mut block = String::new();
@@ -262,6 +294,62 @@ impl Parser {
                         let symbol = match command.as_str() { "int"=>"∫", "infty"=>"∞", "pi"=>"π", "alpha"=>"α", "beta"=>"β", "gamma"=>"γ", "Delta"=>"Δ", _=>"" };
                         nodes.push(LatexNode::Text(symbol.to_string()));
                     }
+
+                    "textbf" => {
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::Bold(Parser::new(&content).parse(true)));
+                    }
+
+                    "textit" => {
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::Italic(Parser::new(&content).parse(true)));
+                    }
+
+                    "author" => {
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::Author(Parser::new(&content).parse(true)));
+                    }
+                    
+                    "title" => {
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::Title(Parser::new(&content).parse(true)));
+                    }
+
+                    "underline" if self.in_document => {
+                        nodes.push(LatexNode::Underline(Parser::new(&self.parse_braces_content()).parse(true)));
+                    }
+                    "texttt" if self.in_document => {
+                        nodes.push(LatexNode::Monospace(Parser::new(&self.parse_braces_content()).parse(true)));
+                    }
+                    "textsc" if self.in_document => {
+                        nodes.push(LatexNode::SmallCaps(Parser::new(&self.parse_braces_content()).parse(true)));
+                    }
+
+                    "tiny" | "small" | "large" | "huge" if self.in_document => {
+                        let rest_of_content = self.parse_text(); 
+                        nodes.push(LatexNode::FontSize(
+                            command.clone(), 
+                            Parser::new(&rest_of_content).parse(true)
+                        ));
+                    }
+
+                    "vspace" if self.in_document => {
+                        nodes.push(LatexNode::VSpace(self.parse_braces_content()));
+                    }
+
+                    "url" if self.in_document => {
+                        nodes.push(LatexNode::Url(self.parse_braces_content()));
+                    }
+                    "href" if self.in_document => {
+                        let link_url = self.parse_braces_content();
+                        let link_text = self.parse_argument();
+
+                        nodes.push(LatexNode::Href { 
+                            url: link_url, 
+                            text: link_text 
+                        });
+                    }
+
                     "cite" if self.in_document => nodes.push(LatexNode::Cite(self.parse_braces_content())),
                     "bibliography" if self.in_document => nodes.push(LatexNode::Bibliography(self.parse_braces_content())),
                     "hline" => {} 
@@ -275,9 +363,14 @@ impl Parser {
                 let text = self.parse_text();
                 if text.is_empty() {
                     let special_char = self.chars[self.pos];
-                    if self.in_document { nodes.push(LatexNode::Text(special_char.to_string())); }
+                    
+                    if self.in_document { 
+                        nodes.push(LatexNode::Text(special_char.to_string())); 
+                    }
                     self.pos += 1;
-                } else if self.in_document && !text.trim().is_empty() { nodes.push(LatexNode::Text(text)); }
+                } else if self.in_document && !text.trim().is_empty() { 
+                    nodes.push(LatexNode::Text(text)); 
+                }
             }
         }
 

@@ -11,6 +11,7 @@ pub enum LatexNode {
     Text(String),
     Bold(Vec<LatexNode>),
     Italic(Vec<LatexNode>),
+
     Section(String),
     Subsection(String),
     Itemize(Vec<Vec<LatexNode>>),
@@ -23,12 +24,25 @@ pub enum LatexNode {
     Bibliography(String),
     Mermaid(String),
     Table(Vec<Vec<Vec<LatexNode>>>),
-    Title(String),
-    Author(String),
+    
+    Title(Vec<LatexNode>),
+    Author(Vec<LatexNode>),
+    
     MakeTitle,
     Image(String),
     CodeBlock(String),
     EquationBlock(Vec<LatexNode>),
+
+    Underline(Vec<LatexNode>),
+    Monospace(Vec<LatexNode>),
+    SmallCaps(Vec<LatexNode>),
+
+    FontSize(String, Vec<LatexNode>),
+
+    VSpace(String),
+
+    Url(String),
+    Href { url: String, text: Vec<LatexNode> },
     
     Label(String),
     Ref(String),
@@ -44,12 +58,28 @@ impl LatexNode {
             LatexNode::Bold(nodes) => format!("<strong>{}</strong>", Nodes::render(nodes, ctx)),
             LatexNode::Italic(nodes) => format!("<em>{}</em>", Nodes::render(nodes, ctx)),
             
+            LatexNode::Underline(nodes) => format!("<u>{}</u>", Nodes::render(nodes, ctx)),
+            LatexNode::Monospace(nodes) => format!("<code>{}</code>", Nodes::render(nodes, ctx)),
+            LatexNode::SmallCaps(nodes) => format!("<span style=\"font-variant: small-caps;\">{}</span>", Nodes::render(nodes, ctx)),
+            
+            // Font size
+            LatexNode::FontSize(size, nodes) => format!("<span style=\"font-size: {}\">{}</span>", size, Nodes::render(nodes, ctx)),
+            
+            // Vertical space
+            LatexNode::VSpace(size) => format!("<div style=\"height: {}\"></div>", size),
+            
+            // Links
+            LatexNode::Url(url) => format!("<a href=\"{}\">{}</a>", url, url),
+            LatexNode::Href { url, text } => format!("<a href=\"{}\">{}</a>", url, Nodes::render(text, ctx)),
+            
             // Headings with IDs for anchors
             LatexNode::Section(title) => {
                 ctx.sec_num += 1; ctx.subsec_num = 0;
                 let num = format!("{}", ctx.sec_num);
                 format!("<h2 id=\"item-{}\">{} &nbsp;&nbsp; {}</h2>", num, num, title)
             }
+
+            // Subsection with IDs for anchors
             LatexNode::Subsection(title) => {
                 ctx.subsec_num += 1;
                 let num = format!("{}.{}", ctx.sec_num, ctx.subsec_num);
@@ -108,6 +138,8 @@ impl LatexNode {
                 format!("<a href=\"#ref-{}\" class=\"cite\">[{}]</a>", key, number)
             }
 
+
+
             // Bibliography
             LatexNode::Bibliography(file) => {
                 let mut html = String::from("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
@@ -136,8 +168,8 @@ impl LatexNode {
             LatexNode::CodeBlock(code) => format!("<pre class=\"code-block\"><code>{}</code></pre>", code.replace('<', "&lt;").replace('>', "&gt;")),
             
             // Metadata & Tables
-            LatexNode::Title(t) => { ctx.doc_title = t.clone(); String::new() }
-            LatexNode::Author(a) => { ctx.doc_author = a.clone(); String::new() }
+            LatexNode::Title(t) => { ctx.doc_title = Nodes::render(t, ctx); String::new() }
+            LatexNode::Author(a) => { ctx.doc_author = Nodes::render(a, ctx); String::new() }
             LatexNode::MakeTitle => format!("<div class=\"title-block\">\n  <h1>{}</h1>\n  <div class=\"author\">{}</div>\n</div>", ctx.doc_title, ctx.doc_author),
             
             // Tables
