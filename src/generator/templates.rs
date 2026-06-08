@@ -36,7 +36,7 @@ impl Templates {
     pub fn latex(content: &str) -> String {
         format!(
             r##"<!DOCTYPE html>
-            <html lang="en-US">
+            <html lang="en">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
