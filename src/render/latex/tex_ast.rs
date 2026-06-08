@@ -49,6 +49,7 @@ pub enum LatexNode {
     
     Label(String),
     Ref(String),
+    PageRef(String),
     TableOfContents,
     Caption(String),
 }
@@ -119,7 +120,20 @@ impl LatexNode {
             // Cross-references
             LatexNode::Ref(key) => {
                 let num = ctx.labels.get(key).cloned().unwrap_or_else(|| "??".to_string());
-                format!("<a href=\"#item-{}\" class=\"cross-ref\">{}</a>", num, num)
+                
+                let html_id_prefix = if key.starts_with("ref-") {
+                    "ref"
+                } else {
+                    "item"
+                };
+
+                format!("<a href=\"#{}-{}\" class=\"cross-ref\">{}</a>", html_id_prefix, num, num)
+            }
+            
+            LatexNode::PageRef(label) => {
+                let num = ctx.labels.get(label).cloned().unwrap_or_else(|| "??".to_string());
+                let html_id_prefix = if label.starts_with("ref-") { "ref" } else { "item" };
+                format!("<a href=\"#{}-{}\" class=\"cross-ref\">{}</a>", html_id_prefix, num, num)
             }
 
             // Table of Contents

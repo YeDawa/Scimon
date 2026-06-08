@@ -1,9 +1,16 @@
+use std::collections::HashMap;
+
 use crate::render::latex::tex_ast::LatexNode;
 
 pub struct Parser {
-    chars: Vec<char>,
-    pos: usize,
-    in_document: bool,
+    pub chars: Vec<char>,
+    pub pos: usize,
+    pub in_document: bool,
+
+    pub labels: HashMap<String, String>,
+    pub current_section: usize,
+    pub current_table: usize,
+    pub current_figure: usize,
 }
 
 impl Parser {
@@ -12,7 +19,12 @@ impl Parser {
         Parser {
             chars: input.chars().collect(), 
             pos: 0, 
-            in_document: false 
+            in_document: false,
+            
+            labels: HashMap::new(),
+            current_section: 0,
+            current_table: 0,
+            current_figure: 0,
         }
     }
 
@@ -129,7 +141,7 @@ impl Parser {
                                 if c == ']' {
                                     break;
                                 }
-                                
+
                                 env_options.push(c);
                             }
                         }
@@ -301,8 +313,9 @@ impl Parser {
                     "tableofcontents" if self.in_document => nodes.push(LatexNode::TableOfContents),
                     "section" if self.in_document => nodes.push(LatexNode::Section(self.parse_braces_content())),
                     "subsection" if self.in_document => nodes.push(LatexNode::Subsection(self.parse_braces_content())),
-                    "label" if self.in_document => nodes.push(LatexNode::Label(self.parse_braces_content())),
+
                     "ref" if self.in_document => nodes.push(LatexNode::Ref(self.parse_braces_content())),
+                    "pageref" if self.in_document => nodes.push(LatexNode::PageRef(self.parse_braces_content())),
                     "caption" if self.in_document => nodes.push(LatexNode::Caption(self.parse_braces_content())),
                     "includegraphics" if self.in_document => nodes.push(LatexNode::Image(self.parse_braces_content())),
                     "textbf" if self.in_document => nodes.push(LatexNode::Bold(Parser::new(&self.parse_braces_content()).parse(true))),
@@ -378,6 +391,25 @@ impl Parser {
 
                     "cite" if self.in_document => nodes.push(LatexNode::Cite(self.parse_braces_content())),
                     "bibliography" if self.in_document => nodes.push(LatexNode::Bibliography(self.parse_braces_content())),
+
+                    "label" if self.in_document => {
+                        let label_name = self.parse_braces_content();
+                        let target_number;
+
+                        if label_name.starts_with("sec:") {
+                            target_number = self.current_section.to_string();
+                        } else if label_name.starts_with("tab:") {
+                            target_number = self.current_table.to_string();
+                        } else if label_name.starts_with("fig:") {
+                            target_number = self.current_figure.to_string();
+                        } else {
+                            target_number = self.current_section.to_string(); 
+                        }
+
+                        self.labels.insert(label_name.clone(), target_number);
+                        nodes.push(LatexNode::Label(label_name));
+                    }
+
                     "hline" => {} 
                     _ => {}
                 }
