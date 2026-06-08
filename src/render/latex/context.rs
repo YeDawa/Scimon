@@ -22,7 +22,7 @@ pub struct RenderContext {
 impl RenderContext {
 
     pub fn new() -> Self {
-        RenderContext {
+        Self {
             bib_database: HashMap::new(),
             used_citations: Vec::new(),
             doc_title: String::from("Untitled Document"),
