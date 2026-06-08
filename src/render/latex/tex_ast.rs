@@ -50,6 +50,8 @@ pub enum LatexNode {
     PageRef(String),
     TableOfContents,
     Caption(String),
+
+    Command(String),
 }
 
 impl LatexNode {
@@ -110,6 +112,23 @@ impl LatexNode {
                 ctx.eq_num += 1;
                 let num = format!("{}", ctx.eq_num);
                 format!("<div class=\"math-block\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>", num, Nodes::render(nodes, ctx), num)
+            },
+
+            LatexNode::Command(name) => match name.as_str() {
+                "sum" => String::from("&sum;"),
+                "Sigma" => String::from("&Sigma;"),
+                "sigma" => String::from("&sigma;"),
+                "int" => String::from("&int;"),
+                "infty" => String::from("&infin;"),
+                "pi" => String::from("&pi;"),
+                "alpha" => String::from("&alpha;"),
+                "beta" => String::from("&beta;"),
+                "gamma" => String::from("&gamma;"),
+                "Delta" => String::from("&Delta;"),
+                
+                "," => String::from("&thinsp;"),
+                
+                _ => format!("\\{}", name),
             }
             
             // Refs & TOC

@@ -121,7 +121,53 @@ impl Parser {
                     }
                 }
 
-                match command.as_str() {
+                let cmd_str = if !command.is_empty() {
+                    command // Era uma palavra (ex: sum, begin, textbf)
+                } else if self.pos < self.chars.len() {
+                    let c = self.chars[self.pos].to_string(); // Era um símbolo (ex: [, (, \,)
+                    self.pos += 1;
+                    c
+                } else {
+                    String::new()
+                };
+
+                match cmd_str.as_str() {
+                    "[" if self.in_document => {
+                        let mut math_block = String::new();
+
+                        while self.pos < self.chars.len() {
+                            let lookahead: String = self.chars[self.pos..].iter().take(2).collect();
+
+                            if lookahead == "\\]" {
+                                self.pos += 2;
+                                break;
+                            }
+
+                            math_block.push(self.chars[self.pos]);
+                            self.pos += 1;
+                        }
+                        
+                        nodes.push(LatexNode::EquationBlock(Parser::new(&math_block).parse(true, labels)));
+                    }
+
+                    "(" if self.in_document => {
+                        let mut math_block = String::new();
+
+                        while self.pos < self.chars.len() {
+                            let lookahead: String = self.chars[self.pos..].iter().take(2).collect();
+
+                            if lookahead == "\\)" { 
+                                self.pos += 2;
+                                break;
+                            }
+
+                            math_block.push(self.chars[self.pos]);
+                            self.pos += 1;
+                        }
+                        
+                        nodes.push(LatexNode::MathInline(Parser::new(&math_block).parse(true, labels)));
+                    }
+
                     "section" if self.in_document => {
                         self.current_section += 1;
                         nodes.push(LatexNode::Section(self.parse_braces_content()));
@@ -260,7 +306,6 @@ impl Parser {
                             }
 
                             let mut rows = Vec::new();
-
                             for row_str in table_block.split(r"\\") {
                                 let clean_row = row_str.replace("\\hline", "").trim().to_string();
                                 if !clean_row.is_empty() {
@@ -333,7 +378,7 @@ impl Parser {
                     "frac" if self.in_document => { let num = self.parse_argument(); let den = self.parse_argument(); nodes.push(LatexNode::Fraction { num, den }); }
                     "sqrt" if self.in_document => { let arg = self.parse_argument(); nodes.push(LatexNode::Text("√(".to_string())); nodes.extend(arg); nodes.push(LatexNode::Text(")".to_string())); }
                     "int" | "infty" | "pi" | "alpha" | "beta" | "gamma" | "Delta" if self.in_document => {
-                        let symbol = match command.as_str() { "int"=>"∫", "infty"=>"∞", "pi"=>"π", "alpha"=>"α", "beta"=>"β", "gamma"=>"γ", "Delta"=>"Δ", _=>"" };
+                        let symbol = match cmd_str.as_str() { "int"=>"∫", "infty"=>"∞", "pi"=>"π", "alpha"=>"α", "beta"=>"β", "gamma"=>"γ", "Delta"=>"Δ", _=>"" };
                         nodes.push(LatexNode::Text(symbol.to_string()));
                     }
 
@@ -376,7 +421,7 @@ impl Parser {
                         }
                         
                         nodes.push(LatexNode::FontSize(
-                            command.clone(), 
+                            cmd_str.clone(), 
                             Parser::new(&rest_of_content).parse(true, labels)
                         ));
                     }
@@ -414,8 +459,13 @@ impl Parser {
                         nodes.push(LatexNode::Label(label_name));
                     }
 
-                    "hline" => {} 
-                    _ => {}
+                    "hline" => {}
+
+                    _ => {
+                        if self.in_document {
+                            nodes.push(LatexNode::Command(cmd_str));
+                        }
+                    }
                 }
             } else if current == '^' && self.in_document {
                 self.pos += 1; nodes.push(LatexNode::Superscript(self.parse_argument()));
@@ -423,19 +473,41 @@ impl Parser {
                 self.pos += 1; nodes.push(LatexNode::Subscript(self.parse_argument()));
             } else if current == '$' && self.in_document {
                 self.pos += 1;
+                
+                let is_block = if self.peek() == Some('$') {
+                    self.pos += 1;
+                    true
+                } else {
+                    false
+                };
+
                 let mut math_block = String::new();
 
-                while let Some(&c) = self.chars.get(self.pos) {
-                    if c == '$' {
-                        self.pos += 1;
-                        break;
+                while self.pos < self.chars.len() {
+                    if is_block {
+                        let lookahead: String = self.chars[self.pos..].iter().take(2).collect();
+
+                        if lookahead == "$$" {
+                            self.pos += 2;
+                            break;
+                        }
+                    } else {
+                        if self.chars[self.pos] == '$' {
+                            self.pos += 1;
+                            break;
+                        }
                     }
 
-                    math_block.push(c);
+                    math_block.push(self.chars[self.pos]);
                     self.pos += 1;
                 }
 
-                nodes.push(LatexNode::MathInline(Parser::new(&math_block).parse(true, labels)));
+                let parsed_math = Parser::new(&math_block).parse(true, labels);
+                if is_block {
+                    nodes.push(LatexNode::EquationBlock(parsed_math));
+                } else {
+                    nodes.push(LatexNode::MathInline(parsed_math));
+                }
             } else if current == '{' && self.in_document {
                 let content = self.parse_braces_content();
                 nodes.extend(Parser::new(&content).parse(true, labels));
