@@ -46,11 +46,11 @@ impl RenderContext {
     }
 
     pub fn reset_counters(&mut self) {
+        self.eq_num = 0;
         self.sec_num = 0; 
-        self.subsec_num = 0; 
-        self.eq_num = 0; 
         self.fig_num = 0; 
         self.tab_num = 0;
+        self.subsec_num = 0; 
     }
 
 }
