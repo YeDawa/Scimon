@@ -68,7 +68,6 @@ impl Templates {
                         max-width: 850px;
                         margin: 0 auto;
                         padding: 60px 80px;
-                        border-radius: 12px;
                     }}
                     
                     /* Headings & Title */
@@ -80,8 +79,8 @@ impl Templates {
                     h3 {{ color: #2c3e50; margin-top: 35px; font-weight: 600; }}
                     
                     /* Lists & TOC */
-                    ul, ol {{ background: #fbfcfc; padding: 20px 20px 20px 50px; border-left: 3px solid #ecf0f1; border-radius: 0 8px 8px 0; margin: 20px 0; }}
-                    .toc {{ background: #f8f9fa; padding: 25px; border-left: 4px solid #3498db; border-radius: 6px; margin: 15px 0; }}
+                    ul, ol {{ background: #fbfcfc; padding: 20px 20px 20px 50px; border-radius: 0 8px 8px 0; margin: 20px 0; }}
+                    .toc {{ background: #f8f9fa; padding: 25px; border-radius: 6px; margin: 15px 0; }}
                     .toc ul {{ border: none; background: transparent; padding: 0; margin: 0; list-style: none; }}
                     .toc li {{ margin-bottom: 8px; font-size: 0.95em; }}
                     .toc a {{ text-decoration: none; color: #2980b9; transition: color 0.2s; }}
@@ -89,7 +88,7 @@ impl Templates {
                     
                     /* Math */
                     .math-inline {{ font-family: 'Cambria Math', 'Times New Roman', serif; font-style: italic; background: #fdf2e9; padding: 2px 6px; border-radius: 4px; white-space: nowrap; color: #d35400; }}
-                    .math-block {{ font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 1.3em; text-align: center; margin: 35px 0; padding: 20px; background: #fdfefe; border-left: 4px solid #e74c3c; overflow-x: auto; font-style: italic; position: relative; }}
+                    .math-block {{ font-family: 'Cambria Math', 'Times New Roman', serif; font-size: 1.3em; text-align: center; margin: 35px 0; padding: 20px; background: #fdfefe; overflow-x: auto; font-style: italic; position: relative; }}
                     .eq-number {{ position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 0.8em; font-style: normal; color: #95a5a6; }}
                     sup, sub {{ font-size: 0.75em; line-height: 0; position: relative; vertical-align: baseline; }}
                     sup {{ top: -0.5em; }} sub {{ bottom: -0.25em; }}
@@ -118,7 +117,7 @@ impl Templates {
                     /* Citations & Bibliography */
                     .cite {{ color: #27ae60; text-decoration: none; font-weight: 600; padding: 0 2px; }}
                     .cite:hover {{ text-decoration: underline; }}
-                    .bibliography {{ background: #fbfcfc; padding: 25px 40px; border-left: 4px solid #27ae60; border-radius: 6px; margin-top: 40px; }}
+                    .bibliography {{ background: #fbfcfc; padding: 25px 40px; border-radius: 6px; margin-top: 40px; }}
 
                     /* Font Sizes */
                     .font-tiny {{ font-size: 0.6em; }}
