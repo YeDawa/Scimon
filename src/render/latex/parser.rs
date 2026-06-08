@@ -884,22 +884,21 @@ impl Parser {
                         } else if label_name.starts_with("eq:") || label_name.starts_with("eqn:") {
                             self.current_equation.to_string()
                         } else if label_name.starts_with("fig:") {
-                            // fig counter not tracked in parser yet; use section as fallback
                             self.current_section.to_string()
                         } else if label_name.starts_with("sec:") {
                             self.current_section.to_string()
                         } else {
-                            // Generic label — use whatever was most recently set
-                            // (equation takes priority over section for inline labels)
                             if self.current_equation > 0 {
                                 self.current_equation.to_string()
                             } else {
                                 self.current_section.to_string()
                             }
                         };
+
                         labels.insert(label_name.clone(), target_value);
                         nodes.push(LatexNode::Label(label_name));
                     }
+
                     "ref" | "eqref" | "autoref" | "cref" if self.in_document =>
                         nodes.push(LatexNode::Ref(self.parse_braces_content())),
                     "pageref" if self.in_document =>
@@ -914,10 +913,11 @@ impl Parser {
                             Parser::new(&content).parse(true, labels)
                         ));
                     }
+
                     "footnotemark" if self.in_document => {
                         self.parse_optional_arg();
-                        // Inline mark only – full footnote rendered at end
                     }
+
                     "footnotetext" if self.in_document => {
                         self.parse_optional_arg();
                         self.parse_braces_content();
