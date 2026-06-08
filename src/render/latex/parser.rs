@@ -952,7 +952,6 @@ impl Parser {
                         if let Some(sym) = math_symbol(&command) {
                             nodes.push(LatexNode::Text(sym.to_string()));
                         }
-                        // Truly unknown commands – silently discard
                     }
 
                     _ => {} // preamble commands we don't recognise
@@ -995,7 +994,6 @@ impl Parser {
             // ----------------------------------------------------------------
             if current == '$' && self.in_document {
                 self.pos += 1;
-                // Check for $$
                 let display = self.peek() == Some('$');
                 if display { self.pos += 1; }
 
@@ -1038,15 +1036,14 @@ impl Parser {
             // ----------------------------------------------------------------
             let text = self.parse_text();
             if text.is_empty() {
-                // A character not handled above
                 if self.in_document {
                     nodes.push(LatexNode::Text(current.to_string()));
                 }
+
                 self.pos += 1;
             } else if self.in_document && !text.trim().is_empty() {
                 nodes.push(LatexNode::Text(text));
             } else if self.in_document {
-                // Preserve whitespace as a single space to avoid merging words
                 nodes.push(LatexNode::Text(" ".to_string()));
             }
         }
@@ -1054,19 +1051,17 @@ impl Parser {
         nodes
     }
 
-    // -----------------------------------------------------------------------
-    // Helper: split \item blocks from a list body
-    // -----------------------------------------------------------------------
     fn split_items(block: &str, labels: &mut HashMap<String, String>) -> Vec<Vec<LatexNode>> {
         let mut items = Vec::new();
         for item in block.split("\\item") {
-            // Strip optional label  \item[label]
             let body = if item.trim_start().starts_with('[') {
                 let end = item.find(']').map(|i| i + 1).unwrap_or(0);
+
                 &item[end..]
             } else {
                 item
             };
+
             let trimmed = body.trim();
             if !trimmed.is_empty() {
                 items.push(Parser::new(trimmed).parse(true, labels));
@@ -1075,9 +1070,6 @@ impl Parser {
         items
     }
 
-    // -----------------------------------------------------------------------
-    // Helper: split \item[term] blocks from a description environment
-    // -----------------------------------------------------------------------
     fn split_description_items(
         block: &str,
         labels: &mut HashMap<String, String>,
@@ -1086,6 +1078,7 @@ impl Parser {
         for item in block.split("\\item") {
             let trimmed = item.trim();
             if trimmed.is_empty() { continue; }
+
             if trimmed.starts_with('[') {
                 let end = trimmed.find(']').unwrap_or(0);
                 let term = trimmed[1..end].to_string();
@@ -1095,12 +1088,10 @@ impl Parser {
                 items.push((String::new(), Parser::new(trimmed).parse(true, labels)));
             }
         }
+
         items
     }
 
-    // -----------------------------------------------------------------------
-    // Helper: parse a tabular body into rows × cells
-    // -----------------------------------------------------------------------
     fn parse_tabular(
         table_block: &str,
         labels: &mut HashMap<String, String>,
@@ -1124,15 +1115,12 @@ impl Parser {
         rows
     }
 
-    // -----------------------------------------------------------------------
-    // Helper: parse a matrix body (rows split by \\, cols by &) into a Table
-    // -----------------------------------------------------------------------
     fn parse_matrix_body(
         raw: &str,
         labels: &mut HashMap<String, String>,
     ) -> Vec<Vec<Vec<LatexNode>>> {
         let mut rows = Vec::new();
-        
+
         for row_str in raw.split(r"\\") {
             let trimmed = row_str.trim();
             if trimmed.is_empty() { continue; }
@@ -1148,11 +1136,6 @@ impl Parser {
         rows
     }
 
-    // -----------------------------------------------------------------------
-    // Helper: scan raw LaTeX for \label{key} and pre-register in `labels` with
-    // `value`, so \ref resolves correctly before counters are incremented.
-    // Pass prefix = "" to register all labels, or e.g. "eq:" to filter.
-    // -----------------------------------------------------------------------
     fn extract_and_register_labels(
         raw: &str,
         value: &str,
