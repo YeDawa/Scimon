@@ -48,13 +48,9 @@ impl Render {
         )?;
 
         let tab = browser.new_tab()?;
-
         tab.navigate_to(&Base64::encode_html(content))?
             .wait_until_navigated()?;
 
-        // Resolve \pageref{} placeholders before printing.
-        // PAGE_H = 871px is calibrated from: scrollHeight=6098, total_pages=7
-        // for this specific template. Adjust if the template changes significantly.
         tab.evaluate(r#"
             (function() {
                 var PAGE_H = 697;
