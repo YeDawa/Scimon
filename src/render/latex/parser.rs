@@ -38,7 +38,10 @@ impl Parser {
         let mut text = String::new();
         
         while let Some(&c) = self.chars.get(self.pos) {
-            if c == '\\' || c == '{' || c == '}' || c == '^' || c == '_' || c == '%' { break; }
+            if c == '\\' || c == '{' || c == '}' || c == '^' || c == '_' || c == '%' || c == '$' { 
+                break; 
+            }
+            
             text.push(c); self.pos += 1;
         }
         
@@ -361,6 +364,7 @@ impl Parser {
                 self.pos += 1; nodes.push(LatexNode::Subscript(self.parse_argument()));
             } else {
                 let text = self.parse_text();
+
                 if text.is_empty() {
                     let special_char = self.chars[self.pos];
                     
