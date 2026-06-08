@@ -1,0 +1,37 @@
+use std::collections::HashMap;
+
+#[derive(Debug, Clone)]
+pub struct BibEntry {
+    pub author: String,
+    pub title: String,
+    pub year: String,
+}
+
+pub struct BibTextRender;
+
+impl BibTextRender {
+
+    pub fn parse_simple_bibtex(content: &str) -> HashMap<String, BibEntry> {
+        let mut db = HashMap::new();
+        
+        for block in content.split('@').skip(1) {
+            if let Some(start) = block.find('{') {
+                let key_end = block[start + 1..].find(',').unwrap_or(0) + start + 1;
+                let key = block[start + 1..key_end].trim().to_string();
+
+                let extract = |field: &str| -> String {
+                    if let Some(pos) = block.find(field) {
+                        let start_val = block[pos..].find('{').unwrap_or(0) + pos + 1;
+                        let end_val = block[start_val..].find('}').unwrap_or(0) + start_val;
+                        block[start_val..end_val].trim().to_string()
+                    } else { String::new() }
+                };
+
+                db.insert(key, BibEntry { author: extract("author"), title: extract("title"), year: extract("year") });
+            }
+        }
+
+        db
+    }
+
+}

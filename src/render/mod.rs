@@ -1,5 +1,9 @@
+// LaTex
+pub mod latex;
+
 pub mod render;
 pub mod render_io;
+pub mod render_latex;
 pub mod render_images;
 
 // Helpers

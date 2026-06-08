@@ -73,3 +73,7 @@ site/
 
 # Ignore html files
 *.html
+
+# Ignore bibtex e tex files
+*.bib
+*.tex

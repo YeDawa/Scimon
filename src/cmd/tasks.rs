@@ -14,6 +14,7 @@ use crate::{
     configs::settings::Settings,
     system::providers::Providers,
     generator::qr_code::GenQrCode,
+    render::render_latex::RenderLaTex,
 
     addons::{
         scihub::SciHub,
@@ -112,6 +113,10 @@ impl Tasks {
 
         if let Some(contents) = contents {
             Markdown.create(&contents, &url, &path).await?;
+        }
+
+        if line_url.ends_with(".tex") {
+            let _ = RenderLaTex.create_pdf(&path, &line_url).await;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
