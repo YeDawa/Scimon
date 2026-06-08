@@ -21,9 +21,9 @@ use crate::{
     }
 };
 
-pub struct RenderLaTex;
+pub struct LaTex;
 
-impl RenderLaTex {
+impl LaTex {
 
     pub fn render(&self, content: &str) -> String {
         let mut parser = Parser::new(&content);
@@ -38,12 +38,17 @@ impl RenderLaTex {
         Templates::latex(&html_body)
     }
 
-    pub async fn create_pdf(&self, path: &str, url: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn create_pdf(&self, path: &str, url: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
         let content = Remote.content(&url).await?;
         let html = &self.render(&content);
         
         let original_name = FileNameRemote::new(url).get();
-        let new_filename = FileUtils.replace_extension(&original_name, "pdf");
+        let new_filename = if let Some(custom_name) = custom_name {
+            FileUtils.replace_extension(custom_name, "pdf")
+        } else {
+            FileUtils.replace_extension(&original_name, "pdf")
+        }
+        ;
         let output_path = FileUtils.get_output_path(&path, &new_filename);
             
         Pdf.create_pdf(html, output_path, url).await?;

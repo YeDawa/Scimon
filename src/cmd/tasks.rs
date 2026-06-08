@@ -12,9 +12,12 @@ use crate::{
     args_cli::Flags,
     consts::uris::Uris,
     configs::settings::Settings,
-    system::providers::Providers,
     generator::qr_code::GenQrCode,
-    render::render_latex::RenderLaTex,
+
+    system::{
+        latex::LaTex,
+        providers::Providers,
+    },
 
     addons::{
         scihub::SciHub,
@@ -116,7 +119,7 @@ impl Tasks {
         }
 
         if line_url.ends_with(".tex") {
-            let _ = RenderLaTex.create_pdf(&path, &line_url).await;
+            let _ = LaTex.create_pdf(&path, &line_url, custom_name).await;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
