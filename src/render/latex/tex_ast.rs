@@ -153,6 +153,7 @@ impl LatexNode {
                 ctx.subsec_num = 0;
                 let num = ctx.chap_num.to_string();
                 ctx.toc.push((1, num.clone(), title.clone()));
+
                 format!("<h1 id=\"item-{}\">{} &nbsp;&nbsp; {}</h1>", num, num, title)
             }
 
@@ -162,6 +163,7 @@ impl LatexNode {
                 ctx.subsubsec_num = 0;
                 let num = ctx.sec_num.to_string();
                 ctx.toc.push((2, num.clone(), title.clone()));
+
                 format!("<h2 id=\"item-{}\">{} &nbsp;&nbsp; {}</h2>", num, num, title)
             }
 
@@ -170,6 +172,7 @@ impl LatexNode {
                 ctx.subsubsec_num = 0;
                 let num = format!("{}.{}", ctx.sec_num, ctx.subsec_num);
                 ctx.toc.push((3, num.clone(), title.clone()));
+
                 format!("<h3 id=\"item-{}\">{} &nbsp;&nbsp; {}</h3>", num, num, title)
             }
 
@@ -177,6 +180,7 @@ impl LatexNode {
                 ctx.subsubsec_num += 1;
                 let num = format!("{}.{}.{}", ctx.sec_num, ctx.subsec_num, ctx.subsubsec_num);
                 ctx.toc.push((4, num.clone(), title.clone()));
+                
                 format!("<h4 id=\"item-{}\">{} &nbsp;&nbsp; {}</h4>", num, num, title)
             }
 
@@ -246,7 +250,7 @@ impl LatexNode {
             LatexNode::EquationBlock(nodes) => {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
-                
+
                 // Ensure any \label inside this block resolves to this eq number
                 Self::register_inner_labels(nodes, &num, ctx);
                 format!(
