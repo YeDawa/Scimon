@@ -1157,13 +1157,16 @@ impl Parser {
     ) {
         let tag = "\\label{";
         let mut pos = 0;
+        
         while pos + tag.len() <= raw.len() {
             if raw[pos..].starts_with(tag) {
                 pos += tag.len();
                 let start = pos;
+
                 while pos < raw.len() && raw.as_bytes()[pos] != b'}' {
                     pos += 1;
                 }
+
                 let key = &raw[start..pos];
                 if prefix.is_empty() || key.starts_with(prefix) {
                     labels.insert(key.to_string(), value.to_string());
@@ -1173,5 +1176,5 @@ impl Parser {
             }
         }
     }
-    
+
 }
