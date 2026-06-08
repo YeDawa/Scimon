@@ -193,10 +193,8 @@ impl Templates {
                 </script>
             </head>
             <body>
-                <div class="document-container">
-                    {}
-                </div>
-
+                <div class="document-container">{}</div>
+                
                 <script>
                     // -------------------------------------------------------
                     // pageref: resolve \pageref{{}} after full layout.
