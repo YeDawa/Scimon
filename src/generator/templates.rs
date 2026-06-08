@@ -50,20 +50,6 @@ impl Templates {
 
                 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
                 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
-                <script>
-                    window.MathJax = {{
-                        tex: {{
-                            inlineMath: [['$', '$'], ['\\(', '\\)']], // Aceita $...$ e \(...\)
-                            displayMath: [['$$', '$$'], ['\\[', '\\]']], // Aceita $$...$$ e \[...\]
-                            processEscapes: true
-                        }},
-                        options: {{
-                            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-                        }}
-                    }};
-                </script>
-                <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
                 
                 <style>
                     /* Typography & Base */
@@ -106,10 +92,45 @@ impl Templates {
                     .eq-number {{ position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 0.8em; font-style: normal; color: #95a5a6; }}
                     sup, sub {{ font-size: 0.75em; line-height: 0; position: relative; vertical-align: baseline; }}
                     sup {{ top: -0.5em; }} sub {{ bottom: -0.25em; }}
-                    .latex-frac {{ display: inline-block; vertical-align: middle; margin: 0 0.2em; text-align: center; }}
-                    .frac-num {{ display: block; border-bottom: 1px solid #2c3e50; padding: 0 0.2em; line-height: 1.2; }}
-                    .frac-den {{ display: block; padding: 0 0.2em; line-height: 1.2; }}
-                    
+                    .latex-frac {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        vertical-align: middle;
+                        text-align: center;
+                        margin: 0 0.2em;
+                        font-size: 0.9em;
+                    }}
+                    .frac-num {{ border-bottom: 1px solid currentColor; padding: 0 0.2em; }}
+                    .frac-den {{ padding: 0 0.2em; }}
+
+                    /* Matrix */
+                    .latex-matrix-wrap {{
+                        display: inline-flex;
+                        align-items: center;
+                        vertical-align: middle;
+                    }}
+                    .matrix-delim {{
+                        font-size: 2em;
+                        line-height: 1;
+                        font-weight: 200;
+                        font-family: 'Cambria Math', 'Times New Roman', serif;
+                    }}
+                    .latex-matrix {{
+                        display: inline-grid;
+                        column-gap: 0.6em;
+                        row-gap: 0.3em;
+                        margin: 0 0.1em;
+                        text-align: center;
+                        align-items: baseline;
+                    }}
+                    /* inline-flex keeps <sub>/<sup> anchored to their base character.
+                       display:contents caused them to become independent grid items. */
+                    .matrix-cell {{
+                        display: inline-flex;
+                        align-items: baseline;
+                        justify-content: center;
+                    }}
+
                     /* Code Blocks (Syntax Highlighting) */
                     pre {{ margin: 30px; border-radius: 8px; }}
                     pre code {{ font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.9em; padding: 20px !important; border-radius: 8px; line-height: 1.6; }}
@@ -142,32 +163,24 @@ impl Templates {
                     .font-huge {{ font-size: 2.0em; }}
                     .font-Huge {{ font-size: 2.5em; }}
 
-                    /* Cursor Pointer for Refs */
-                    .cursor-pointer {{ cursor: pointer; }}
+                    /* Footnotes */
+                    .footnote-rule {{ margin-top: 60px; border: none; border-top: 1px solid #eaeaea; }}
+                    .footnote-list {{ font-size: 0.85em; color: #666; padding-left: 25px; }}
+                    .footnote-ref a {{ color: #e67e22; font-weight: 600; text-decoration: none; font-size: 0.8em; vertical-align: super; }}
+                    .footnote-back {{ color: #aaa; text-decoration: none; margin-left: 4px; }}
 
-                    .latex-frac {{
-                        display: inline-flex;
-                        flex-direction: column;
-                        vertical-align: middle;
-                        text-align: center;
-                        margin: 0 0.2em;
-                        font-size: 0.9em;
-                    }}
+                    /* Abstract */
+                    .abstract {{ background: #f8f9fa; border-left: 4px solid #2980b9; padding: 20px 30px; margin: 30px 0; border-radius: 0 6px 6px 0; }}
+                    .abstract-title {{ margin: 0 0 10px; font-size: 1em; color: #2980b9; }}
 
-                    .frac-num {{
-                        border-bottom: 1px solid currentColor;
-                        padding: 0 0.2em;
-                    }}
+                    /* Theorems */
+                    .latex-theorem {{ background: #f9f9f9; border-left: 4px solid #8e44ad; padding: 15px 20px; margin: 20px 0; border-radius: 0 6px 6px 0; }}
+                    .latex-proof {{ border-left-color: #27ae60; }}
 
-                    .frac-den {{
-                        padding: 0 0.2em;
-                    }}
+                    /* Math text / operators */
+                    .math-text {{ font-style: normal; font-family: 'Lora', Georgia, serif; }}
+                    .math-op {{ font-style: normal; font-family: 'Cambria Math', 'Times New Roman', serif; margin-right: 0.15em; }}
 
-                    sub, sup {{
-                        font-size: 0.7em;
-                        line-height: 0;
-                    }}
-                    
                     /* Responsive */
                     @media (max-width: 768px) {{
                         .document-container {{ padding: 30px 20px; }}
@@ -178,36 +191,73 @@ impl Templates {
                     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
                     mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
                 </script>
-                
-                <script>
-                    document.addEventListener('DOMContentLoaded', (event) => {{
-                        const A4_HEIGHT_PX = 1122;
-                        document.body.getBoundingClientRect();
-
-                        document.querySelectorAll(".pageref").forEach(el => {{
-                            const refId = el.dataset.ref;
-                            el.classList.add("cursor-pointer");
-                            const target = document.getElementById("label-" + refId);
-
-                            if (target) {{
-                                const offsetY = target.getBoundingClientRect().top + window.scrollY;
-                                const page = Math.floor(offsetY / A4_HEIGHT_PX) + 1;
-                                el.textContent = page;
-                            }} else {{
-                                el.textContent = "??";
-                            }}
-                        }});
-
-                        document.querySelectorAll('pre code, .code-block').forEach((el) => {{
-                            hljs.highlightElement(el);
-                        }});
-                    }});
-                </script>
             </head>
             <body>
                 <div class="document-container">
                     {}
                 </div>
+
+                <script>
+                    // -------------------------------------------------------
+                    // pageref: resolve \pageref{{}} after full layout.
+                    // Runs after body so DOM + fonts are ready.
+                    // -------------------------------------------------------
+                    (function () {{
+                        var PAGE_HEIGHT_PX = 1122; // A4 @ 96 dpi
+                        var BODY_OFFSET    = 40;   // body padding-top
+
+                        function absTop(el) {{
+                            var r = el.getBoundingClientRect();
+                            return r.top + (window.scrollY || document.documentElement.scrollTop);
+                        }}
+
+                        function pageOf(el) {{
+                            return Math.floor(Math.max(0, absTop(el) - BODY_OFFSET) / PAGE_HEIGHT_PX) + 1;
+                        }}
+
+                        function findTarget(id) {{
+                            // 1. Direct id match  (item-1, label-sec:foo, …)
+                            var el = document.getElementById(id);
+                            if (el) return el;
+                            // 2. If id starts with "item-", also try "label-" variant
+                            if (id.startsWith("item-")) {{
+                                return document.getElementById("label-" + id.slice(5));
+                            }}
+                            // 3. If id starts with "label-", also try "item-" variant
+                            if (id.startsWith("label-")) {{
+                                return document.getElementById("item-" + id.slice(6));
+                            }}
+                            return null;
+                        }}
+
+                        function resolvePageRefs() {{
+                            document.querySelectorAll("[data-ref]").forEach(function (ref) {{
+                                var id     = ref.getAttribute("data-ref");
+                                var target = findTarget(id);
+                                if (target) {{
+                                    ref.textContent = String(pageOf(target));
+                                }} else {{
+                                    ref.textContent = "??";
+                                    console.warn("[pageref] target not found:", id);
+                                }}
+                            }});
+                        }}
+
+                        if (document.fonts && document.fonts.ready) {{
+                            document.fonts.ready.then(resolvePageRefs);
+                        }} else {{
+                            window.addEventListener("load", resolvePageRefs);
+                        }}
+
+                        var t;
+                        window.addEventListener("resize", function () {{
+                            clearTimeout(t);
+                            t = setTimeout(resolvePageRefs, 150);
+                        }});
+
+                        window.resolvePageRefs = resolvePageRefs;
+                    }})();
+                </script>
             </body>
             </html>"##, content
         )

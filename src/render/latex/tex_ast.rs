@@ -287,14 +287,19 @@ impl LatexNode {
             }
 
             LatexNode::PageRef(label) => {
-                let anchor = if let Some(num) = ctx.labels.get(label) {
-                    format!("item-{}", num)
+                // The anchor for a section/eq/figure is always id="item-{num}".
+                // The span id="label-{key}" only exists when \label appears
+                // explicitly in the body — it may not exist for section labels.
+                // So we use item-{num} as both href and data-ref when the label
+                // is resolved; fall back to label-{key} for unknown labels.
+                let (href, data_ref) = if let Some(num) = ctx.labels.get(label) {
+                    (format!("item-{}", num), format!("item-{}", num))
                 } else {
-                    format!("label-{}", label)
+                    (format!("label-{}", label), format!("label-{}", label))
                 };
                 format!(
-                    "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"label-{}\">??</a>",
-                    anchor, label
+                    "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"{}\">??</a>",
+                    href, data_ref
                 )
             }
 
