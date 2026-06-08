@@ -34,6 +34,7 @@ For more help and document, see our documentation:
   - [Compress folder](https://docs.scimon.dev/monset/compress)
   - [Open links](https://docs.scimon.dev/monset/open-links)
   - [Markdown render](https://docs.scimon.dev/monset/markdown-render)
+  - [LaTeX render](https://docs.scimon.dev/monset/latex-render)
   - [Style](https://docs.scimon.dev/monset/style)
   - [Print](https://docs.scimon.dev/monset/prints)
   - [Covers](https://docs.scimon.dev/monset/covers)
