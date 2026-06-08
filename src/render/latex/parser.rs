@@ -90,6 +90,19 @@ impl Parser {
 
         if self.peek() == Some('{') {
             Parser::new(&self.parse_braces_content()).parse(true, &mut HashMap::new())
+        } else if self.peek() == Some('\\') {
+            let mut cmd = String::new();
+            cmd.push(self.next_char().unwrap());
+            
+            while let Some(c) = self.peek() {
+                if c.is_alphabetic() {
+                    cmd.push(self.next_char().unwrap());
+                } else {
+                    break;
+                }
+            }
+            
+            Parser::new(&cmd).parse(true, &mut HashMap::new())
         } else {
             vec![LatexNode::Text(self.next_char().unwrap_or(' ').to_string())]
         }
@@ -492,7 +505,7 @@ impl Parser {
                 self.pos += 1; nodes.push(LatexNode::Superscript(self.parse_argument()));
             } else if current == '_' && self.in_document {
                 self.pos += 1; nodes.push(LatexNode::Subscript(self.parse_argument()));
-            } else if current == '$' && self.in_document {
+            } else if current == '$' {
                 self.pos += 1;
                 
                 let is_block = if self.peek() == Some('$') {
@@ -507,7 +520,6 @@ impl Parser {
                 while self.pos < self.chars.len() {
                     if is_block {
                         let lookahead: String = self.chars[self.pos..].iter().take(2).collect();
-
                         if lookahead == "$$" {
                             self.pos += 2;
                             break;

@@ -132,6 +132,7 @@ impl LatexNode {
                 "pm" => String::from("&plusmn;"),
                 "times" => String::from("&times;"),
                 "nabla" => String::from("&nabla;"),
+                "partial" => String::from("&part;"),
                 "mu" => String::from("&mu;"),
                 "nu" => String::from("&nu;"),
                 "hbar" => String::from("&#8463;"),

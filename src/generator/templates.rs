@@ -130,6 +130,29 @@ impl Templates {
 
                     /* Cursor Pointer for Refs */
                     .cursor-pointer {{ cursor: pointer; }}
+
+                    .latex-frac {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        vertical-align: middle;
+                        text-align: center;
+                        margin: 0 0.2em;
+                        font-size: 0.9em;
+                    }}
+
+                    .frac-num {{
+                        border-bottom: 1px solid currentColor;
+                        padding: 0 0.2em;
+                    }}
+
+                    .frac-den {{
+                        padding: 0 0.2em;
+                    }}
+
+                    sub, sup {{
+                        font-size: 0.7em;
+                        line-height: 0;
+                    }}
                     
                     /* Responsive */
                     @media (max-width: 768px) {{
