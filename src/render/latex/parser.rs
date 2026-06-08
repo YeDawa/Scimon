@@ -389,7 +389,6 @@ impl Parser {
                 }
 
                 match command.as_str() {
-
                     // --------------------------------------------------------
                     // Preamble / metadata (allowed outside \begin{document})
                     // --------------------------------------------------------
@@ -437,10 +436,7 @@ impl Parser {
                     // --------------------------------------------------------
                     "begin" => {
                         let env = self.parse_braces_content();
-
                         if env == "table" { self.current_table += 1; }
-
-                        // Consume optional placement [htbp] etc.
                         self.parse_optional_arg();
 
                         if env == "document" {

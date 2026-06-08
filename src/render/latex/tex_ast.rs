@@ -61,6 +61,7 @@ pub enum LatexNode {
     Image(String),
     Caption(String),
     Table(Vec<Vec<Vec<LatexNode>>>),
+
     /// Inline math matrix — open/close delimiters + grid of cells
     Matrix {
         open:  &'static str,
@@ -237,7 +238,7 @@ impl LatexNode {
             LatexNode::EquationBlock(nodes) => {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
-                // Ensure any \label inside this block resolves to this eq number
+                
                 Self::register_inner_labels(nodes, &num, ctx);
                 format!(
                     "<div class=\"math-block\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
@@ -319,7 +320,6 @@ impl LatexNode {
                 let bib_content = BibTextRender::fetch_bibliography(&source).unwrap_or_default();
                 ctx.bib_database = BibTextRender::parse_bibtex(&bib_content);
 
-                // Render in citation order if we have one, otherwise alphabetical
                 let keys_ordered: Vec<String> = if !ctx.citation_order.is_empty() {
                     ctx.citation_order.clone()
                 } else {
@@ -479,9 +479,6 @@ impl LatexNode {
         }
     }
 
-    /// Walk a flat node list and update ctx.labels for every Label node found,
-    /// assigning it `value`. Called before rendering equation bodies so that
-    /// any \ref to an equation label resolves to the correct equation number.
     fn register_inner_labels(nodes: &[LatexNode], value: &str, ctx: &mut RenderContext) {
         for node in nodes {
             if let LatexNode::Label(name) = node {
