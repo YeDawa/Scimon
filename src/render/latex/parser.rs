@@ -197,6 +197,16 @@ impl Parser {
                         nodes.push(LatexNode::MathHat(self.parse_argument()));
                     }
 
+                    "widehat" if self.in_document => {
+                        nodes.push(LatexNode::MathHat(self.parse_argument()));
+                    }
+
+                    "mathrm" | "text" if self.in_document => {
+                        nodes.extend(self.parse_argument());
+                    }
+
+                    "limits" => {}
+
                     "begin" => {
                         let env = self.parse_braces_content();
                         
@@ -331,7 +341,14 @@ impl Parser {
 
                             let mut rows = Vec::new();
                             for row_str in table_block.split(r"\\") {
-                                let clean_row = row_str.replace("\\hline", "").trim().to_string();
+                                let clean_row = row_str
+                                    .replace("\\hline", "")
+                                    .replace("\\toprule", "")
+                                    .replace("\\midrule", "")
+                                    .replace("\\bottomrule", "")
+                                    .trim()
+                                    .to_string();
+                                    
                                 if !clean_row.is_empty() {
                                     let mut cells = Vec::new();
 
@@ -372,7 +389,62 @@ impl Parser {
                             }
 
                             nodes.push(LatexNode::EquationBlock(Parser::new(&math_block).parse(true, labels)));
+                        } else if (env == "align" || env == "align*") && self.in_document {
+                            let mut block = String::new();
+                            let end_tag = format!("\\end{{{}}}", env);
+
+                            while self.pos < self.chars.len() {
+                                let lookahead: String = self.chars[self.pos..].iter().take(end_tag.len()).collect();
+                                if lookahead == end_tag {
+                                    self.pos += end_tag.len(); 
+                                    break;
+                                }
+
+                                if let Some(c) = self.next_char() { block.push(c); }
+                            }
+
+                            let mut rows = Vec::new();
+                            for row_str in block.split(r"\\") {
+                                let clean_row = row_str.trim().to_string();
+                                if !clean_row.is_empty() {
+                                    let mut cells = Vec::new();
+                                    for cell_str in clean_row.split('&') {
+                                        cells.push(Parser::new(cell_str.trim()).parse(true, labels));
+                                    }
+                                    rows.push(cells);
+                                }
+                            }
+
+                            nodes.push(LatexNode::Align(rows, env == "align*"));
+                        } else if env.ends_with("matrix") && self.in_document {
+                            let mut block = String::new();
+                            let end_tag = format!("\\end{{{}}}", env);
+
+                            while self.pos < self.chars.len() {
+                                let lookahead: String = self.chars[self.pos..].iter().take(end_tag.len()).collect();
+                                if lookahead == end_tag {
+                                    self.pos += end_tag.len(); 
+                                    break;
+                                }
+
+                                if let Some(c) = self.next_char() { block.push(c); }
+                            }
+
+                            let mut rows = Vec::new();
+                            for row_str in block.split(r"\\") {
+                                let clean_row = row_str.trim().to_string();
+                                if !clean_row.is_empty() {
+                                    let mut cells = Vec::new();
+                                    for cell_str in clean_row.split('&') {
+                                        cells.push(Parser::new(cell_str.trim()).parse(true, labels));
+                                    }
+                                    rows.push(cells);
+                                }
+                            }
+
+                            nodes.push(LatexNode::Matrix(env.clone(), rows));
                         }
+                        // ===> ATÉ AQUI <===
                     }
                     
                     "end" => {

@@ -55,6 +55,9 @@ pub enum LatexNode {
     Caption(String),
 
     Command(String),
+
+    Align(Vec<Vec<Vec<LatexNode>>>, bool),
+    Matrix(String, Vec<Vec<Vec<LatexNode>>>),
 }
 
 impl LatexNode {
@@ -140,6 +143,16 @@ impl LatexNode {
                 "lim" => String::from("lim"),
                 "xi" => String::from("&xi;"),
                 "Psi" => String::from("&Psi;"),
+                ";" => String::from("&thicksp;"),
+                "quad" => String::from("&emsp;"),
+
+                "%" => String::from("%"),
+                "$" => String::from("$"),
+                "&" => String::from("&amp;"),
+                "_" => String::from("_"),
+                "#" => String::from("#"),
+                "{" => String::from("{"),
+                "}" => String::from("}"),
 
                 "," => String::from("&thinsp;"),
                 
@@ -260,6 +273,65 @@ impl LatexNode {
                 }
                 
                 html.push_str("</tbody></table>\n");
+                html
+            }
+
+            LatexNode::Align(rows, is_starred) => {
+                let mut html = String::from("<table class=\"latex-align\" style=\"width: 100%; margin: 1em 0;\"><tbody>\n");
+                
+                for row in rows {
+                    html.push_str("  <tr>\n");
+                    for (j, cell) in row.iter().enumerate() {
+                        let align_style = if j % 2 == 0 { "text-align: right; padding-right: 0.2em;" } else { "text-align: left; padding-left: 0.2em;" };
+                        html.push_str(&format!("    <td style=\"{}\">{}</td>\n", align_style, Nodes::render(cell, ctx)));
+                    }
+                    
+                    if !is_starred {
+                        ctx.eq_num += 1;
+                        html.push_str(&format!("    <td style=\"width: 3em; text-align: right;\"><span class=\"eq-number\">({})</span></td>\n", ctx.eq_num));
+                    }
+                    html.push_str("  </tr>\n");
+                }
+                
+                html.push_str("</tbody></table>\n");
+                html
+            }
+
+            LatexNode::Matrix(matrix_type, rows) => {
+                let (left, right) = match matrix_type.as_str() {
+                    "pmatrix" => ("(", ")"),
+                    "bmatrix" => ("[", "]"),
+                    "vmatrix" => ("|", "|"),
+                    "Vmatrix" => ("||", "||"),
+                    "Bmatrix" => ("{", "}"),
+                    _ => ("", ""), 
+                };
+
+                let mut html = format!("<span class=\"latex-matrix\" style=\"display: inline-flex; align-items: center; vertical-align: middle; gap: 0.2em;\">");
+                
+                if !left.is_empty() { 
+                    html.push_str(&format!("<span style=\"font-size: 1.5em;\">{}</span>", left)); 
+                }
+                
+                html.push_str("<table style=\"display: inline-block; text-align: center; border-collapse: collapse;\"><tbody>\n");
+                
+                for row in rows {
+                    html.push_str("  <tr>\n");
+                    for cell in row { 
+                        html.push_str("    <td style=\"padding: 0 0.4em;\">"); 
+                        html.push_str(&Nodes::render(cell, ctx)); 
+                        html.push_str("</td>\n"); 
+                    }
+                    html.push_str("  </tr>\n");
+                }
+                
+                html.push_str("</tbody></table>");
+                
+                if !right.is_empty() { 
+                    html.push_str(&format!("<span style=\"font-size: 1.5em;\">{}</span>", right)); 
+                }
+                html.push_str("</span>");
+                
                 html
             }
         }
