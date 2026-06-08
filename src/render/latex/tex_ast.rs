@@ -41,7 +41,11 @@ pub enum LatexNode {
     VSpace(String),
 
     Url(String),
-    Href { url: String, text: Vec<LatexNode> },
+    
+    Href {
+        url: String,
+        text: Vec<LatexNode>
+    },
     
     Label(String),
     Ref(String),
