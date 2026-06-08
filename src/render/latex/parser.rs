@@ -842,6 +842,7 @@ impl Parser {
                     "url" if self.in_document => {
                         nodes.push(LatexNode::Url(self.parse_braces_content()));
                     }
+                    
                     "href" if self.in_document => {
                         let link_url = self.parse_braces_content();
                         let link_text = self.parse_argument();
@@ -866,8 +867,10 @@ impl Parser {
                             nodes.push(LatexNode::CiteMultiple(keys));
                         }
                     }
+
                     "bibliography" if self.in_document =>
                         nodes.push(LatexNode::Bibliography(self.parse_braces_content())),
+
                     "bibliographystyle" => { self.parse_braces_content(); }
 
                     // --------------------------------------------------------
