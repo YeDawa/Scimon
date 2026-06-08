@@ -1135,10 +1135,12 @@ impl Parser {
         for row_str in raw.split(r"\\") {
             let trimmed = row_str.trim();
             if trimmed.is_empty() { continue; }
+            
             let mut cells = Vec::new();
             for cell in trimmed.split('&') {
                 cells.push(Parser::new(cell.trim()).parse(true, labels));
             }
+
             rows.push(cells);
         }
         rows
@@ -1157,7 +1159,7 @@ impl Parser {
     ) {
         let tag = "\\label{";
         let mut pos = 0;
-        
+
         while pos + tag.len() <= raw.len() {
             if raw[pos..].starts_with(tag) {
                 pos += tag.len();
