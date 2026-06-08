@@ -80,7 +80,7 @@ impl Templates {
                     
                     /* Lists & TOC */
                     ul, ol {{ background: #fbfcfc; padding: 20px 20px 20px 50px; border-radius: 0 8px 8px 0; margin: 20px 0; }}
-                    .toc {{ background: #f8f9fa; padding: 25px; border-radius: 6px; margin: 15px 0; }}
+                    .toc {{ background: #f8f9fa; padding: 25px; border-radius: 6px; }}
                     .toc ul {{ border: none; background: transparent; padding: 0; margin: 0; list-style: none; }}
                     .toc li {{ margin-bottom: 8px; font-size: 0.95em; }}
                     .toc a {{ text-decoration: none; color: #2980b9; transition: color 0.2s; }}
