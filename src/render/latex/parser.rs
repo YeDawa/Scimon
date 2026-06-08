@@ -731,7 +731,7 @@ impl Parser {
 
                     "left" | "right" if self.in_document => {
                         // \left( ... \right) — consume the delimiter, ignore it
-                        self.next_char(); // delimiter character
+                        self.next_char();
                     }
 
                     // --------------------------------------------------------
