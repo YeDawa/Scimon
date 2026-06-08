@@ -199,60 +199,68 @@ impl Templates {
 
                 <script>
                     // -------------------------------------------------------
-                    // pageref — resolve \pageref{{}} using real DOM positions.
-                    // Uses offsetTop (absolute position in document) divided by
-                    // the CSS @page height so it matches Chrome's print layout.
+                    // pageref: resolve \pageref{{}} after full layout.
+                    // Runs after body so DOM + fonts are ready.
                     // -------------------------------------------------------
                     (function () {{
-                        // Must match the @page size used by Chrome when printing.
-                        // Default A4 at 96 dpi = 1122px, but Chrome's print uses
-                        // the actual CSS pixel size of the page content area.
-                        // We compute it dynamically from a zero-height probe element.
-                        function getPageHeight() {{
-                            // Create a probe that forces a page break and measure
-                            var probe = document.createElement('div');
-                            probe.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:0;page-break-after:always;visibility:hidden;';
-                            document.body.appendChild(probe);
-                            // offsetTop of next sibling after a page-break = page height
-                            var next = document.createElement('div');
-                            next.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;visibility:hidden;';
-                            document.body.appendChild(next);
-                            document.body.removeChild(probe);
-                            document.body.removeChild(next);
-                            // Fallback: A4 at 96dpi minus default Chrome margins (0.4in each = ~77px top+bottom)
-                            return 1045; // A4 content height ≈ (297mm - 2*10mm) * 96/25.4
+                        var PAGE_HEIGHT_PX = 1122; // A4 @ 96 dpi
+                        var BODY_OFFSET    = 40;   // body padding-top
+
+                        function absTop(el) {{
+                            var r = el.getBoundingClientRect();
+                            return r.top + (window.scrollY || document.documentElement.scrollTop);
                         }}
 
-                        function absoluteOffsetTop(el) {{
-                            var top = 0;
-                            while (el) {{
-                                top += el.offsetTop || 0;
-                                el = el.offsetParent;
-                            }}
-                            return top;
+                        function pageOf(el) {{
+                            return Math.floor(Math.max(0, absTop(el) - BODY_OFFSET) / PAGE_HEIGHT_PX) + 1;
                         }}
 
                         function findTarget(id) {{
+                            // 1. Direct id match  (item-1, label-sec:foo, …)
                             var el = document.getElementById(id);
                             if (el) return el;
-                            if (id.startsWith('item-'))  return document.getElementById('label-' + id.slice(5));
-                            if (id.startsWith('label-')) return document.getElementById('item-'  + id.slice(6));
+                            // 2. If id starts with "item-", also try "label-" variant
+                            if (id.startsWith("item-")) {{
+                                return document.getElementById("label-" + id.slice(5));
+                            }}
+                            // 3. If id starts with "label-", also try "item-" variant
+                            if (id.startsWith("label-")) {{
+                                return document.getElementById("item-" + id.slice(6));
+                            }}
                             return null;
                         }}
 
                         function resolvePageRefs() {{
-                            var pageH = getPageHeight();
-                            document.querySelectorAll('[data-ref]').forEach(function (ref) {{
-                                var target = findTarget(ref.getAttribute('data-ref'));
-                                ref.textContent = target
-                                    ? String(Math.floor(absoluteOffsetTop(target) / pageH) + 1)
-                                    : '??';
+                            document.querySelectorAll("[data-ref]").forEach(function (ref) {{
+                                var id     = ref.getAttribute("data-ref");
+                                var target = findTarget(id);
+                                if (target) {{
+                                    ref.textContent = String(pageOf(target));
+                                }} else {{
+                                    ref.textContent = "??";
+                                    console.warn("[pageref] target not found:", id);
+                                }}
                             }});
                         }}
 
-                        // Run on load AND on beforeprint (Chrome fires this before paginating)
-                        window.addEventListener('load', resolvePageRefs);
-                        window.addEventListener('beforeprint', resolvePageRefs);
+                        if (document.fonts && document.fonts.ready) {{
+                            document.fonts.ready.then(resolvePageRefs);
+                        }} else {{
+                            window.addEventListener("load", resolvePageRefs);
+                        }}
+
+                        var t;
+                        window.addEventListener("resize", function () {{
+                            clearTimeout(t);
+                            t = setTimeout(resolvePageRefs, 150);
+                        }});
+
+                        document.querySelectorAll("[data-ref]").forEach(function(el) {{
+                            var id = el.getAttribute("data-ref");
+                            var target = document.getElementById(id);
+                            console.log("data-ref:", id, "→ target:", target, "→ absTop:", target ? target.getBoundingClientRect().top : "NOT FOUND");
+                        }});
+
                         window.resolvePageRefs = resolvePageRefs;
                     }})();
                 </script>
