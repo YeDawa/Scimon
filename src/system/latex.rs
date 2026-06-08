@@ -31,14 +31,9 @@ impl LaTex {
         let mut parser = Parser::new(content);
         let document_ast = parser.parse(false, &mut labels);
 
-        // Initialize context counters from parser state so that
-        // RenderContext sec_num matches what the parser registered in labels.
-        // We reset them to zero — the render increments them the same way
-        // the parser did, so item-N in HTML matches label value N.
         let mut context = RenderContext::new(labels);
         let mut html_body = Nodes::render(&document_ast, &mut context);
 
-        // Replace the TOC placeholder with the now-complete table of contents
         let toc_html = Self::build_toc(&context);
         html_body = html_body.replace("__TOC_PLACEHOLDER__", &toc_html);
 
@@ -47,9 +42,7 @@ impl LaTex {
             html_body.push_str(&footnotes);
         }
 
-        // Resolve \pageref{} server-side — no JS needed for PDF rendering
         let html_body = PageRefResolver::resolve(&html_body);
-
         Templates::latex(&html_body)
     }
 
@@ -57,6 +50,7 @@ impl LaTex {
         if ctx.toc.is_empty() {
             return String::new();
         }
+        
         let mut html = String::from("<div class=\"toc\"><h2>Contents</h2><ul>");
         for (level, num, title) in &ctx.toc {
             let indent = match level {
@@ -65,11 +59,13 @@ impl LaTex {
                 4 => "margin-left: 75px;",
                 _ => "",
             };
+
             html.push_str(&format!(
                 "<li style=\"{}\"><a href=\"#item-{}\"><strong>{}</strong> {}</a></li>",
                 indent, num, num, title
             ));
         }
+        
         html.push_str("</ul></div>");
         html
     }

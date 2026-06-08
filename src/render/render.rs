@@ -3,7 +3,7 @@ use minify::html::minify;
 use std::error::Error;
 
 use headless_chrome::{
-    Browser, 
+    Browser,
     LaunchOptionsBuilder,
     types::PrintToPdfOptions,
 };
@@ -47,14 +47,33 @@ impl Render {
             LaunchOptionsBuilder::default().build().expect(""),
         )?;
 
-        let pdf_options: Option<PrintToPdfOptions> = None;
+        let tab = browser.new_tab()?;
 
-        let contents = browser.new_tab()?.navigate_to(
-            &Base64::encode_html(content)
-        )?.wait_until_navigated()?.print_to_pdf(
-            pdf_options
+        tab.navigate_to(&Base64::encode_html(content))?
+            .wait_until_navigated()?;
+
+        let debug = tab.evaluate(
+    r#"
+            (function() {
+                var refs = document.querySelectorAll('[data-ref]');
+                return JSON.stringify({
+                    count: refs.length,
+                    first: refs[0] ? refs[0].getAttribute('data-ref') : null,
+                    firstText: refs[0] ? refs[0].textContent : null,
+                    resolveExists: typeof window.resolvePageRefs
+                });
+            })()
+            "#,
+            false,
         )?;
+        eprintln!("DEBUG refs: {:?}", debug);
 
+        let pdf_options: Option<PrintToPdfOptions> = Some(PrintToPdfOptions {
+            print_background: Some(true),
+            ..Default::default()
+        });
+
+        let contents = tab.print_to_pdf(pdf_options)?;
         Ok(contents)
     }
 
