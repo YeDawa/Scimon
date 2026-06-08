@@ -117,6 +117,23 @@ impl Parser {
                     "begin" => {
                         let env = self.parse_braces_content();
 
+                        let mut env_options = String::new();
+                        while self.peek().map_or(false, |c| c.is_whitespace()) {
+                            self.next_char();
+                        }
+                        
+                        if self.peek() == Some('[') {
+                            self.next_char();
+                            
+                            while let Some(c) = self.next_char() {
+                                if c == ']' {
+                                    break;
+                                }
+                                
+                                env_options.push(c);
+                            }
+                        }
+
                         if env == "document" {
                             self.in_document = true;
                         }else if (env == "lstlisting" || env == "verbatim") && self.in_document {
@@ -397,7 +414,7 @@ impl Parser {
                     if self.in_document { 
                         nodes.push(LatexNode::Text(special_char.to_string())); 
                     }
-                    
+
                     self.pos += 1;
                 } else if self.in_document && !text.trim().is_empty() { 
                     nodes.push(LatexNode::Text(text)); 
