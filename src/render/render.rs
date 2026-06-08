@@ -57,14 +57,17 @@ impl Render {
                 function offsetTop(el) {
                     var top = 0;
                     while (el) { top += el.offsetTop || 0; el = el.offsetParent; }
+                    
                     return top;
                 }
 
                 function findTarget(id) {
                     var el = document.getElementById(id);
                     if (el) return el;
+
                     if (id.startsWith('item-'))
                         return document.getElementById('label-' + id.slice(5));
+
                     if (id.startsWith('label-'))
                         return document.getElementById('item-' + id.slice(6));
                     return null;
@@ -72,6 +75,7 @@ impl Render {
 
                 document.querySelectorAll('[data-ref]').forEach(function(ref) {
                     var target = findTarget(ref.getAttribute('data-ref'));
+
                     if (target) {
                         ref.textContent = String(Math.floor(offsetTop(target) / PAGE_H) + 1);
                     }
