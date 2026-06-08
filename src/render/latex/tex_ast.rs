@@ -295,16 +295,12 @@ impl LatexNode {
             }
 
             LatexNode::PageRef(label) => {
-                // The anchor for a section/eq/figure is always id="item-{num}".
-                // The span id="label-{key}" only exists when \label appears
-                // explicitly in the body — it may not exist for section labels.
-                // So we use item-{num} as both href and data-ref when the label
-                // is resolved; fall back to label-{key} for unknown labels.
                 let (href, data_ref) = if let Some(num) = ctx.labels.get(label) {
                     (format!("item-{}", num), format!("item-{}", num))
                 } else {
                     (format!("label-{}", label), format!("label-{}", label))
                 };
+                
                 format!(
                     "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"{}\">??</a>",
                     href, data_ref
@@ -391,13 +387,19 @@ impl LatexNode {
             LatexNode::TableFloat(children) => {
                 ctx.tab_num += 1;
                 ctx.last_counter = ctx.tab_num.to_string();
-                Nodes::render(children, ctx)
+                ctx.in_float = true;
+                let html = Nodes::render(children, ctx);
+                ctx.in_float = false;
+                html
             }
 
             LatexNode::FigureFloat(children) => {
                 ctx.fig_num += 1;
                 ctx.last_counter = ctx.fig_num.to_string();
-                Nodes::render(children, ctx)
+                ctx.in_float = true;
+                let html = Nodes::render(children, ctx);
+                ctx.in_float = false;
+                html
             }
 
             LatexNode::Caption(text) =>
@@ -407,9 +409,11 @@ impl LatexNode {
                 ),
 
             LatexNode::Image(url) => {
-                ctx.fig_num += 1;
-                let num = ctx.fig_num.to_string();
-                ctx.last_counter = num.clone();
+                if !ctx.in_float {
+                    ctx.fig_num += 1;
+                    ctx.last_counter = ctx.fig_num.to_string();
+                }
+                let num = ctx.last_counter.clone();
                 format!(
                     "<img src=\"{}\" class=\"latex-image\" id=\"item-{}\" alt=\"Figure {}\" />",
                     url, num, num
@@ -417,9 +421,13 @@ impl LatexNode {
             }
 
             LatexNode::Table(rows) => {
-                ctx.tab_num += 1;
-                let num = ctx.tab_num.to_string();
-                ctx.last_counter = num.clone();
+                // If inside a TableFloat, tab_num and last_counter are already set.
+                // If standalone (no float wrapper), increment now.
+                if ctx.last_counter == "0" || !ctx.in_float {
+                    ctx.tab_num += 1;
+                    ctx.last_counter = ctx.tab_num.to_string();
+                }
+                let num = ctx.last_counter.clone();
                 let mut html = format!("<table class=\"latex-table\" id=\"item-{}\"><tbody>\n", num);
                 for row in rows {
                     html.push_str("  <tr>\n");

@@ -18,7 +18,6 @@ use crate::{
         nodes::Nodes,
         parser::Parser,
         context::RenderContext,
-        pageref_resolver::PageRefResolver,
     }
 };
 
@@ -42,7 +41,8 @@ impl LaTex {
             html_body.push_str(&footnotes);
         }
 
-        let html_body = PageRefResolver::resolve(&html_body);
+        // \pageref{} placeholders (data-ref="item-N">??) are resolved in the
+        // browser via tab.evaluate() in render.rs before print_to_pdf is called.
         Templates::latex(&html_body)
     }
 
@@ -50,7 +50,6 @@ impl LaTex {
         if ctx.toc.is_empty() {
             return String::new();
         }
-        
         let mut html = String::from("<div class=\"toc\"><h2>Contents</h2><ul>");
         for (level, num, title) in &ctx.toc {
             let indent = match level {
@@ -59,13 +58,11 @@ impl LaTex {
                 4 => "margin-left: 75px;",
                 _ => "",
             };
-
             html.push_str(&format!(
                 "<li style=\"{}\"><a href=\"#item-{}\"><strong>{}</strong> {}</a></li>",
                 indent, num, num, title
             ));
         }
-        
         html.push_str("</ul></div>");
         html
     }
