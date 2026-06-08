@@ -52,7 +52,7 @@ impl Render {
         tab.navigate_to(&Base64::encode_html(content))?
             .wait_until_navigated()?;
 
-        let debug = tab.evaluate(
+        tab.evaluate(
     r#"
             (function() {
                 var refs = document.querySelectorAll('[data-ref]');
@@ -66,7 +66,6 @@ impl Render {
             "#,
             false,
         )?;
-        eprintln!("DEBUG refs: {:?}", debug);
 
         let pdf_options: Option<PrintToPdfOptions> = Some(PrintToPdfOptions {
             print_background: Some(true),
