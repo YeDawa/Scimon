@@ -38,7 +38,6 @@ pub enum LatexNode {
     SmallCaps(Vec<LatexNode>),
 
     FontSize(String, Vec<LatexNode>),
-
     VSpace(String),
 
     Url(String),
