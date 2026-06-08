@@ -300,7 +300,7 @@ impl LatexNode {
                 } else {
                     (format!("label-{}", label), format!("label-{}", label))
                 };
-                
+
                 format!(
                     "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"{}\">??</a>",
                     href, data_ref
@@ -413,6 +413,7 @@ impl LatexNode {
                     ctx.fig_num += 1;
                     ctx.last_counter = ctx.fig_num.to_string();
                 }
+                
                 let num = ctx.last_counter.clone();
                 format!(
                     "<img src=\"{}\" class=\"latex-image\" id=\"item-{}\" alt=\"Figure {}\" />",
@@ -427,6 +428,7 @@ impl LatexNode {
                     ctx.tab_num += 1;
                     ctx.last_counter = ctx.tab_num.to_string();
                 }
+
                 let num = ctx.last_counter.clone();
                 let mut html = format!("<table class=\"latex-table\" id=\"item-{}\"><tbody>\n", num);
                 for row in rows {
@@ -438,6 +440,7 @@ impl LatexNode {
                     }
                     html.push_str("  </tr>\n");
                 }
+
                 html.push_str("</tbody></table>\n");
                 html
             }
@@ -447,6 +450,7 @@ impl LatexNode {
                 if rows.is_empty() {
                     return format!("{}{}", open, close);
                 }
+
                 let col_count = rows.iter().map(|r| r.len()).max().unwrap_or(1);
                 let mut cells_html = String::new();
                 for row in rows {
@@ -458,11 +462,13 @@ impl LatexNode {
                             Nodes::render(cell, ctx)
                         ));
                     }
+
                     // Pad short rows so the grid stays rectangular
                     for _ in row.len()..col_count {
                         cells_html.push_str("<span class=\"matrix-cell\"></span>");
                     }
                 }
+
                 format!(
                     "<span class=\"latex-matrix-wrap\">\
                         <span class=\"matrix-delim\">{open}</span>\
@@ -494,14 +500,17 @@ impl LatexNode {
                 ctx.doc_title = Nodes::render(t, ctx);
                 String::new()
             }
+
             LatexNode::Author(a) => {
                 ctx.doc_author = Nodes::render(a, ctx);
                 String::new()
             }
+
             LatexNode::Date(d) => {
                 ctx.doc_date = Nodes::render(d, ctx);
                 String::new()
             }
+
             LatexNode::MakeTitle => {
                 let date_html = if ctx.doc_date.is_empty() {
                     String::new()
@@ -516,9 +525,6 @@ impl LatexNode {
         }
     }
 
-    /// Walk a flat node list and update ctx.labels for every Label node found,
-    /// assigning it `value`. Called before rendering equation bodies so that
-    /// any \ref to an equation label resolves to the correct equation number.
     fn register_inner_labels(nodes: &[LatexNode], value: &str, ctx: &mut RenderContext) {
         for node in nodes {
             if let LatexNode::Label(name) = node {
