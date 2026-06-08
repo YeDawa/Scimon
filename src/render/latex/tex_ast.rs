@@ -174,7 +174,6 @@ impl LatexNode {
                 }
 
                 html.push_str("</ol>");
-                println!("Bibliography HTML: {}", html);
                 html
             }
 
