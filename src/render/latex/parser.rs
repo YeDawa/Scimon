@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::render::latex::tex_ast::LatexNode;
+use crate::render::latex::{
+    misc::Misc,
+    tex_ast::LatexNode,
+};
 
 // ---------------------------------------------------------------------------
 // Greek letters, operators and other math symbols supported as \commands
@@ -496,8 +499,8 @@ impl Parser {
                             let raw = self.read_until_end(&env);
                             // Determine what equation number this will get (+1 of current)
                             // and pre-register any \label inside so \ref resolves correctly.
-                            let next_eq = ctx_eq_num_peek(labels) + 1;
-                            Self::extract_and_register_labels(&raw, &next_eq.to_string(), "eq:", labels);
+                            let next_eq = Misc::ctx_eq_num_peek(labels) + 1;
+                            Misc::extract_and_register_labels(&raw, &next_eq.to_string(), "eq:", labels);
                             nodes.push(LatexNode::EquationBlock(
                                 Parser::new(raw.trim()).parse(true, labels)
                             ));
@@ -509,8 +512,8 @@ impl Parser {
                                 || env == "flalign"  || env == "flalign*") && self.in_document
                         {
                             let raw = self.read_until_end(&env);
-                            let next_eq = ctx_eq_num_peek(labels) + 1;
-                            Self::extract_and_register_labels(&raw, &next_eq.to_string(), "eq:", labels);
+                            let next_eq = Misc::ctx_eq_num_peek(labels) + 1;
+                            Misc::extract_and_register_labels(&raw, &next_eq.to_string(), "eq:", labels);
                             nodes.push(LatexNode::AlignBlock(
                                 Parser::new(raw.trim()).parse(true, labels)
                             ));
@@ -1112,44 +1115,4 @@ impl Parser {
         rows
     }
 
-    // -----------------------------------------------------------------------
-    // Helper: scan raw LaTeX for \label{key} and pre-register in `labels` with
-    // `value`, so \ref resolves correctly before counters are incremented.
-    // Pass prefix = "" to register all labels, or e.g. "eq:" to filter.
-    // -----------------------------------------------------------------------
-    fn extract_and_register_labels(
-        raw: &str,
-        value: &str,
-        prefix: &str,
-        labels: &mut HashMap<String, String>,
-    ) {
-        let tag = "\\label{";
-        let mut pos = 0;
-        while pos + tag.len() <= raw.len() {
-            if raw[pos..].starts_with(tag) {
-                pos += tag.len();
-                let start = pos;
-                while pos < raw.len() && raw.as_bytes()[pos] != b'}' {
-                    pos += 1;
-                }
-                let key = &raw[start..pos];
-                if prefix.is_empty() || key.starts_with(prefix) {
-                    labels.insert(key.to_string(), value.to_string());
-                }
-            } else {
-                pos += 1;
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Free helper: returns the current highest equation-like number already in the
-// labels map, used to predict what the next \equation counter will be.
-// ---------------------------------------------------------------------------
-fn ctx_eq_num_peek(labels: &HashMap<String, String>) -> usize {
-    labels.values()
-        .filter_map(|v| v.parse::<usize>().ok())
-        .max()
-        .unwrap_or(0)
 }
