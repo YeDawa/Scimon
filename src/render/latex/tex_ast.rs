@@ -29,7 +29,10 @@ pub enum LatexNode {
     MakeTitle,
     Image(String),
     CodeBlock(String),
+    Sqrt(Vec<LatexNode>),
     EquationBlock(Vec<LatexNode>),
+    MathBold(Vec<LatexNode>),
+    MathHat(Vec<LatexNode>),
 
     Underline(Vec<LatexNode>),
     Monospace(Vec<LatexNode>),
@@ -108,6 +111,7 @@ impl LatexNode {
             LatexNode::Superscript(nodes) => format!("<sup>{}</sup>", Nodes::render(nodes, ctx)),
             LatexNode::Subscript(nodes) => format!("<sub>{}</sub>", Nodes::render(nodes, ctx)),
             LatexNode::Fraction { num, den } => format!("<span class=\"latex-frac\"><span class=\"frac-num\">{}</span><span class=\"frac-den\">{}</span></span>", Nodes::render(num, ctx), Nodes::render(den, ctx)),
+            LatexNode::Sqrt(nodes) => format!("<span class=\"latex-sqrt\"><span class=\"sqrt-sign\">&radic;</span><span class=\"sqrt-content\">{}</span></span>", Nodes::render(nodes, ctx)),
             LatexNode::EquationBlock(nodes) => {
                 ctx.eq_num += 1;
                 let num = format!("{}", ctx.eq_num);
@@ -125,11 +129,24 @@ impl LatexNode {
                 "beta" => String::from("&beta;"),
                 "gamma" => String::from("&gamma;"),
                 "Delta" => String::from("&Delta;"),
-                
+                "pm" => String::from("&plusmn;"),
+                "times" => String::from("&times;"),
+                "nabla" => String::from("&nabla;"),
+                "mu" => String::from("&mu;"),
+                "nu" => String::from("&nu;"),
+                "hbar" => String::from("&#8463;"),
+                "to" => String::from("&rarr;"),
+                "lim" => String::from("lim"),
+                "xi" => String::from("&xi;"),
+                "Psi" => String::from("&Psi;"),
+
                 "," => String::from("&thinsp;"),
                 
                 _ => format!("\\{}", name),
             }
+
+            LatexNode::MathBold(nodes) => format!("<span style=\"font-weight: bold;\">{}</span>", Nodes::render(nodes, ctx)),
+            LatexNode::MathHat(nodes) => format!("<span class=\"math-hat\">{}&#770;</span>", Nodes::render(nodes, ctx)),
             
             // Refs & TOC
             LatexNode::Label(name) => {

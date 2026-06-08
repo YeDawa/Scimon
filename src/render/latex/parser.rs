@@ -122,10 +122,11 @@ impl Parser {
                 }
 
                 let cmd_str = if !command.is_empty() {
-                    command // Era uma palavra (ex: sum, begin, textbf)
+                    command
                 } else if self.pos < self.chars.len() {
-                    let c = self.chars[self.pos].to_string(); // Era um símbolo (ex: [, (, \,)
+                    let c = self.chars[self.pos].to_string();
                     self.pos += 1;
+
                     c
                 } else {
                     String::new()
@@ -168,9 +169,19 @@ impl Parser {
                         nodes.push(LatexNode::MathInline(Parser::new(&math_block).parse(true, labels)));
                     }
 
+                    "left" | "right" if self.in_document => {}
+
                     "section" if self.in_document => {
                         self.current_section += 1;
                         nodes.push(LatexNode::Section(self.parse_braces_content()));
+                    }
+
+                    "mathbf" if self.in_document => {
+                        nodes.push(LatexNode::MathBold(self.parse_argument()));
+                    }
+
+                    "hat" if self.in_document => {
+                        nodes.push(LatexNode::MathHat(self.parse_argument()));
                     }
 
                     "begin" => {
@@ -376,9 +387,19 @@ impl Parser {
                     "textit" if self.in_document => nodes.push(LatexNode::Italic(Parser::new(&self.parse_braces_content()).parse(true, labels))),
                     "math" if self.in_document => nodes.push(LatexNode::MathInline(self.parse_argument())),
                     "frac" if self.in_document => { let num = self.parse_argument(); let den = self.parse_argument(); nodes.push(LatexNode::Fraction { num, den }); }
-                    "sqrt" if self.in_document => { let arg = self.parse_argument(); nodes.push(LatexNode::Text("√(".to_string())); nodes.extend(arg); nodes.push(LatexNode::Text(")".to_string())); }
+                    "sqrt" if self.in_document => { nodes.push(LatexNode::Sqrt(self.parse_argument())); }
                     "int" | "infty" | "pi" | "alpha" | "beta" | "gamma" | "Delta" if self.in_document => {
-                        let symbol = match cmd_str.as_str() { "int"=>"∫", "infty"=>"∞", "pi"=>"π", "alpha"=>"α", "beta"=>"β", "gamma"=>"γ", "Delta"=>"Δ", _=>"" };
+                        let symbol = match cmd_str.as_str() {
+                            "int" => "∫", 
+                            "infty" => "∞", 
+                            "pi" => "π", 
+                            "alpha" => "α", 
+                            "beta" => "β", 
+                            "gamma" => "γ", 
+                            "Delta" => "Δ", 
+                            _=> ""
+                        };
+
                         nodes.push(LatexNode::Text(symbol.to_string()));
                     }
 
