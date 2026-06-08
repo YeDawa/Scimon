@@ -1,6 +1,5 @@
-use minify::html::minify;
-
 use std::error::Error;
+use minify::html::minify;
 
 use headless_chrome::{
     Browser,
