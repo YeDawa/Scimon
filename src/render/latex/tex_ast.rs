@@ -41,7 +41,7 @@ pub enum LatexNode {
     VSpace(String),
 
     Url(String),
-    
+
     Href {
         url: String,
         text: Vec<LatexNode>
@@ -140,8 +140,6 @@ impl LatexNode {
                 let number = ctx.register_citation(key);
                 format!("<a href=\"#ref-{}\" class=\"cite\">[{}]</a>", key, number)
             }
-
-
 
             // Bibliography
             LatexNode::Bibliography(file) => {
