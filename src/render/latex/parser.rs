@@ -6,6 +6,9 @@ pub struct Parser {
     pub chars: Vec<char>,
     pub pos: usize,
     pub in_document: bool,
+
+    pub current_section: usize,
+    pub current_table: usize,
 }
 
 impl Parser {
@@ -15,6 +18,9 @@ impl Parser {
             chars: input.chars().collect(), 
             pos: 0, 
             in_document: false,
+
+            current_section: 0,
+            current_table: 0,
         }
     }
 
@@ -116,8 +122,17 @@ impl Parser {
                 }
 
                 match command.as_str() {
+                    "section" if self.in_document => {
+                        self.current_section += 1;
+                        nodes.push(LatexNode::Section(self.parse_braces_content()));
+                    }
+
                     "begin" => {
                         let env = self.parse_braces_content();
+                        
+                        if env == "table" {
+                            self.current_table += 1;
+                        }
 
                         let mut env_options = String::new();
                         while self.peek().map_or(false, |c| c.is_whitespace()) {
@@ -388,7 +403,14 @@ impl Parser {
 
                     "label" if self.in_document => {
                         let label_name = self.parse_braces_content();
-                        labels.insert(label_name.clone(), "1".to_string());
+    
+                        let target_value = if label_name.starts_with("tab:") {
+                            self.current_table.to_string()
+                        } else {
+                            self.current_section.to_string()
+                        };
+
+                        labels.insert(label_name.clone(), target_value);
                         nodes.push(LatexNode::Label(label_name));
                     }
 
