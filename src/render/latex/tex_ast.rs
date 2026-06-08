@@ -151,7 +151,7 @@ impl LatexNode {
                     if let Some(entry) = ctx.bib_database.get(key) { html.push_str(&format!("<li id=\"ref-{}\">{}, <em>{}</em>, {}.</li>", key, entry.author, entry.title, entry.year)); } 
                     else { html.push_str(&format!("<li><strong style='color:red;'>Error: Ref '{}' not found!</strong></li>", key)); }
                 }
-                
+
                 html.push_str("</ol>"); html
             }
 
@@ -180,6 +180,7 @@ impl LatexNode {
                 let num = format!("{}", ctx.tab_num);
                 ctx.last_counter = num.clone();
                 let mut html = format!("<table class=\"latex-table\" id=\"item-{}\"><tbody>\n", num);
+                
                 for row in rows {
                     html.push_str("  <tr>\n");
                     for cell in row { html.push_str("    <td>"); html.push_str(&Nodes::render(cell, ctx)); html.push_str("</td>\n"); }
