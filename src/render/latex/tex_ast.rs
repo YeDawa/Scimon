@@ -122,10 +122,12 @@ impl LatexNode {
             // Table of Contents
             LatexNode::TableOfContents => {
                 let mut html = String::from("<div class=\"toc\"><h2>Summary</h2><ul>");
+                
                 for (level, num, title) in &ctx.toc {
                     let indent = if *level == 2 { "margin-left: 25px;" } else { "" };
                     html.push_str(&format!("<li style=\"{}\"><a href=\"#item-{}\"><strong>{}</strong> {}</a></li>", indent, num, num, title));
                 }
+                
                 html.push_str("</ul></div>");
                 html
             }
