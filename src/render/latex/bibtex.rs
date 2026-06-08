@@ -11,7 +11,7 @@ pub struct BibTextRender;
 
 impl BibTextRender {
 
-    pub fn parse_simple_bibtex(content: &str) -> HashMap<String, BibEntry> {
+    pub fn parse_bibtex(content: &str) -> HashMap<String, BibEntry> {
         let mut db = HashMap::new();
         
         for block in content.split('@').skip(1) {
@@ -27,7 +27,11 @@ impl BibTextRender {
                     } else { String::new() }
                 };
 
-                db.insert(key, BibEntry { author: extract("author"), title: extract("title"), year: extract("year") });
+                db.insert(key, BibEntry { 
+                    author: extract("author"), 
+                    title: extract("title"), 
+                    year: extract("year") 
+                });
             }
         }
 
