@@ -5,11 +5,6 @@
 <p align='center'><b>Unleash your knowledge.</b></p>
 
 <p align='center'>
-	<a href='https://github.com/YeDawa/Scimon/actions/workflows/rust.yml'><img src='https://img.shields.io/github/actions/workflow/status/YeDawa/Scimon/rust.yml?style=flat-square'/></a>
-	<img src='https://img.shields.io/github/license/YeDawa/Scimon?style=flat-square'/>
-</p>
-
-<p align='center'>
     <img src='https://i.imgur.com/RRPMQ2j.png' />
 </p>
 
