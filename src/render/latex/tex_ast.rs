@@ -246,6 +246,7 @@ impl LatexNode {
             LatexNode::EquationBlock(nodes) => {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
+                
                 // Ensure any \label inside this block resolves to this eq number
                 Self::register_inner_labels(nodes, &num, ctx);
                 format!(
@@ -260,6 +261,7 @@ impl LatexNode {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
                 Self::register_inner_labels(nodes, &num, ctx);
+
                 format!(
                     "<div class=\"math-block math-align\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
                     num,
@@ -276,6 +278,7 @@ impl LatexNode {
                 let num = ctx.footnote_num;
                 let content = Nodes::render(nodes, ctx);
                 ctx.pending_footnotes.push((num, content));
+
                 format!(
                     "<sup class=\"footnote-ref\"><a href=\"#fn-{}\" id=\"fnref-{}\">{}</a></sup>",
                     num, num, num
@@ -320,6 +323,7 @@ impl LatexNode {
                         format!("<a href=\"#ref-{}\" class=\"cite\">{}</a>", key, number)
                     })
                     .collect();
+
                 format!("[{}]", links.join(", "))
             }
 
@@ -413,7 +417,7 @@ impl LatexNode {
                     ctx.fig_num += 1;
                     ctx.last_counter = ctx.fig_num.to_string();
                 }
-                
+
                 let num = ctx.last_counter.clone();
                 format!(
                     "<img src=\"{}\" class=\"latex-image\" id=\"item-{}\" alt=\"Figure {}\" />",
