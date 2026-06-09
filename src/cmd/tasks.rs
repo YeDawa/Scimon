@@ -84,7 +84,6 @@ impl Tasks {
                 }
 
                 let url = trimmed.split_whitespace().next().unwrap_or("");
-
                 if !MacroHandler::handle_check_macro_line(&line, "ignore") {
                     if !url.is_empty() && is_url(&url) {
                         FileUtils.create_path(&qrcode_path);
