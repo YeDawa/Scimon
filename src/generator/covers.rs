@@ -43,7 +43,6 @@ impl Covers {
 
         let document = pdfium.load_pdf_from_file(input, None)?;
         let page = document.pages().get(0).expect("Error loading page: page not found");
-
         let image = page
             .render_with_config(&render_config)?
             .as_image()?
@@ -51,7 +50,7 @@ impl Covers {
             
         image.save_with_format(output, ImageFormat::Jpeg)?;
         SuccessAlerts::cover_generated(file);
-        
+
         Ok(())
     }
 
