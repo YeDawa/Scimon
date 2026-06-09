@@ -26,8 +26,8 @@ pub struct LaTex;
 impl LaTex {
 
     pub fn render(&self, content: &str) -> String {
-        let mut labels = HashMap::new();
         let mut parser = Parser::new(content);
+        let mut labels = HashMap::new();
         let document_ast = parser.parse(false, &mut labels);
 
         let mut context = RenderContext::new(labels);
@@ -63,7 +63,7 @@ impl LaTex {
                 indent, num, num, title
             ));
         }
-        
+
         html.push_str("</ul></div>");
         html
     }
