@@ -63,6 +63,7 @@ impl LaTex {
                 indent, num, num, title
             ));
         }
+        
         html.push_str("</ul></div>");
         html
     }
