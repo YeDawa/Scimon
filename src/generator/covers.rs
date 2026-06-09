@@ -51,6 +51,7 @@ impl Covers {
             
         image.save_with_format(output, ImageFormat::Jpeg)?;
         SuccessAlerts::cover_generated(file);
+        
         Ok(())
     }
 
