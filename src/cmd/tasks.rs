@@ -65,12 +65,25 @@ impl Tasks {
         if let Some(qrcode_path) = Vars.get_qrcode(contents) {
             UI::section_header("QR Codes", "normal");
 
+            let mut in_downloads_block = false;
             for line in contents.lines() {
-                let url = line.trim().split_whitespace().next().unwrap_or("");
+                let trimmed = line.trim();
 
-                if line.trim().starts_with("downloads {") || line.trim().starts_with("}") {
+                if trimmed.starts_with("downloads {") {
+                    in_downloads_block = true;
                     continue;
                 }
+
+                if in_downloads_block && trimmed == "}" {
+                    in_downloads_block = false;
+                    continue;
+                }
+
+                if !in_downloads_block {
+                    continue;
+                }
+
+                let url = trimmed.split_whitespace().next().unwrap_or("");
 
                 if !MacroHandler::handle_check_macro_line(&line, "ignore") {
                     if !url.is_empty() && is_url(&url) {
