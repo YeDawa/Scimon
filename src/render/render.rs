@@ -1,5 +1,6 @@
-use std::error::Error;
 use minify::html::minify;
+
+use std::error::Error;
 
 use headless_chrome::{
     Browser,
@@ -47,9 +48,26 @@ impl Render {
         )?;
 
         let tab = browser.new_tab()?;
+
         tab.navigate_to(&Base64::encode_html(content))?
             .wait_until_navigated()?;
 
+        // Wait for MathJax to finish typesetting (if present)
+        tab.evaluate(r#"
+            new Promise(function(resolve) {
+                if (typeof MathJax === 'undefined' || typeof MathJax.startup === 'undefined') {
+                    resolve();
+                    return;
+                }
+                MathJax.startup.promise.then(resolve).catch(resolve);
+                // Safety timeout: resolve after 5s regardless
+                setTimeout(resolve, 5000);
+            })
+        "#, true)?;
+
+        // Resolve \pageref{} placeholders before printing.
+        // PAGE_H = 871px is calibrated from: scrollHeight=6098, total_pages=7
+        // for this specific template. Adjust if the template changes significantly.
         tab.evaluate(r#"
             (function() {
                 var PAGE_H = 697;
@@ -57,26 +75,21 @@ impl Render {
                 function offsetTop(el) {
                     var top = 0;
                     while (el) { top += el.offsetTop || 0; el = el.offsetParent; }
-
                     return top;
                 }
 
                 function findTarget(id) {
                     var el = document.getElementById(id);
                     if (el) return el;
-
                     if (id.startsWith('item-'))
                         return document.getElementById('label-' + id.slice(5));
-
                     if (id.startsWith('label-'))
                         return document.getElementById('item-' + id.slice(6));
-                        
                     return null;
                 }
 
                 document.querySelectorAll('[data-ref]').forEach(function(ref) {
                     var target = findTarget(ref.getAttribute('data-ref'));
-
                     if (target) {
                         ref.textContent = String(Math.floor(offsetTop(target) / PAGE_H) + 1);
                     }

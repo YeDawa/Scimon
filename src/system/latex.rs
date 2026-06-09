@@ -28,7 +28,9 @@ impl LaTex {
     pub fn render(&self, content: &str) -> String {
         let mut parser = Parser::new(content);
         let mut labels = HashMap::new();
-        let document_ast = parser.parse(false, &mut labels);
+
+        let force_active = !content.contains("\\begin{document}");
+        let document_ast = parser.parse(force_active, &mut labels);
 
         let mut context = RenderContext::new(labels);
         let mut html_body = Nodes::render(&document_ast, &mut context);
@@ -48,7 +50,7 @@ impl LaTex {
         if ctx.toc.is_empty() {
             return String::new();
         }
-
+        
         let mut html = String::from("<div class=\"toc\"><h2>Contents</h2><ul>");
         for (level, num, title) in &ctx.toc {
             let indent = match level {
