@@ -20,7 +20,6 @@ use crate::{
     },
 
     addons::{
-        scihub::SciHub,
         gemini::Gemini,
         chatgpt::ChatGPT,
     },
@@ -136,11 +135,6 @@ impl Tasks {
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
             ChatGPT::new(&line_url, &path, custom_name).convert().await?;
-        }
-
-        if line_url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-            let scihub_url = SciHub::new(&url).get_url();
-            MakeDownload.download_doi(&line_url, &scihub_url, path, custom_name.expect("")).await?;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[8]) {
