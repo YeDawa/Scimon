@@ -3,7 +3,7 @@ use std::error::Error;
 
 use crate::{
     syntax::vars::Vars,
-    templates::markdown::TemplateMarkdown,
+    templates::generic::TemplateGeneric,
 
     utils::{
         str::StrUtils,
@@ -49,7 +49,7 @@ impl RenderInject {
         };
 
         let css_style = Remote.content(&css_cdn).await?;
-        let html = TemplateMarkdown.base(&css_style, &html_content);
+        let html = TemplateGeneric.base(&css_style, &html_content);
         let html = html::minify(html.as_str());
 
         Ok(html)

@@ -3,15 +3,20 @@ pub struct TemplateGeneric;
 impl TemplateGeneric {
 
     pub fn base(&self, css_style: &str, html_content: &str) -> String {
-        format!(r#"
-            <html>
+        format!(
+            "<!DOCTYPE html>
+            <html lang='en'>
             <head>
-                <meta charset="utf-8">
+                <meta charset='UTF-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
                 <style>{}</style>
             </head>
-            <body class='markdown-body'>{}</body>
-            </html>
-        "#, css_style, html_content)
+            <body>
+                <article class='markdown-body'>{}</article>
+            </body>
+            </html>",
+            css_style, html_content
+        )
     }
 
 }
