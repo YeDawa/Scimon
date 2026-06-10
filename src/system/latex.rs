@@ -5,27 +5,31 @@ use std::{
 
 use crate::{
     system::pdf::Pdf,
-    templates::latex::TemplateLaTex,
+    templates::latex::TemplateLaTex, 
     ui::success_alerts::SuccessAlerts,
 
     utils::{
         remote::Remote,
-        file::FileUtils,
-        file_name_remote::FileNameRemote,
+        file::FileUtils, 
+        file_name_remote::FileNameRemote, 
     },
+    
+    render::{
+        render_inject::RenderInject,
 
-    render::latex::{
-        nodes::Nodes,
-        parser::Parser,
-        context::RenderContext,
-    }
+        latex::{
+            nodes::Nodes, 
+            parser::Parser,
+            context::RenderContext, 
+        }, 
+    }, 
 };
 
 pub struct LaTex;
 
 impl LaTex {
 
-    pub fn render(&self, content: &str) -> String {
+    pub async fn render(&self, content: &str) -> String {
         let mut parser = Parser::new(content);
         let mut labels = HashMap::new();
 
@@ -49,7 +53,8 @@ impl LaTex {
             String::new()
         };
 
-        TemplateLaTex.base(&html_body, &header_html)
+        let css_style = RenderInject.default_latex_css_style().await;
+        TemplateLaTex.base(&html_body, &header_html, &css_style)
     }
 
     fn build_toc(ctx: &RenderContext) -> String {
@@ -122,7 +127,7 @@ impl LaTex {
 
     pub async fn create_pdf(&self, path: &str, url: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
         let content = Remote.content(url).await?;
-        let html = self.render(&content);
+        let html = self.render(&content).await;
 
         let original_name = FileNameRemote::new(url).get();
         let new_filename = if let Some(name) = custom_name {
