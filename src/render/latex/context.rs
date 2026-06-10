@@ -6,6 +6,7 @@ pub struct RenderContext {
     pub doc_author: String,
     pub doc_date:   String,
 
+    pub part_num:       usize,
     pub chap_num:       usize,
     pub sec_num:        usize,
     pub subsec_num:     usize,
@@ -26,6 +27,15 @@ pub struct RenderContext {
     pub pending_footnotes: Vec<(usize, String)>,
 
     pub in_float: bool,
+
+    // fancyhdr — header/footer slots (rendered HTML strings)
+    pub header_left:   String,
+    pub header_center: String,
+    pub header_right:  String,
+    pub footer_left:   String,
+    pub footer_center: String,
+    pub footer_right:  String,
+    pub has_fancy:     bool,
 }
 
 impl RenderContext {
@@ -36,6 +46,7 @@ impl RenderContext {
             doc_author: String::new(),
             doc_date:   String::new(),
 
+            part_num:      0,
             chap_num:      0,
             sec_num:       0,
             subsec_num:    0,
@@ -56,6 +67,14 @@ impl RenderContext {
             pending_footnotes: Vec::new(),
 
             in_float: false,
+
+            header_left:   String::new(),
+            header_center: String::new(),
+            header_right:  String::new(),
+            footer_left:   String::new(),
+            footer_center: String::new(),
+            footer_right:  String::new(),
+            has_fancy:     false,
         }
     }
 

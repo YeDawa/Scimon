@@ -33,7 +33,7 @@ impl Templates {
         )
     }
 
-    pub fn latex(content: &str) -> String {
+    pub fn latex(content: &str, header_footer: &str) -> String {
         format!(
             r##"<!DOCTYPE html>
             <html lang="en">
@@ -74,6 +74,30 @@ impl Templates {
                     .title-block {{ text-align: center; margin-bottom: 60px; padding-bottom: 25px; border-bottom: 1px solid #eaeaea; }}
                     .title-block h1 {{ font-size: 2.6em; margin: 0 0 15px 0; color: #1a252f; font-weight: 600; line-height: 1.2; }}
                     .title-block .author {{ font-size: 1.25em; color: #7f8c8d; font-style: italic; }}
+
+                    /* Part */
+                    .latex-part {{
+                        text-align: center;
+                        margin: 80px 0 60px;
+                        padding: 40px 0;
+                        border-top: 3px double #2c3e50;
+                        border-bottom: 3px double #2c3e50;
+                        page-break-before: always;
+                    }}
+                    .latex-part .part-label {{
+                        display: block;
+                        font-size: 1em;
+                        text-transform: uppercase;
+                        letter-spacing: 0.2em;
+                        color: #7f8c8d;
+                        margin-bottom: 12px;
+                    }}
+                    .latex-part .part-title {{
+                        display: block;
+                        font-size: 2.2em;
+                        font-weight: 600;
+                        color: #1a252f;
+                    }}
 
                     h2 {{ border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; color: #1a252f; margin-top: 50px; font-weight: 600; }}
                     h3 {{ color: #2c3e50; margin-top: 35px; font-weight: 600; }}
@@ -181,6 +205,128 @@ impl Templates {
                     .latex-theorem {{ background: #f9f9f9; border-left: 4px solid #8e44ad; padding: 15px 20px; margin: 20px 0; border-radius: 0 6px 6px 0; }}
                     .latex-proof {{ border-left-color: #27ae60; }}
 
+                    /* ---- \binom ---- */
+                    .latex-binom {{
+                        display: inline-flex;
+                        align-items: center;
+                        vertical-align: middle;
+                        gap: 0.05em;
+                    }}
+                    .binom-paren {{
+                        font-size: 1.9em;
+                        font-weight: 200;
+                        line-height: 1;
+                        font-family: 'Cambria Math', 'Times New Roman', serif;
+                    }}
+                    .binom-stack {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        align-items: center;
+                    }}
+                    .binom-top, .binom-bot {{ font-size: 0.88em; line-height: 1.35; }}
+
+                    /* ---- \stackrel / \overset ---- */
+                    .latex-stackrel {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        align-items: center;
+                        vertical-align: middle;
+                    }}
+                    .stackrel-top {{ font-size: 0.68em; line-height: 1.2; }}
+                    .stackrel-base {{ line-height: 1; }}
+
+                    /* ---- \overbrace ---- */
+                    .latex-overbrace {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        align-items: center;
+                        vertical-align: middle;
+                    }}
+                    .overbrace-label {{ font-size: 0.72em; line-height: 1.3; }}
+                    .overbrace-content {{
+                        position: relative;
+                        padding: 2px 4px;
+                        border-top: 2px solid currentColor;
+                    }}
+                    .overbrace-content::before {{
+                        content: '';
+                        position: absolute;
+                        top: -2px; left: 0;
+                        width: 0; height: 6px;
+                        border-left: 2px solid currentColor;
+                    }}
+                    .overbrace-content::after {{
+                        content: '';
+                        position: absolute;
+                        top: -2px; right: 0;
+                        width: 0; height: 6px;
+                        border-right: 2px solid currentColor;
+                    }}
+
+                    /* ---- \underbrace ---- */
+                    .latex-underbrace {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        align-items: center;
+                        vertical-align: middle;
+                    }}
+                    .underbrace-content {{
+                        position: relative;
+                        padding: 2px 4px;
+                        border-bottom: 2px solid currentColor;
+                    }}
+                    .underbrace-content::before {{
+                        content: '';
+                        position: absolute;
+                        bottom: -2px; left: 0;
+                        width: 0; height: 6px;
+                        border-left: 2px solid currentColor;
+                    }}
+                    .underbrace-content::after {{
+                        content: '';
+                        position: absolute;
+                        bottom: -2px; right: 0;
+                        width: 0; height: 6px;
+                        border-right: 2px solid currentColor;
+                    }}
+                    .underbrace-label {{ font-size: 0.72em; line-height: 1.3; }}
+
+                    /* ---- \xrightarrow / \xleftarrow ---- */
+                    .latex-xarrow {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        align-items: center;
+                        vertical-align: middle;
+                        margin: 0 0.2em;
+                    }}
+                    .xarrow-sym  {{ font-size: 1.3em; line-height: 1; }}
+                    .xarrow-above {{ font-size: 0.68em; line-height: 1.2; }}
+                    .xarrow-below {{ font-size: 0.68em; line-height: 1.2; }}
+
+                    /* ---- \substack ---- */
+                    .latex-substack {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        align-items: center;
+                        vertical-align: middle;
+                        font-size: 0.8em;
+                    }}
+                    .substack-line {{ line-height: 1.45; }}
+
+                    /* ulem underline variants */
+                    .uwave {{
+                        text-decoration: underline wavy;
+                        text-decoration-color: currentColor;
+                    }}
+                    .dashuline {{
+                        text-decoration: underline;
+                        text-decoration-style: dashed;
+                    }}
+                    .dotuline {{
+                        text-decoration: underline;
+                        text-decoration-style: dotted;
+                    }}
+
                     /* Math text / operators */
                     .math-text {{ font-style: normal; font-family: 'Lora', Georgia, serif; }}
                     .math-op {{ font-style: normal; font-family: 'Cambria Math', 'Times New Roman', serif; margin-right: 0.15em; }}
@@ -217,6 +363,52 @@ impl Templates {
                     /* Math intertext */
                     .math-intertext {{ font-style: normal; font-size: 0.95em; margin: 10px 0; text-align: left; }}
 
+                    /* ---- fancyhdr: page header & footer ---- */
+                    .page-header,
+                    .page-footer {{
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        font-size: 0.82em;
+                        color: #7f8c8d;
+                        padding: 6px 0;
+                        gap: 8px;
+                    }}
+                    .page-header {{
+                        border-bottom: 1px solid #d5d8dc;
+                        margin-bottom: 30px;
+                    }}
+                    .page-footer {{
+                        border-top: 1px solid #d5d8dc;
+                        margin-top: 40px;
+                    }}
+                    .hf-left  {{ text-align: left;  flex: 1; }}
+                    .hf-center {{ text-align: center; flex: 1; }}
+                    .hf-right {{ text-align: right; flex: 1; }}
+                    .thepage {{ font-variant-numeric: tabular-nums; }}
+
+                    @media print {{
+                        /* Push body content away from the fixed header/footer */
+                        .document-container {{
+                            padding-top: 20px;
+                            padding-bottom: 20px;
+                        }}
+                        /* Repeat the header/footer on every printed page */
+                        .page-header {{
+                            position: running(pageHeader);
+                            margin: 0;
+                        }}
+                        .page-footer {{
+                            position: running(pageFooter);
+                            margin: 0;
+                        }}
+                        @page {{
+                            margin: 20mm 15mm;
+                            @top-left   {{ content: element(pageHeader, first-except); }}
+                            @bottom-left {{ content: element(pageFooter, first-except); }}
+                        }}
+                    }}
+
                     /* Responsive */
                     @media (max-width: 768px) {{
                         .document-container {{ padding: 30px 20px; }}
@@ -229,7 +421,7 @@ impl Templates {
                 </script>
             </head>
             <body>
-                <div class="document-container">{}</div>
+                <div class="document-container">{1}{0}</div>
                 
                 <script>
                     // -------------------------------------------------------
@@ -297,9 +489,36 @@ impl Templates {
 
                         window.resolvePageRefs = resolvePageRefs;
                     }})();
+
+                    // ---- \thepage: fill each .thepage span with its page number ----
+                    (function () {{
+                        var PAGE_HEIGHT_PX = 1122;
+                        var BODY_OFFSET    = 40;
+
+                        function pageOf(el) {{
+                            var top = 0;
+                            var e = el;
+                            while (e) {{ top += e.offsetTop || 0; e = e.offsetParent; }}
+                            return Math.floor(Math.max(0, top - BODY_OFFSET) / PAGE_HEIGHT_PX) + 1;
+                        }}
+
+                        function fillPageNums() {{
+                            document.querySelectorAll(".thepage").forEach(function(el) {{
+                                el.textContent = String(pageOf(el));
+                            }});
+                        }}
+
+                        if (document.fonts && document.fonts.ready) {{
+                            document.fonts.ready.then(fillPageNums);
+                        }} else {{
+                            window.addEventListener("load", fillPageNums);
+                        }}
+
+                        window.addEventListener("resize", function () {{ fillPageNums(); }});
+                    }})();
                 </script>
             </body>
-            </html>"##, content
+            </html>"##, content, header_footer
         )
     }
 

@@ -43,7 +43,9 @@ impl LaTex {
             html_body.push_str(&footnotes);
         }
 
-        Templates::latex(&html_body)
+        let header_html = if context.has_fancy { Self::build_header_footer(&context) } else { String::new() };
+
+        Templates::latex(&html_body, &header_html)
     }
 
     fn build_toc(ctx: &RenderContext) -> String {
@@ -53,20 +55,64 @@ impl LaTex {
         
         let mut html = String::from("<div class=\"toc\"><h2>Contents</h2><ul>");
         for (level, num, title) in &ctx.toc {
-            let indent = match level {
-                2 => "margin-left: 25px;",
-                3 => "margin-left: 50px;",
-                4 => "margin-left: 75px;",
-                _ => "",
+            let (indent, href) = match level {
+                0 => ("",                   format!("part-{}", num)),      // \part
+                1 => ("",                   format!("item-{}", num)),      // \chapter
+                2 => ("margin-left: 25px;", format!("item-{}", num)),      // \section
+                3 => ("margin-left: 50px;", format!("item-{}", num)),      // \subsection
+                4 => ("margin-left: 75px;", format!("item-{}", num)),      // \subsubsection
+                _ => ("margin-left: 25px;", format!("item-{}", num)),
+            };
+
+            let label = if num.is_empty() {
+                title.clone()
+            } else {
+                format!("<strong>{}</strong> {}", num, title)
             };
 
             html.push_str(&format!(
-                "<li style=\"{}\"><a href=\"#item-{}\"><strong>{}</strong> {}</a></li>",
-                indent, num, num, title
+                "<li style=\"{}\"><a href=\"#{}\">{}</a></li>",
+                indent, href, label
             ));
         }
 
         html.push_str("</ul></div>");
+        html
+    }
+
+    fn build_header_footer(ctx: &RenderContext) -> String {
+        let any_header = !ctx.header_left.is_empty()
+            || !ctx.header_center.is_empty()
+            || !ctx.header_right.is_empty();
+
+        let any_footer = !ctx.footer_left.is_empty()
+            || !ctx.footer_center.is_empty()
+            || !ctx.footer_right.is_empty();
+
+        let mut html = String::new();
+
+        if any_header {
+            html.push_str(&format!(
+                "<div class=\"page-header\" role=\"banner\">\
+                    <span class=\"hf-left\">{}</span>\
+                    <span class=\"hf-center\">{}</span>\
+                    <span class=\"hf-right\">{}</span>\
+                </div>",
+                ctx.header_left, ctx.header_center, ctx.header_right
+            ));
+        }
+
+        if any_footer {
+            html.push_str(&format!(
+                "<div class=\"page-footer\" role=\"contentinfo\">\
+                    <span class=\"hf-left\">{}</span>\
+                    <span class=\"hf-center\">{}</span>\
+                    <span class=\"hf-right\">{}</span>\
+                </div>",
+                ctx.footer_left, ctx.footer_center, ctx.footer_right
+            ));
+        }
+
         html
     }
 

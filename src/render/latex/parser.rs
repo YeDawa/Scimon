@@ -684,6 +684,16 @@ impl Parser {
                     "maketitle" if self.in_document => nodes.push(LatexNode::MakeTitle),
                     "tableofcontents" if self.in_document => nodes.push(LatexNode::TableOfContents),
 
+                    "part" if self.in_document => {
+                        self.parse_optional_arg();
+                        let title = self.parse_braces_content();
+                        if starred {
+                            nodes.push(LatexNode::Text(format!("<div class=\"latex-part\"><span class=\"part-title\">{}</span></div>", title)));
+                        } else {
+                            nodes.push(LatexNode::Part(title));
+                        }
+                    }
+
                     "chapter" if self.in_document => {
                         self.parse_optional_arg(); // short title
                         let title = self.parse_braces_content();
@@ -767,8 +777,41 @@ impl Parser {
                             Parser::new(&self.parse_braces_content()).parse(true, labels)
                         ));
                     }
-                    "sout" | "st" | "strikethrough" if self.in_document => {
+                    "sout" | "st" | "strikethrough" | "xout" if self.in_document => {
                         nodes.push(LatexNode::Strikethrough(
+                            Parser::new(&self.parse_braces_content()).parse(true, labels)
+                        ));
+                    }
+                    "uline" | "uuline" if self.in_document => {
+                        nodes.push(LatexNode::Underline(
+                            Parser::new(&self.parse_braces_content()).parse(true, labels)
+                        ));
+                    }
+                    "uwave" if self.in_document => {
+                        let inner = Parser::new(&self.parse_braces_content()).parse(true, labels);
+                        nodes.push(LatexNode::Text("<span class=\"uwave\">".to_string()));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+                    "dashuline" if self.in_document => {
+                        let inner = Parser::new(&self.parse_braces_content()).parse(true, labels);
+                        nodes.push(LatexNode::Text("<span class=\"dashuline\">".to_string()));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+                    "dotuline" if self.in_document => {
+                        let inner = Parser::new(&self.parse_braces_content()).parse(true, labels);
+                        nodes.push(LatexNode::Text("<span class=\"dotuline\">".to_string()));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+                    "textsuper" | "textsuperscript" if self.in_document => {
+                        nodes.push(LatexNode::Superscript(
+                            Parser::new(&self.parse_braces_content()).parse(true, labels)
+                        ));
+                    }
+                    "textsub" | "textsubscript" if self.in_document => {
+                        nodes.push(LatexNode::Subscript(
                             Parser::new(&self.parse_braces_content()).parse(true, labels)
                         ));
                     }
@@ -870,16 +913,302 @@ impl Parser {
                         ));
                     }
 
-                    // \underbrace, \overbrace, \underset, \overset
-                    "underbrace" | "overbrace" if self.in_document => {
-                        let arg = self.parse_argument();
-                        nodes.extend(arg);
+                    // --------------------------------------------------------
+                    // \overbrace{expr}^{label}
+                    // --------------------------------------------------------
+                    "overbrace" if self.in_document => {
+                        let content = self.parse_argument();
+                        self.skip_whitespace();
+                        let has_label = self.peek() == Some('^');
+                        if has_label { self.next_char(); }
+                        let label = if has_label { self.parse_argument() } else { vec![] };
+
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-overbrace\">".to_string()
+                        ));
+                        if !label.is_empty() {
+                            nodes.push(LatexNode::Text(
+                                "<span class=\"overbrace-label\">".to_string()
+                            ));
+                            nodes.extend(label);
+                            nodes.push(LatexNode::Text("</span>".to_string()));
+                        }
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"overbrace-content\">".to_string()
+                        ));
+                        nodes.extend(content);
+                        nodes.push(LatexNode::Text("</span></span>".to_string()));
                     }
-                    
-                    "underset" | "overset" if self.in_document => {
-                        let _over = self.parse_argument();
+
+                    // --------------------------------------------------------
+                    // \underbrace{expr}_{label}
+                    // --------------------------------------------------------
+                    "underbrace" if self.in_document => {
+                        let content = self.parse_argument();
+                        self.skip_whitespace();
+                        let has_label = self.peek() == Some('_');
+                        if has_label { self.next_char(); }
+                        let label = if has_label { self.parse_argument() } else { vec![] };
+
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-underbrace\">".to_string()
+                        ));
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"underbrace-content\">".to_string()
+                        ));
+                        nodes.extend(content);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                        if !label.is_empty() {
+                            nodes.push(LatexNode::Text(
+                                "<span class=\"underbrace-label\">".to_string()
+                            ));
+                            nodes.extend(label);
+                            nodes.push(LatexNode::Text("</span>".to_string()));
+                        }
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \overset{top}{base}  /  \underset{bottom}{base}
+                    // --------------------------------------------------------
+                    "overset" if self.in_document => {
+                        let top  = self.parse_argument();
                         let base = self.parse_argument();
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-stackrel\">".to_string()
+                        ));
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"stackrel-top\">".to_string()
+                        ));
+                        nodes.extend(top);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"stackrel-base\">".to_string()
+                        ));
                         nodes.extend(base);
+                        nodes.push(LatexNode::Text("</span></span>".to_string()));
+                    }
+
+                    "underset" if self.in_document => {
+                        let bottom = self.parse_argument();
+                        let base   = self.parse_argument();
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-underbrace\">".to_string()
+                        ));
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"underbrace-content\">".to_string()
+                        ));
+                        nodes.extend(base);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"underbrace-label\">".to_string()
+                        ));
+                        nodes.extend(bottom);
+                        nodes.push(LatexNode::Text("</span></span>".to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \stackrel{top}{base}
+                    // --------------------------------------------------------
+                    "stackrel" if self.in_document => {
+                        let top  = self.parse_argument();
+                        let base = self.parse_argument();
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-stackrel\">".to_string()
+                        ));
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"stackrel-top\">".to_string()
+                        ));
+                        nodes.extend(top);
+                        nodes.push(LatexNode::Text(
+                            "</span><span class=\"stackrel-base\">".to_string()
+                        ));
+                        nodes.extend(base);
+                        nodes.push(LatexNode::Text("</span></span>".to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \binom{n}{k}
+                    // --------------------------------------------------------
+                    "binom" | "dbinom" | "tbinom" if self.in_document => {
+                        let top = self.parse_argument();
+                        let bot = self.parse_argument();
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-binom\">\
+                             <span class=\"binom-paren\">(</span>\
+                             <span class=\"binom-stack\">".to_string()
+                        ));
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"binom-top\">".to_string()
+                        ));
+                        nodes.extend(top);
+                        nodes.push(LatexNode::Text(
+                            "</span><span class=\"binom-bot\">".to_string()
+                        ));
+                        nodes.extend(bot);
+                        nodes.push(LatexNode::Text(
+                            "</span></span>\
+                             <span class=\"binom-paren\">)</span></span>".to_string()
+                        ));
+                    }
+
+                    // --------------------------------------------------------
+                    // {n \choose k}  — old-style binomial
+                    // --------------------------------------------------------
+                    "choose" if self.in_document => {
+                        // nodes collected so far = numerator; rest of input = denominator
+                        let num = std::mem::take(&mut nodes);
+                        let mut den_raw = String::new();
+                        while self.pos < self.chars.len() {
+                            den_raw.push(self.chars[self.pos]);
+                            self.pos += 1;
+                        }
+                        let den = Parser::new(&den_raw).parse(true, labels);
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-binom\">\
+                             <span class=\"binom-paren\">(</span>\
+                             <span class=\"binom-stack\">".to_string()
+                        ));
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"binom-top\">".to_string()
+                        ));
+                        nodes.extend(num);
+                        nodes.push(LatexNode::Text(
+                            "</span><span class=\"binom-bot\">".to_string()
+                        ));
+                        nodes.extend(den);
+                        nodes.push(LatexNode::Text(
+                            "</span></span>\
+                             <span class=\"binom-paren\">)</span></span>".to_string()
+                        ));
+                    }
+
+                    // --------------------------------------------------------
+                    // \xrightarrow[below]{above}  /  \xleftarrow[below]{above}
+                    // --------------------------------------------------------
+                    "xrightarrow" | "xleftarrow"
+                    | "xRightarrow" | "xLeftarrow"
+                    | "xleftrightarrow" | "xLeftrightarrow"
+                    if self.in_document => {
+                        let below_raw = self.parse_optional_arg().unwrap_or_default();
+                        let above_raw = self.parse_braces_content();
+                        let above = Parser::new(&above_raw).parse(true, labels);
+                        let below = if below_raw.is_empty() {
+                            vec![]
+                        } else {
+                            Parser::new(&below_raw).parse(true, labels)
+                        };
+                        let arrow = match command.as_str() {
+                            "xrightarrow"      => "⟶",
+                            "xleftarrow"       => "⟵",
+                            "xRightarrow"      => "⟹",
+                            "xLeftarrow"       => "⟸",
+                            "xleftrightarrow"  => "⟷",
+                            "xLeftrightarrow"  => "⟺",
+                            _                  => "→",
+                        };
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-xarrow\">".to_string()
+                        ));
+                        if !above.is_empty() {
+                            nodes.push(LatexNode::Text(
+                                "<span class=\"xarrow-above\">".to_string()
+                            ));
+                            nodes.extend(above);
+                            nodes.push(LatexNode::Text("</span>".to_string()));
+                        }
+                        nodes.push(LatexNode::Text(
+                            format!("<span class=\"xarrow-sym\">{}</span>", arrow)
+                        ));
+                        if !below.is_empty() {
+                            nodes.push(LatexNode::Text(
+                                "<span class=\"xarrow-below\">".to_string()
+                            ));
+                            nodes.extend(below);
+                            nodes.push(LatexNode::Text("</span>".to_string()));
+                        }
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \substack{a \\ b \\ c}
+                    // --------------------------------------------------------
+                    "substack" if self.in_document => {
+                        let raw = self.parse_braces_content();
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"latex-substack\">".to_string()
+                        ));
+                        for line in raw.split(r"\\") {
+                            let trimmed = line.trim();
+                            if trimmed.is_empty() { continue; }
+                            nodes.push(LatexNode::Text(
+                                "<span class=\"substack-line\">".to_string()
+                            ));
+                            nodes.extend(Parser::new(trimmed).parse(true, labels));
+                            nodes.push(LatexNode::Text("</span>".to_string()));
+                        }
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \mathbb{R} — blackboard bold → Unicode
+                    // --------------------------------------------------------
+                    "mathbb" if self.in_document => {
+                        let ch = self.parse_braces_content();
+                        let sym = match ch.as_str() {
+                            "N" => "ℕ", "Z" => "ℤ", "Q" => "ℚ", "R" => "ℝ",
+                            "C" => "ℂ", "H" => "ℍ", "P" => "ℙ",
+                            "A" => "𝔸", "B" => "𝔹", "D" => "𝔻", "E" => "𝔼",
+                            "F" => "𝔽", "G" => "𝔾", "I" => "𝕀", "J" => "𝕁",
+                            "K" => "𝕂", "L" => "𝕃", "M" => "𝕄", "O" => "𝕆",
+                            "S" => "𝕊", "T" => "𝕋", "U" => "𝕌", "V" => "𝕍",
+                            "W" => "𝕎", "X" => "𝕏", "Y" => "𝕐",
+                            _ => &ch,
+                        };
+                        nodes.push(LatexNode::Text(sym.to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \mathcal{L} — calligraphic → Unicode script letters
+                    // --------------------------------------------------------
+                    "mathcal" | "mathscr" if self.in_document => {
+                        let ch = self.parse_braces_content();
+                        let sym = match ch.as_str() {
+                            "A" => "𝒜", "B" => "ℬ", "C" => "𝒞", "D" => "𝒟",
+                            "E" => "ℰ", "F" => "ℱ", "G" => "𝒢", "H" => "ℋ",
+                            "I" => "ℐ", "J" => "𝒥", "K" => "𝒦", "L" => "ℒ",
+                            "M" => "ℳ", "N" => "𝒩", "O" => "𝒪", "P" => "𝒫",
+                            "Q" => "𝒬", "R" => "ℛ", "S" => "𝒮", "T" => "𝒯",
+                            "U" => "𝒰", "V" => "𝒱", "W" => "𝒲", "X" => "𝒳",
+                            "Y" => "𝒴", "Z" => "𝒵",
+                            _ => &ch,
+                        };
+                        nodes.push(LatexNode::Text(sym.to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \mathfrak{g} — Fraktur letters
+                    // --------------------------------------------------------
+                    "mathfrak" if self.in_document => {
+                        let ch = self.parse_braces_content();
+                        let sym = match ch.as_str() {
+                            "a" => "𝔞", "b" => "𝔟", "c" => "𝔠", "d" => "𝔡",
+                            "e" => "𝔢", "f" => "𝔣", "g" => "𝔤", "h" => "𝔥",
+                            "i" => "𝔦", "j" => "𝔧", "k" => "𝔨", "l" => "𝔩",
+                            "m" => "𝔪", "n" => "𝔫", "o" => "𝔬", "p" => "𝔭",
+                            "q" => "𝔮", "r" => "𝔯", "s" => "𝔰", "t" => "𝔱",
+                            "u" => "𝔲", "v" => "𝔳", "w" => "𝔴", "x" => "𝔵",
+                            "y" => "𝔶", "z" => "𝔷",
+                            "A" => "𝔄", "B" => "𝔅", "C" => "ℭ", "D" => "𝔇",
+                            "E" => "𝔈", "F" => "𝔉", "G" => "𝔊", "H" => "ℌ",
+                            "I" => "ℑ", "J" => "𝔍", "K" => "𝔎", "L" => "𝔏",
+                            "M" => "𝔐", "N" => "𝔑", "O" => "𝔒", "P" => "𝔓",
+                            "Q" => "𝔔", "R" => "ℜ", "S" => "𝔖", "T" => "𝔗",
+                            "U" => "𝔘", "V" => "𝔙", "W" => "𝔚", "X" => "𝔛",
+                            "Y" => "𝔜", "Z" => "ℨ",
+                            _ => &ch,
+                        };
+                        nodes.push(LatexNode::Text(sym.to_string()));
                     }
 
                     // \limits, \nolimits — ignored (display hint only)
@@ -1043,10 +1372,149 @@ impl Parser {
                         nodes.push(LatexNode::Caption(self.parse_braces_content())),
 
                     // --------------------------------------------------------
+                    // \addcontentsline{toc}{level}{title}
+                    // --------------------------------------------------------
+                    "addcontentsline" if self.in_document => {
+                        let list  = self.parse_braces_content(); // "toc", "lof", "lot"
+                        let level = self.parse_braces_content(); // "section", "chapter", …
+                        let title = self.parse_braces_content();
+                        if list == "toc" {
+                            nodes.push(LatexNode::AddContentsLine(level, title));
+                        }
+                    }
+
+                    // --------------------------------------------------------
+                    // titlesec: \titleformat — consume all args, render nothing
+                    // --------------------------------------------------------
+                    "titleformat" => {
+                        self.parse_braces_content(); // {command}
+                        self.parse_optional_arg();   // [shape]
+                        self.parse_braces_content(); // {format}
+                        self.parse_braces_content(); // {label}
+                        self.parse_braces_content(); // {sep}
+                        self.parse_braces_content(); // {before-code}
+                        self.parse_optional_arg();   // [after-code]
+                    }
+
+                    "titlespacing" | "titlespacing*" => {
+                        self.parse_braces_content(); // {command}
+                        self.parse_braces_content(); // {left}
+                        self.parse_braces_content(); // {before-sep}
+                        self.parse_braces_content(); // {after-sep}
+                        self.parse_optional_arg();   // [right]
+                    }
+
+                    // --------------------------------------------------------
+                    // fancyhdr
+                    // --------------------------------------------------------
+
+                    // \fancyhf[pos]{content}  — sets header AND footer at pos;
+                    // \fancyhf{}              — clears everything
+                    "fancyhf" => {
+                        let pos = self.parse_optional_arg().unwrap_or_default();
+                        let content = self.parse_braces_content();
+                        if content.trim().is_empty() && pos.trim().is_empty() {
+                            nodes.push(LatexNode::FancyClear);
+                        } else {
+                            let inner = Parser::new(&content).parse(true, labels);
+                            let p = Self::normalize_fancy_pos(&pos);
+                            nodes.push(LatexNode::FancyHeader { pos: p.clone(), nodes: inner.clone() });
+                            nodes.push(LatexNode::FancyFooter { pos: p,         nodes: inner });
+                        }
+                    }
+
+                    "fancyhead" => {
+                        let pos     = self.parse_optional_arg().unwrap_or_else(|| "C".to_string());
+                        let content = self.parse_braces_content();
+                        let inner   = Parser::new(&content).parse(true, labels);
+                        nodes.push(LatexNode::FancyHeader {
+                            pos:   Self::normalize_fancy_pos(&pos),
+                            nodes: inner,
+                        });
+                    }
+
+                    "fancyfoot" => {
+                        let pos     = self.parse_optional_arg().unwrap_or_else(|| "C".to_string());
+                        let content = self.parse_braces_content();
+                        let inner   = Parser::new(&content).parse(true, labels);
+                        nodes.push(LatexNode::FancyFooter {
+                            pos:   Self::normalize_fancy_pos(&pos),
+                            nodes: inner,
+                        });
+                    }
+
+                    // Shorthand slot commands
+                    "lhead" => {
+                        self.parse_optional_arg();
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::FancyHeader {
+                            pos: "L".to_string(),
+                            nodes: Parser::new(&content).parse(true, labels),
+                        });
+                    }
+                    "chead" => {
+                        self.parse_optional_arg();
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::FancyHeader {
+                            pos: "C".to_string(),
+                            nodes: Parser::new(&content).parse(true, labels),
+                        });
+                    }
+                    "rhead" => {
+                        self.parse_optional_arg();
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::FancyHeader {
+                            pos: "R".to_string(),
+                            nodes: Parser::new(&content).parse(true, labels),
+                        });
+                    }
+                    "lfoot" => {
+                        self.parse_optional_arg();
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::FancyFooter {
+                            pos: "L".to_string(),
+                            nodes: Parser::new(&content).parse(true, labels),
+                        });
+                    }
+                    "cfoot" => {
+                        self.parse_optional_arg();
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::FancyFooter {
+                            pos: "C".to_string(),
+                            nodes: Parser::new(&content).parse(true, labels),
+                        });
+                    }
+                    "rfoot" => {
+                        self.parse_optional_arg();
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::FancyFooter {
+                            pos: "R".to_string(),
+                            nodes: Parser::new(&content).parse(true, labels),
+                        });
+                    }
+
+                    "fancypagestyle" => {
+                        self.parse_braces_content(); // {style name}
+                        self.parse_braces_content(); // {definition body}
+                    }
+
+                    "renewpagestyle" | "newpagestyle" => {
+                        self.parse_braces_content();
+                        self.parse_braces_content();
+                    }
+
+                    "thispagestyle" => { self.parse_braces_content(); }
+                    "headrulewidth" | "footrulewidth" => { self.parse_braces_content(); }
+
+                    // \thepage — current page number
+                    "thepage" if self.in_document =>
+                        nodes.push(LatexNode::ThePage),
+
+                    // --------------------------------------------------------
                     // Ignored structural commands
                     // --------------------------------------------------------
                     "hline" | "cline" | "toprule" | "midrule" | "bottomrule"
-                    | "addcontentsline" | "appendix" | "frontmatter"
+                    | "appendix" | "frontmatter"
                     | "mainmatter" | "backmatter" | "sloppy" | "frenchspacing"
                     | "nonfrenchspacing" | "protect" => {}
 
@@ -1536,6 +2004,24 @@ impl Parser {
         }
 
         rows
+    }
+
+    /// Normalise a fancyhdr position argument like "LE,RO" → "L,R".
+    /// Strips the even/odd suffix (E/O) so only the base slot (L/C/R) remains.
+    fn normalize_fancy_pos(raw: &str) -> String {
+        raw.split(',')
+            .map(|part| {
+                let p = part.trim().to_ascii_uppercase();
+                // Keep only the leading L/C/R, drop any trailing O/E
+                match p.chars().next() {
+                    Some('L') => "L",
+                    Some('C') => "C",
+                    Some('R') => "R",
+                    _         => "C",
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(",")
     }
 
     fn extract_and_register_labels(

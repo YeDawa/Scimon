@@ -27,11 +27,15 @@ pub enum LatexNode {
     HorizontalRule,
 
     // --- Document structure ---
+    Part(String),
     Chapter(String),
     Section(String),
     Subsection(String),
     Subsubsection(String),
     Paragraph(String),
+
+    /// Manual TOC entry: (toc-level name, display title)
+    AddContentsLine(String, String),
 
     // --- Lists ---
     Itemize(Vec<Vec<LatexNode>>),
@@ -96,6 +100,16 @@ pub enum LatexNode {
     Abstract(Vec<LatexNode>),
     MakeTitle,
     TableOfContents,
+
+    // --- fancyhdr ---
+    /// Set one header slot. `pos` is "L", "C", or "R".
+    FancyHeader { pos: String, nodes: Vec<LatexNode> },
+    /// Set one footer slot. `pos` is "L", "C", or "R".
+    FancyFooter { pos: String, nodes: Vec<LatexNode> },
+    /// \fancyhf{} — clear all header/footer slots.
+    FancyClear,
+    /// \thepage — current page number placeholder.
+    ThePage,
 }
 
 impl LatexNode {
@@ -155,6 +169,40 @@ impl LatexNode {
             // ----------------------------------------------------------------
             // Document structure
             // ----------------------------------------------------------------
+            LatexNode::Part(title) => {
+                ctx.part_num += 1;
+                ctx.chap_num = 0;
+                ctx.sec_num = 0;
+                ctx.subsec_num = 0;
+                let roman = Self::to_roman(ctx.part_num);
+                ctx.toc.push((0, roman.clone(), title.clone()));
+
+                format!(
+                    "<div class=\"latex-part\" id=\"part-{}\"><span class=\"part-label\">Part {}</span><span class=\"part-title\">{}</span></div>",
+                    ctx.part_num, roman, title
+                )
+            }
+
+            LatexNode::AddContentsLine(level, title) => {
+                let toc_level = match level.as_str() {
+                    "part"          => 0,
+                    "chapter"       => 1,
+                    "section"       => 2,
+                    "subsection"    => 3,
+                    "subsubsection" => 4,
+                    _               => 2,
+                };
+                let num = match toc_level {
+                    0 => Self::to_roman(ctx.part_num + 1),
+                    1 => ctx.chap_num.to_string(),
+                    2 => ctx.sec_num.to_string(),
+                    3 => format!("{}.{}", ctx.sec_num, ctx.subsec_num),
+                    _ => String::new(),
+                };
+                ctx.toc.push((toc_level, num, title.clone()));
+                String::new()
+            }
+
             LatexNode::Chapter(title) => {
                 ctx.chap_num += 1;
                 ctx.sec_num = 0;
@@ -551,6 +599,50 @@ impl LatexNode {
                     ctx.doc_title, ctx.doc_author, date_html
                 )
             }
+
+            // ----------------------------------------------------------------
+            // fancyhdr
+            // ----------------------------------------------------------------
+            LatexNode::FancyHeader { pos, nodes } => {
+                let html = Nodes::render(nodes, ctx);
+                ctx.has_fancy = true;
+                for slot in pos.split(',').map(|s| s.trim()) {
+                    match slot.chars().next().map(|c| c.to_ascii_uppercase()) {
+                        Some('L') => ctx.header_left   = html.clone(),
+                        Some('C') => ctx.header_center = html.clone(),
+                        Some('R') => ctx.header_right  = html.clone(),
+                        _ => {}
+                    }
+                }
+                String::new()
+            }
+
+            LatexNode::FancyFooter { pos, nodes } => {
+                let html = Nodes::render(nodes, ctx);
+                ctx.has_fancy = true;
+                for slot in pos.split(',').map(|s| s.trim()) {
+                    match slot.chars().next().map(|c| c.to_ascii_uppercase()) {
+                        Some('L') => ctx.footer_left   = html.clone(),
+                        Some('C') => ctx.footer_center = html.clone(),
+                        Some('R') => ctx.footer_right  = html.clone(),
+                        _ => {}
+                    }
+                }
+                String::new()
+            }
+
+            LatexNode::FancyClear => {
+                ctx.header_left   = String::new();
+                ctx.header_center = String::new();
+                ctx.header_right  = String::new();
+                ctx.footer_left   = String::new();
+                ctx.footer_center = String::new();
+                ctx.footer_right  = String::new();
+                String::new()
+            }
+
+            LatexNode::ThePage =>
+                "<span class=\"thepage\" aria-label=\"page number\"></span>".to_string(),
         }
     }
 
@@ -560,6 +652,24 @@ impl LatexNode {
                 ctx.labels.insert(name.clone(), value.to_string());
             }
         }
+    }
+
+    fn to_roman(n: usize) -> String {
+        const VALS: &[(usize, &str)] = &[
+            (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+            (100,  "C"), (90,  "XC"), (50,  "L"), (40,  "XL"),
+            (10,   "X"), (9,   "IX"), (5,   "V"), (4,   "IV"),
+            (1,    "I"),
+        ];
+        let mut n = n;
+        let mut result = String::new();
+        for &(val, sym) in VALS {
+            while n >= val {
+                result.push_str(sym);
+                n -= val;
+            }
+        }
+        result
     }
 
 }
