@@ -1,8 +1,10 @@
+use chrono::Local;
 use std::collections::HashMap;
 
-use chrono::Local;
-
-use crate::render::latex::tex_ast::{LatexNode, TableCell};
+use crate::render::latex::tex_ast::{
+    LatexNode, 
+    TableCell,
+};
 
 // ---------------------------------------------------------------------------
 // Greek letters, operators and other math symbols supported as \commands
