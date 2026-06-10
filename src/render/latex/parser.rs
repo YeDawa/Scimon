@@ -805,6 +805,27 @@ impl Parser {
                         if command == "newtheorem" { self.parse_braces_content(); }
                     }
 
+                    // \newenvironment{name}[n]{begin-code}{end-code}
+                    // \renewenvironment{name}[n]{begin-code}{end-code}
+                    "newenvironment" | "renewenvironment" => {
+                        let env_name  = self.parse_braces_content();
+                        let n_args    = self.parse_optional_arg()
+                            .and_then(|s| s.trim().parse::<usize>().ok())
+                            .unwrap_or(0);
+                        let _default  = if n_args > 0 { self.parse_optional_arg() } else { None };
+                        let begin_code = self.parse_braces_content();
+                        let end_code   = self.parse_braces_content();
+                        // Store as two macros: env@begin@name and env@end@name
+                        self.macros.insert(
+                            format!("env@begin@{}", env_name),
+                            (n_args, begin_code)
+                        );
+                        self.macros.insert(
+                            format!("env@end@{}", env_name),
+                            (0, end_code)
+                        );
+                    }
+
                     // \newcolumntype{X}[n]{spec}
                     "newcolumntype" => {
                         self.parse_braces_content();
@@ -1314,6 +1335,91 @@ impl Parser {
                             ));
                             nodes.extend(inner);
                             nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        // ------------------------------------------------
+                        // TikZ / PGF / drawing environments — placeholder
+                        // ------------------------------------------------
+                        } else if matches!(env.as_str(),
+                            "tikzpicture" | "pgfpicture" | "circuitikz"
+                            | "forest" | "tikzcd" | "scope"
+                        ) && self.in_document {
+                            self.read_until_end(&env);
+                            nodes.push(LatexNode::Text(
+                                format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
+                            ));
+
+                        // ------------------------------------------------
+                        // algorithm / algorithmic pseudo-code environments
+                        // ------------------------------------------------
+                        } else if matches!(env.as_str(),
+                            "algorithm" | "algorithm2e" | "algorithm*"
+                        ) && self.in_document {
+                            self.parse_optional_arg(); // [H] placement
+                            let raw   = self.read_until_end(&env);
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(
+                                "<div class=\"latex-algorithm\">".to_string()
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        } else if matches!(env.as_str(),
+                            "algorithmic" | "algorithmicx" | "algpseudocode"
+                        ) && self.in_document {
+                            let raw   = self.read_until_end(&env);
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(
+                                "<ol class=\"latex-algorithmic\">".to_string()
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</ol>".to_string()));
+
+                        // ------------------------------------------------
+                        // appendices / subappendices / filecontents
+                        // ------------------------------------------------
+                        } else if matches!(env.as_str(),
+                            "appendices" | "subappendices"
+                        ) && self.in_document {
+                            let raw   = self.read_until_end(&env);
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(
+                                "<div class=\"latex-appendices\">".to_string()
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        } else if env == "filecontents" || env == "filecontents*" {
+                            self.parse_braces_content(); // filename — ignore
+                            self.read_until_end(&env);   // content — ignore
+
+                        // ------------------------------------------------
+                        // adjustbox / varwidth — pass content through
+                        // ------------------------------------------------
+                        } else if matches!(env.as_str(), "adjustbox" | "varwidth")
+                               && self.in_document
+                        {
+                            self.parse_optional_arg();
+                            if env == "varwidth" { self.parse_braces_content(); } // {width}
+                            let raw   = self.read_until_end(&env);
+                            nodes.extend(Parser::new(raw.trim()).parse(true, labels));
+
+                        // ------------------------------------------------
+                        // User-defined environments via \newenvironment
+                        // ------------------------------------------------
+                        } else if self.in_document
+                            && self.macros.contains_key(&format!("env@begin@{}", env))
+                        {
+                            let begin_code = self.macros
+                                .get(&format!("env@begin@{}", env))
+                                .map(|(_, s)| s.clone())
+                                .unwrap_or_default();
+                            let end_code = self.macros
+                                .get(&format!("env@end@{}", env))
+                                .map(|(_, s)| s.clone())
+                                .unwrap_or_default();
+                            let body = self.read_until_end(&env);
+                            let full = format!("{}{}{}", begin_code, body, end_code);
+                            nodes.extend(Parser::new(full.trim()).parse(true, labels));
 
                         } else {
                             // Unknown environment – skip \end{env}
@@ -2125,9 +2231,16 @@ impl Parser {
                     // Citations & bibliography
                     // --------------------------------------------------------
                     "cite" | "citep" | "citet" | "citealt" | "citealp"
-                    | "citeauthor" | "citeyear" if self.in_document =>
+                    | "citeauthor" | "citeyear"
+                    // biblatex variants
+                    | "parencite" | "textcite" | "autocite" | "Autocite"
+                    | "footcite" | "footcitetext" | "smartcite"
+                    | "citetitle" | "citeurl" | "citedate" | "citenum"
+                    | "fullcite" | "volcite" | "Citet" | "Citep"
+                    if self.in_document =>
                     {
-                        self.parse_optional_arg(); // optional note
+                        self.parse_optional_arg(); // optional prenote
+                        self.parse_optional_arg(); // optional postnote
                         let raw = self.parse_braces_content();
                         let keys: Vec<String> = raw.split(',')
                             .map(|s| s.trim().to_string())
@@ -2246,6 +2359,22 @@ impl Parser {
                     "bibliography" if self.in_document =>
                         nodes.push(LatexNode::Bibliography(self.parse_braces_content())),
 
+                    // biblatex: \printbibliography[options]
+                    "printbibliography" if self.in_document => {
+                        self.parse_optional_arg(); // [heading=..., title=..., etc.]
+                        nodes.push(LatexNode::Bibliography(String::new()));
+                    }
+
+                    // biblatex: \addbibresource{file.bib} — treated like \bibliography
+                    "addbibresource" => {
+                        let file = self.parse_braces_content();
+                        let stem = file.trim_end_matches(".bib").to_string();
+                        if !self.in_document {
+                            // Store for later use — same as \bibliography
+                            nodes.push(LatexNode::Bibliography(stem));
+                        }
+                    }
+
                     "bibliographystyle" => { self.parse_braces_content(); }
 
                     // --------------------------------------------------------
@@ -2285,7 +2414,8 @@ impl Parser {
                         nodes.push(LatexNode::Label(label_name));
                     }
 
-                    "ref" | "eqref" | "autoref" | "cref" if self.in_document =>
+                    "ref" | "eqref" | "autoref" | "cref" | "Cref"
+                    | "vref" | "Vref" | "cpageref" | "labelcref" if self.in_document =>
                         nodes.push(LatexNode::Ref(self.parse_braces_content())),
                     "pageref" if self.in_document =>
                         nodes.push(LatexNode::PageRef(self.parse_braces_content())),
@@ -2496,6 +2626,73 @@ impl Parser {
                     // \thepage — current page number
                     "thepage" if self.in_document =>
                         nodes.push(LatexNode::ThePage),
+
+                    // --------------------------------------------------------
+                    // algorithmicx / algpseudocode commands
+                    // --------------------------------------------------------
+                    "State" | "Statex" if self.in_document => {
+                        let content = self.parse_argument();
+                        nodes.push(LatexNode::Text("<li class=\"alg-state\">".to_string()));
+                        nodes.extend(content);
+                        nodes.push(LatexNode::Text("</li>".to_string()));
+                    }
+
+                    "If" | "ElsIf" if self.in_document => {
+                        let cond = self.parse_argument();
+                        let kw = if command == "If" { "if" } else { "else if" };
+                        nodes.push(LatexNode::Text(format!(
+                            "<li class=\"alg-if\"><strong>{}</strong> ", kw
+                        )));
+                        nodes.extend(cond);
+                        nodes.push(LatexNode::Text(" <strong>then</strong></li>".to_string()));
+                    }
+
+                    "Else" | "EndIf" | "EndFor" | "EndWhile"
+                    | "EndProcedure" | "EndFunction" | "EndLoop"
+                    if self.in_document => {
+                        let kw = command.to_lowercase();
+                        nodes.push(LatexNode::Text(format!(
+                            "<li class=\"alg-end\"><strong>{}</strong></li>", kw
+                        )));
+                    }
+
+                    "For" | "ForAll" | "While" | "Loop" if self.in_document => {
+                        let cond = self.parse_argument();
+                        let kw = command.to_lowercase();
+                        nodes.push(LatexNode::Text(format!(
+                            "<li class=\"alg-loop\"><strong>{}</strong> ", kw
+                        )));
+                        nodes.extend(cond);
+                        nodes.push(LatexNode::Text(" <strong>do</strong></li>".to_string()));
+                    }
+
+                    "Procedure" | "Function" if self.in_document => {
+                        let name = self.parse_braces_content();
+                        let args = self.parse_braces_content();
+                        let kw   = command.to_lowercase();
+                        nodes.push(LatexNode::Text(format!(
+                            "<li class=\"alg-proc\"><strong>{}</strong> <em>{}</em>({})</li>",
+                            kw, name, args
+                        )));
+                    }
+
+                    "Return" | "Require" | "Ensure" | "Print" | "Output"
+                    if self.in_document => {
+                        let content = self.parse_argument();
+                        let kw = command.to_lowercase();
+                        nodes.push(LatexNode::Text(format!(
+                            "<li class=\"alg-state\"><strong>{}</strong> ", kw
+                        )));
+                        nodes.extend(content);
+                        nodes.push(LatexNode::Text("</li>".to_string()));
+                    }
+
+                    "Comment" if self.in_document => {
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::Text(format!(
+                            "<li class=\"alg-comment\"><em>▷ {}</em></li>", content
+                        )));
+                    }
 
                     // --------------------------------------------------------
                     // Ignored structural commands

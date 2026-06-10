@@ -481,6 +481,42 @@ impl Templates {
                     .si-unit {{ font-style: normal; }}
                     .si-ang {{ font-style: normal; }}
 
+                    /* TikZ placeholder */
+                    .latex-tikz-placeholder {{
+                        border: 1px dashed #aaa;
+                        padding: 20px;
+                        text-align: center;
+                        color: #888;
+                        font-style: italic;
+                        margin: 1em 0;
+                        border-radius: 4px;
+                    }}
+
+                    /* algorithm / algorithmic */
+                    .latex-algorithm {{
+                        border: 1px solid #ccc;
+                        border-radius: 4px;
+                        padding: 1em 1.5em;
+                        margin: 1em 0;
+                        background: #f9f9f9;
+                        font-family: monospace;
+                        font-size: 0.95em;
+                    }}
+                    ol.latex-algorithmic {{
+                        list-style: none;
+                        counter-reset: alg-line;
+                        padding: 0;
+                        margin: 0;
+                    }}
+                    ol.latex-algorithmic li {{ counter-increment: alg-line; padding: 2px 0 2px 1.5em; }}
+                    ol.latex-algorithmic li::before {{ content: counter(alg-line) ": "; color: #888; font-size: 0.85em; min-width: 2em; display: inline-block; }}
+                    .alg-if, .alg-loop {{ margin-left: 1em; }}
+                    .alg-end {{ margin-left: 0.5em; }}
+                    .alg-comment {{ color: #666; }}
+
+                    /* appendices */
+                    .latex-appendices {{ margin-top: 2em; border-top: 1px solid #eee; padding-top: 1em; }}
+
                     /* Blockquote */
                     blockquote.latex-quote, .latex-quote {{
                         border-left: 4px solid #bdc3c7;
