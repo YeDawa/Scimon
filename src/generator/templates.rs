@@ -205,6 +205,77 @@ impl Templates {
                     .latex-theorem {{ background: #f9f9f9; border-left: 4px solid #8e44ad; padding: 15px 20px; margin: 20px 0; border-radius: 0 6px 6px 0; }}
                     .latex-proof {{ border-left-color: #27ae60; }}
 
+                    /* ---- minipage ---- */
+                    .latex-minipage {{
+                        display: inline-block;
+                        vertical-align: top;
+                        box-sizing: border-box;
+                    }}
+
+                    /* ---- multicols ---- */
+                    .latex-multicols {{
+                        column-gap: 2em;
+                        column-rule: 1px solid #e0e0e0;
+                        margin: 20px 0;
+                    }}
+                    .latex-multicols p {{ margin-top: 0; }}
+
+                    /* ---- tcolorbox ---- */
+                    .latex-tcolorbox {{
+                        background-color: var(--tcb-back, #eaf4fb);
+                        border: 2px solid var(--tcb-frame, #2980b9);
+                        border-radius: 6px;
+                        margin: 20px 0;
+                        overflow: hidden;
+                    }}
+                    .tcolorbox-title {{
+                        color: #ffffff;
+                        font-weight: 600;
+                        padding: 8px 16px;
+                        font-size: 0.95em;
+                    }}
+                    .tcolorbox-body {{
+                        padding: 14px 16px;
+                    }}
+
+                    /* ---- framed / shaded ---- */
+                    .latex-framed {{
+                        border: 1px solid #bdc3c7;
+                        padding: 14px 18px;
+                        margin: 16px 0;
+                        border-radius: 4px;
+                    }}
+                    .latex-shaded {{
+                        background: #f5f6fa;
+                        padding: 14px 18px;
+                        margin: 16px 0;
+                        border-radius: 4px;
+                    }}
+
+                    /* ---- wrapfigure ---- */
+                    .latex-wrapfigure {{
+                        max-width: 50%;
+                        margin-bottom: 1em;
+                    }}
+                    .latex-wrapfigure img {{ width: 100%; }}
+
+                    /* ---- subfigure ---- */
+                    .latex-subfigure {{
+                        display: inline-flex;
+                        flex-direction: column;
+                        align-items: center;
+                        vertical-align: top;
+                        margin: 0 8px 16px;
+                        box-sizing: border-box;
+                    }}
+                    .latex-subfigure img {{ width: 100%; border-radius: 4px; }}
+                    .latex-subfigure .caption {{
+                        font-size: 0.82em;
+                        color: #7f8c8d;
+                        margin-top: 4px;
+                        text-align: center;
+                    }}
+
                     /* ---- \binom ---- */
                     .latex-binom {{
                         display: inline-flex;

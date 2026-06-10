@@ -667,6 +667,166 @@ impl Parser {
                             nodes.extend(inner);
                             nodes.push(LatexNode::Text("</div>".to_string()));
 
+                        // ------------------------------------------------
+                        // minipage
+                        // ------------------------------------------------
+                        } else if env == "minipage" && self.in_document {
+                            self.parse_optional_arg(); // [pos]
+                            let width = Self::conv_width(&self.parse_braces_content());
+                            let raw   = self.read_until_end("minipage");
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(format!(
+                                "<div class=\"latex-minipage\" style=\"width: {};\">", width
+                            )));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        // ------------------------------------------------
+                        // multicols
+                        // ------------------------------------------------
+                        } else if (env == "multicols" || env == "multicols*") && self.in_document {
+                            let ncols: u32 = self.parse_braces_content()
+                                .trim().parse().unwrap_or(2);
+                            let raw   = self.read_until_end(&env);
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(format!(
+                                "<div class=\"latex-multicols\" style=\"column-count: {};\">",
+                                ncols
+                            )));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        // ------------------------------------------------
+                        // tcolorbox
+                        // ------------------------------------------------
+                        } else if env == "tcolorbox" && self.in_document {
+                            let opts = self.parse_optional_arg().unwrap_or_default();
+                            let raw  = self.read_until_end("tcolorbox");
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+
+                            let (title, colback, colframe) = Self::parse_tcolorbox(&opts);
+                            nodes.push(LatexNode::Text(format!(
+                                "<div class=\"latex-tcolorbox\" \
+                                 style=\"--tcb-back:{colback}; --tcb-frame:{colframe};\">",
+                                colback  = colback,
+                                colframe = colframe,
+                            )));
+                            if let Some(t) = title {
+                                nodes.push(LatexNode::Text(format!(
+                                    "<div class=\"tcolorbox-title\" \
+                                     style=\"background:{};\">{}</div>",
+                                    colframe, t
+                                )));
+                            }
+                            nodes.push(LatexNode::Text(
+                                "<div class=\"tcolorbox-body\">".to_string()
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div></div>".to_string()));
+
+                        // ------------------------------------------------
+                        // framed / shaded / mdframed
+                        // ------------------------------------------------
+                        } else if matches!(env.as_str(),
+                            "framed" | "shaded" | "shaded*" | "oframed" | "mdframed"
+                        ) && self.in_document {
+                            self.parse_optional_arg(); // mdframed options
+                            let raw   = self.read_until_end(&env);
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            let cls = if env.starts_with("shaded") {
+                                "latex-shaded"
+                            } else {
+                                "latex-framed"
+                            };
+                            nodes.push(LatexNode::Text(
+                                format!("<div class=\"{}\">", cls)
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        // ------------------------------------------------
+                        // wrapfigure / wraptable
+                        // ------------------------------------------------
+                        } else if (env == "wrapfigure" || env == "wraptable")
+                                && self.in_document
+                        {
+                            let _lines = self.parse_optional_arg();
+                            let pos_raw   = self.parse_braces_content();
+                            let width_raw = self.parse_braces_content();
+                            let width  = Self::conv_width(&width_raw);
+                            let float_dir = match pos_raw.trim() {
+                                "l" | "i" | "L" | "I" => "left",
+                                _                      => "right",
+                            };
+                            let margin = if float_dir == "left" {
+                                "0 1.5em 1em 0"
+                            } else {
+                                "0 0 1em 1.5em"
+                            };
+                            let raw   = self.read_until_end(&env);
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(format!(
+                                "<div class=\"latex-wrapfigure\" \
+                                 style=\"float:{float}; width:{width}; margin:{margin};\">",
+                                float  = float_dir,
+                                width  = width,
+                                margin = margin,
+                            )));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text(
+                                "<div style=\"clear:both;\"></div></div>".to_string()
+                            ));
+
+                        // ------------------------------------------------
+                        // subfigure / subcaption subfigure
+                        // ------------------------------------------------
+                        } else if (env == "subfigure" || env == "subfloat")
+                                && self.in_document
+                        {
+                            let _pos    = self.parse_optional_arg();
+                            let width   = Self::conv_width(&self.parse_braces_content());
+                            let raw     = self.read_until_end(&env);
+                            let inner   = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(format!(
+                                "<figure class=\"latex-subfigure\" style=\"width:{width};\">",
+                                width = width,
+                            )));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</figure>".to_string()));
+
+                        // ------------------------------------------------
+                        // longtable  (render like tabular)
+                        // ------------------------------------------------
+                        } else if (env == "longtable" || env == "longtabu"
+                                || env == "xltabular") && self.in_document
+                        {
+                            self.parse_optional_arg(); // [pos]
+                            self.parse_braces_content(); // {cols}
+                            let raw  = self.read_until_end(&env);
+                            let rows = Self::parse_tabular(&raw, labels);
+                            nodes.push(LatexNode::Table(rows));
+
+                        // ------------------------------------------------
+                        // flushright / flushleft
+                        // ------------------------------------------------
+                        } else if env == "flushright" && self.in_document {
+                            let raw   = self.read_until_end("flushright");
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(
+                                "<div style=\"text-align:right;\">".to_string()
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        } else if env == "flushleft" && self.in_document {
+                            let raw   = self.read_until_end("flushleft");
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(
+                                "<div style=\"text-align:left;\">".to_string()
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
                         } else {
                             // Unknown environment – skip \end{env}
                             self.read_until_end(&env);
@@ -1252,6 +1412,11 @@ impl Parser {
                     "hspace" | "hspace*" if self.in_document => {
                         nodes.push(LatexNode::HSpace(self.parse_braces_content()));
                     }
+
+                    "columnbreak" | "newcolumn" if self.in_document =>
+                        nodes.push(LatexNode::Text(
+                            "<div style=\"break-after:column;\"></div>".to_string()
+                        )),
 
                     "noindent" | "indent" | "centering" | "raggedright"
                     | "raggedleft" | "clearpage" | "cleardoublepage"
@@ -2004,6 +2169,115 @@ impl Parser {
         }
 
         rows
+    }
+
+    // -----------------------------------------------------------------------
+    // Width / color helpers used by the new environments
+    // -----------------------------------------------------------------------
+
+    /// Convert a LaTeX width expression to a CSS value.
+    fn conv_width(raw: &str) -> String {
+        let s = raw.trim();
+
+        // Fraction of \textwidth / \linewidth / \columnwidth
+        for keyword in &["\\textwidth", "\\linewidth", "\\columnwidth", "\\hsize"] {
+            if let Some(idx) = s.find(keyword) {
+                let factor = s[..idx].trim();
+                if factor.is_empty() || factor == "1" || factor == "1.0" {
+                    return "100%".to_string();
+                }
+                if let Ok(f) = factor.parse::<f64>() {
+                    return format!("{:.1}%", f * 100.0);
+                }
+                return "100%".to_string();
+            }
+        }
+
+        // Already CSS-compatible units
+        if s.ends_with('%')
+            || s.ends_with("px") || s.ends_with("em") || s.ends_with("rem")
+            || s.ends_with("vw") || s.ends_with("vh")
+        {
+            return s.to_string();
+        }
+
+        // LaTeX absolute units → keep as-is (browsers understand cm, mm, in, pt)
+        if s.ends_with("cm") || s.ends_with("mm") || s.ends_with("in")
+            || s.ends_with("pt") || s.ends_with("ex")
+        {
+            return s.to_string();
+        }
+
+        // Fallback
+        if s.is_empty() { "100%".to_string() } else { s.to_string() }
+    }
+
+    /// Parse tcolorbox key=value options, return (title, colback, colframe).
+    fn parse_tcolorbox(opts: &str) -> (Option<String>, String, String) {
+        let mut title:    Option<String> = None;
+        let mut colback  = "#eaf4fb".to_string();
+        let mut colframe = "#2980b9".to_string();
+
+        for part in opts.split(',') {
+            let kv: Vec<&str> = part.splitn(2, '=').collect();
+            if kv.len() != 2 { continue; }
+            match kv[0].trim() {
+                "title"    => title    = Some(kv[1].trim().to_string()),
+                "colback"  => colback  = Self::latex_color(kv[1].trim()),
+                "colframe" => colframe = Self::latex_color(kv[1].trim()),
+                _ => {}
+            }
+        }
+        (title, colback, colframe)
+    }
+
+    /// Convert a LaTeX color expression (name or `color!pct!base`) to CSS hex.
+    fn latex_color(raw: &str) -> String {
+        let parts: Vec<&str> = raw.split('!').collect();
+        let name = parts[0].trim().to_lowercase();
+
+        let base: (u8, u8, u8) = match name.as_str() {
+            "white"            => (255, 255, 255),
+            "black"            => (  0,   0,   0),
+            "red"              => (231,  76,  60),
+            "blue"             => ( 41, 128, 185),
+            "green"            => ( 39, 174,  96),
+            "yellow"           => (241, 196,  15),
+            "orange"           => (230, 126,  34),
+            "cyan"             => ( 26, 188, 156),
+            "magenta" | "purple" => (142,  68, 173),
+            "gray"  | "grey"   => (149, 165, 166),
+            "brown"            => (160,  82,  45),
+            "teal"             => (  0, 128, 128),
+            "violet"           => (148,   0, 211),
+            "pink"             => (231, 103, 159),
+            "lime"             => (178, 223,  69),
+            "olive"            => (128, 128,   0),
+            "navy"             => (  0,   0, 128),
+            // Pass through if it looks like a CSS value already
+            _ => return raw.to_string(),
+        };
+
+        let pct: f32 = if parts.len() >= 2 {
+            parts[1].trim().parse().unwrap_or(100.0)
+        } else {
+            100.0
+        };
+
+        let mix: (u8, u8, u8) = if parts.len() >= 3 {
+            match parts[2].trim().to_lowercase().as_str() {
+                "black" => (0, 0, 0),
+                _       => (255, 255, 255),
+            }
+        } else {
+            (255, 255, 255)
+        };
+
+        let f = pct / 100.0;
+        let r = (base.0 as f32 * f + mix.0 as f32 * (1.0 - f)) as u8;
+        let g = (base.1 as f32 * f + mix.1 as f32 * (1.0 - f)) as u8;
+        let b = (base.2 as f32 * f + mix.2 as f32 * (1.0 - f)) as u8;
+        format!("#{:02x}{:02x}{:02x}", r, g, b)
     }
 
     /// Normalise a fancyhdr position argument like "LE,RO" → "L,R".
