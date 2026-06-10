@@ -305,9 +305,7 @@ impl Parser {
                     }
                     if let Some(c) = self.next_char() { math_block.push(c); }
                 }
-                nodes.push(LatexNode::MathDisplay(
-                    Parser::new(&math_block).parse(true, labels)
-                ));
+                nodes.push(LatexNode::RawMathDisplay(math_block));
                 continue;
             }
 
@@ -326,9 +324,7 @@ impl Parser {
                     }
                     if let Some(c) = self.next_char() { math_block.push(c); }
                 }
-                nodes.push(LatexNode::MathInline(
-                    Parser::new(&math_block).parse(true, labels)
-                ));
+                nodes.push(LatexNode::RawMathInline(math_block));
                 continue;
             }
 
@@ -518,7 +514,7 @@ impl Parser {
                             self.current_equation += 1;
                             Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
                             nodes.push(LatexNode::EquationBlock(
-                                Parser::new(raw.trim()).parse(true, labels)
+                                vec![LatexNode::RawMathDisplay(raw.trim().to_string())]
                             ));
 
                         } else if (env == "align"  || env == "align*"
@@ -530,8 +526,9 @@ impl Parser {
                             let raw = self.read_until_end(&env);
                             self.current_equation += 1;
                             Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
+                            let latex = format!("\\begin{{{}}}{}\\end{{{}}}", env, raw.trim(), env);
                             nodes.push(LatexNode::AlignBlock(
-                                Parser::new(raw.trim()).parse(true, labels)
+                                vec![LatexNode::RawMathDisplay(latex)]
                             ));
 
                         } else if matches!(env.as_str(),
@@ -1017,11 +1014,11 @@ impl Parser {
                     self.pos += 1;
                 }
 
-                let inner = Parser::new(&math_block).parse(true, labels);
+                // Pass raw LaTeX to MathJax instead of rendering ourselves
                 if display {
-                    nodes.push(LatexNode::MathDisplay(inner));
+                    nodes.push(LatexNode::RawMathDisplay(math_block));
                 } else {
-                    nodes.push(LatexNode::MathInline(inner));
+                    nodes.push(LatexNode::RawMathInline(math_block));
                 }
                 continue;
             }

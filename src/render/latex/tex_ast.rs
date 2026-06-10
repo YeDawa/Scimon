@@ -4,6 +4,7 @@ use crate::render::latex::{
     context::RenderContext,
 };
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum LatexNode {
     // --- Inline text formatting ---
@@ -39,7 +40,11 @@ pub enum LatexNode {
 
     // --- Math ---
     MathInline(Vec<LatexNode>),
-    MathDisplay(Vec<LatexNode>),  // \[...\]
+    MathDisplay(Vec<LatexNode>),
+    /// Raw LaTeX passed directly to MathJax — $...$ and \(...\)
+    RawMathInline(String),
+    /// Raw LaTeX passed directly to MathJax — $$...$$ and \[...\]
+    RawMathDisplay(String),
     Superscript(Vec<LatexNode>),
     Subscript(Vec<LatexNode>),
     Fraction { num: Vec<LatexNode>, den: Vec<LatexNode> },
@@ -231,9 +236,19 @@ impl LatexNode {
             // ----------------------------------------------------------------
             // Math
             // ----------------------------------------------------------------
+
+            // Raw LaTeX passed directly to MathJax for full rendering
+            LatexNode::RawMathInline(raw) =>
+                format!("\\({}\\)", raw),
+
+            LatexNode::RawMathDisplay(raw) =>
+                format!("<div class=\"math-block\">\\[{}\\]</div>", raw),
+
+            #[allow(dead_code)]
             LatexNode::MathInline(nodes) =>
                 format!("<span class=\"math-inline\">{}</span>", Nodes::render(nodes, ctx)),
 
+            #[allow(dead_code)]
             LatexNode::MathDisplay(nodes) =>
                 format!("<div class=\"math-display\">{}</div>", Nodes::render(nodes, ctx)),
 
@@ -253,14 +268,15 @@ impl LatexNode {
             LatexNode::EquationBlock(nodes) => {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
-
-                // Ensure any \label inside this block resolves to this eq number
                 Self::register_inner_labels(nodes, &num, ctx);
+                let inner = if let Some(LatexNode::RawMathDisplay(raw)) = nodes.first() {
+                    format!("\\[{}\\]", raw)
+                } else {
+                    Nodes::render(nodes, ctx)
+                };
                 format!(
                     "<div class=\"math-block\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
-                    num,
-                    Nodes::render(nodes, ctx),
-                    num
+                    num, inner, num
                 )
             }
 
@@ -268,12 +284,14 @@ impl LatexNode {
                 ctx.eq_num += 1;
                 let num = ctx.eq_num.to_string();
                 Self::register_inner_labels(nodes, &num, ctx);
-
+                let inner = if let Some(LatexNode::RawMathDisplay(raw)) = nodes.first() {
+                    raw.clone()
+                } else {
+                    Nodes::render(nodes, ctx)
+                };
                 format!(
                     "<div class=\"math-block math-align\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
-                    num,
-                    Nodes::render(nodes, ctx),
-                    num
+                    num, inner, num
                 )
             }
 
