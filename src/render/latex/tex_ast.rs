@@ -42,6 +42,14 @@ pub enum LatexNode {
     // --- Spacing ---
     VSpace(String),
     HSpace(String),
+    /// Apply a \setlength to a document-scoped CSS variable
+    SetLength { param: String, value: String },
+    /// Invisible box with same dimensions as content (all axes)
+    Phantom(Vec<LatexNode>),
+    /// Invisible box with same width as content (zero height)
+    HPhantom(Vec<LatexNode>),
+    /// Invisible box with same height as content (zero width)
+    VPhantom(Vec<LatexNode>),
     LineBreak,
     NewPage,
     HorizontalRule,
@@ -78,13 +86,21 @@ pub enum LatexNode {
     // --- References & labels ---
     Cite(String),
     CiteMultiple(Vec<String>),
+    /// \nocite{*} or \nocite{key,key2} — include in bibliography without inline cite
+    NoCite(Vec<String>),
     Bibliography(String),
+    /// \begin{thebibliography}{widest-label}...\end{thebibliography} inline bib
+    TheBibliography(Vec<(String, Vec<LatexNode>)>),
     Label(String),
     Ref(String),
     PageRef(String),
 
     // --- Cross-document ---
     Footnote(Vec<LatexNode>),
+    /// \footnotemark[n] — places the superscript mark only
+    FootnoteMark(Option<usize>),
+    /// \footnotetext[n]{text} — places the footnote text only
+    FootnoteText { num: Option<usize>, content: Vec<LatexNode> },
 
     // --- Floats ---
     Image(String),
@@ -176,6 +192,47 @@ impl LatexNode {
 
             LatexNode::HSpace(size) =>
                 format!("<span style=\"display: inline-block; width: {}\"></span>", size),
+
+            LatexNode::SetLength { param, value } => {
+                let css_var = match param.as_str() {
+                    "\\parskip"      => "--latex-parskip",
+                    "\\parindent"    => "--latex-parindent",
+                    "\\baselineskip" => "--latex-baselineskip",
+                    "\\textwidth"    => "--latex-textwidth",
+                    "\\linewidth"    => "--latex-linewidth",
+                    "\\textheight"   => "--latex-textheight",
+                    "\\columnwidth"  => "--latex-columnwidth",
+                    "\\columnsep"    => "--latex-columnsep",
+                    "\\topmargin"    => "--latex-topmargin",
+                    "\\oddsidemargin"| "\\evensidemargin" => "--latex-sidemargin",
+                    _ => return String::new(),
+                };
+                format!("<style>:root {{ {}: {}; }}</style>", css_var, value)
+            }
+
+            LatexNode::Phantom(nodes) => {
+                let inner = Nodes::render(nodes, ctx);
+                format!(
+                    "<span style=\"visibility:hidden;\">{}</span>",
+                    inner
+                )
+            }
+
+            LatexNode::HPhantom(nodes) => {
+                let inner = Nodes::render(nodes, ctx);
+                format!(
+                    "<span style=\"visibility:hidden; display:inline-block; height:0; overflow:hidden;\">{}</span>",
+                    inner
+                )
+            }
+
+            LatexNode::VPhantom(nodes) => {
+                let inner = Nodes::render(nodes, ctx);
+                format!(
+                    "<span style=\"visibility:hidden; display:inline-block; width:0; overflow:hidden;\">{}</span>",
+                    inner
+                )
+            }
 
             LatexNode::LineBreak =>
                 "<br/>".to_string(),
@@ -378,6 +435,33 @@ impl LatexNode {
                 )
             }
 
+            // \footnotemark — place mark without text; deferred number resolved later
+            LatexNode::FootnoteMark(explicit) => {
+                let num = if let Some(n) = explicit {
+                    *n
+                } else {
+                    ctx.footnote_num += 1;
+                    ctx.footnote_num
+                };
+                format!(
+                    "<sup class=\"footnote-ref\"><a href=\"#fn-{}\" id=\"fnref-{}\">{}</a></sup>",
+                    num, num, num
+                )
+            }
+
+            // \footnotetext — register text without emitting a mark
+            LatexNode::FootnoteText { num, content } => {
+                let n = if let Some(n) = num {
+                    *n
+                } else {
+                    // use current counter (mark was placed first)
+                    ctx.footnote_num
+                };
+                let html = Nodes::render(content, ctx);
+                ctx.pending_footnotes.push((n, html));
+                String::new()
+            }
+
             // ----------------------------------------------------------------
             // References & labels
             // ----------------------------------------------------------------
@@ -435,11 +519,24 @@ impl LatexNode {
                 let bib_content = BibTextRender::fetch_bibliography(&source).unwrap_or_default();
                 ctx.bib_database = BibTextRender::parse_bibtex(&bib_content);
 
+                // \nocite{*} → include every entry in the database
+                if ctx.nocite_all {
+                    let mut all: Vec<String> = ctx.bib_database.keys().cloned().collect();
+                    all.sort();
+                    for key in all {
+                        if !ctx.citation_map.contains_key(&key) {
+                            ctx.register_citation(&key);
+                        }
+                    }
+                }
+
                 // Render in citation order if we have one, otherwise alphabetical
                 let keys_ordered: Vec<String> = if !ctx.citation_order.is_empty() {
                     ctx.citation_order.clone()
                 } else {
-                    ctx.bib_database.keys().cloned().collect()
+                    let mut k: Vec<String> = ctx.bib_database.keys().cloned().collect();
+                    k.sort();
+                    k
                 };
 
                 for key in &keys_ordered {
@@ -456,6 +553,32 @@ impl LatexNode {
                     }
                 }
 
+                html.push_str("</ol>");
+                html
+            }
+
+            // \nocite{*} or \nocite{key,...} — no visual output; registers keys
+            LatexNode::NoCite(keys) => {
+                for key in keys {
+                    if key == "*" {
+                        ctx.nocite_all = true;
+                    } else {
+                        ctx.register_citation(key);
+                    }
+                }
+                String::new()
+            }
+
+            // \begin{thebibliography}{widest} \bibitem{key} ... \end{thebibliography}
+            LatexNode::TheBibliography(items) => {
+                let mut html = String::from("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
+                for (key, nodes) in items {
+                    let content = Nodes::render(nodes, ctx);
+                    html.push_str(&format!(
+                        "<li id=\"ref-{}\">{}</li>",
+                        key, content
+                    ));
+                }
                 html.push_str("</ol>");
                 html
             }

@@ -477,10 +477,20 @@ impl Parser {
                     // Preamble / metadata (allowed outside \begin{document})
                     // --------------------------------------------------------
                     "documentclass" | "usepackage" | "pagestyle"
-                    | "setlength" | "setcounter" | "renewcommand"
+                    | "setcounter" | "renewcommand"
                     | "geometry" | "hypersetup" => {
                         self.parse_optional_arg();
                         self.parse_braces_content();
+                    }
+
+                    // \setlength{\param}{value} — emit a CSS custom-property block
+                    "setlength" | "addtolength" => {
+                        let param = self.parse_braces_content(); // e.g. \parskip
+                        let raw   = self.parse_braces_content(); // e.g. 6pt or \fill
+                        let value = Self::length_to_css(&raw);
+                        if self.in_document {
+                            nodes.push(LatexNode::SetLength { param, value });
+                        }
                     }
 
                     "newcommand" | "providecommand" => {
@@ -531,6 +541,13 @@ impl Parser {
                             let raw = self.read_until_end("abstract");
                             nodes.push(LatexNode::Abstract(
                                 Parser::new(raw.trim()).parse(true, labels)
+                            ));
+
+                        } else if env == "thebibliography" && self.in_document {
+                            self.parse_braces_content(); // {widest-label} — ignored
+                            let raw = self.read_until_end("thebibliography");
+                            nodes.push(LatexNode::TheBibliography(
+                                Self::parse_thebibliography(&raw, labels)
                             ));
 
                         } else if (env == "lstlisting" || env == "verbatim" || env == "Verbatim") && self.in_document {
@@ -1479,6 +1496,15 @@ impl Parser {
                         }
                     }
 
+                    "nocite" if self.in_document => {
+                        let raw = self.parse_braces_content();
+                        let keys: Vec<String> = raw.split(',')
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty())
+                            .collect();
+                        nodes.push(LatexNode::NoCite(keys));
+                    }
+
                     "bibliography" if self.in_document =>
                         nodes.push(LatexNode::Bibliography(self.parse_braces_content())),
 
@@ -1529,12 +1555,17 @@ impl Parser {
                     }
 
                     "footnotemark" if self.in_document => {
-                        self.parse_optional_arg();
+                        let explicit = self.parse_optional_arg()
+                            .and_then(|s| s.trim().parse::<usize>().ok());
+                        nodes.push(LatexNode::FootnoteMark(explicit));
                     }
 
                     "footnotetext" if self.in_document => {
-                        self.parse_optional_arg();
-                        self.parse_braces_content();
+                        let explicit = self.parse_optional_arg()
+                            .and_then(|s| s.trim().parse::<usize>().ok());
+                        let raw = self.parse_braces_content();
+                        let content = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::FootnoteText { num: explicit, content });
                     }
 
                     // --------------------------------------------------------
@@ -1761,15 +1792,51 @@ impl Parser {
                     }
 
                     // --------------------------------------------------------
-                    // Horizontal fill
+                    // Horizontal / vertical fill
                     // --------------------------------------------------------
-                    "hfill" | "hfil" | "dotfill" if self.in_document => {
+                    "hfill" | "hfil" if self.in_document =>
+                        nodes.push(LatexNode::HSpace("auto".to_string())),
+
+                    "dotfill" if self.in_document =>
                         nodes.push(LatexNode::Text(
-                            "<span style=\"display:inline-block; flex:1; min-width:1em;\"></span>".to_string()
+                            "<span class=\"latex-dotfill\"></span>".to_string()
+                        )),
+
+                    "fill" if self.in_document =>
+                        nodes.push(LatexNode::HSpace("auto".to_string())),
+
+                    // \stretch{n} — proportional fill; render as flexible spacer
+                    "stretch" if self.in_document => {
+                        let _factor = self.parse_braces_content();
+                        nodes.push(LatexNode::HSpace("auto".to_string()));
+                    }
+
+                    "vfill" | "vfil" if self.in_document =>
+                        nodes.push(LatexNode::VSpace("auto".to_string())),
+
+                    // --------------------------------------------------------
+                    // Phantom boxes
+                    // --------------------------------------------------------
+                    "phantom" if self.in_document => {
+                        let raw = self.parse_braces_content();
+                        nodes.push(LatexNode::Phantom(
+                            Parser::new(&raw).parse(true, labels)
                         ));
                     }
 
-                    "vfill" if self.in_document => nodes.push(LatexNode::VSpace("auto".to_string())),
+                    "hphantom" if self.in_document => {
+                        let raw = self.parse_braces_content();
+                        nodes.push(LatexNode::HPhantom(
+                            Parser::new(&raw).parse(true, labels)
+                        ));
+                    }
+
+                    "vphantom" if self.in_document => {
+                        let raw = self.parse_braces_content();
+                        nodes.push(LatexNode::VPhantom(
+                            Parser::new(&raw).parse(true, labels)
+                        ));
+                    }
 
                     // --------------------------------------------------------
                     // Special letters
@@ -2139,6 +2206,50 @@ impl Parser {
     }
 
     // -----------------------------------------------------------------------
+    // Inline bibliography parser
+    // -----------------------------------------------------------------------
+
+    /// Parse the body of \begin{thebibliography}...\end{thebibliography}.
+    /// Returns Vec<(key, content_nodes)>.
+    fn parse_thebibliography(
+        body: &str,
+        labels: &mut HashMap<String, String>,
+    ) -> Vec<(String, Vec<LatexNode>)> {
+        let mut items: Vec<(String, Vec<LatexNode>)> = Vec::new();
+        let mut rest = body;
+
+        while let Some(pos) = rest.find("\\bibitem") {
+            rest = &rest[pos + 8..]; // skip \bibitem
+
+            // optional label in [ ] (ignored — used for display label in LaTeX)
+            if rest.starts_with('[') {
+                if let Some(end) = rest.find(']') {
+                    rest = &rest[end + 1..];
+                }
+            }
+
+            // {key}
+            let key = if rest.starts_with('{') {
+                if let Some(end) = rest.find('}') {
+                    let k = rest[1..end].trim().to_string();
+                    rest = &rest[end + 1..];
+                    k
+                } else { continue; }
+            } else { continue; };
+
+            // Content runs until the next \bibitem or end of body
+            let content_end = rest.find("\\bibitem").unwrap_or(rest.len());
+            let content_raw = rest[..content_end].trim();
+            rest = &rest[content_end..];
+
+            let content = Parser::new(content_raw).parse(true, labels);
+            items.push((key, content));
+        }
+
+        items
+    }
+
+    // -----------------------------------------------------------------------
     // Brace / colspec / cell-meta helpers
     // -----------------------------------------------------------------------
 
@@ -2432,6 +2543,17 @@ impl Parser {
     // -----------------------------------------------------------------------
     // Width / color helpers used by the new environments
     // -----------------------------------------------------------------------
+
+    /// Convert a LaTeX length (possibly \fill, \stretch, calc-style) to a CSS value.
+    /// Used by \setlength — produces a value suitable for a CSS custom property.
+    fn length_to_css(raw: &str) -> String {
+        let s = raw.trim();
+        match s {
+            "\\fill" | "\\hfill" | "\\vfill" | "\\hfil" | "\\vfil" => "auto".to_string(),
+            _ if s.starts_with("\\stretch") => "auto".to_string(),
+            _ => Self::conv_width(s),
+        }
+    }
 
     /// Convert a LaTeX width expression to a CSS value.
     fn conv_width(raw: &str) -> String {

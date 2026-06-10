@@ -52,12 +52,26 @@ impl Templates {
                 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
                 
                 <style>
+                    /* CSS custom properties written by \setlength */
+                    :root {{
+                        --latex-parskip:      0px;
+                        --latex-parindent:    1.5em;
+                        --latex-baselineskip: 1.7;
+                        --latex-textwidth:    100%;
+                        --latex-linewidth:    100%;
+                        --latex-textheight:   auto;
+                        --latex-columnwidth:  100%;
+                        --latex-columnsep:    2em;
+                        --latex-topmargin:    0px;
+                        --latex-sidemargin:   0px;
+                    }}
+
                     /* Typography & Base */
                     body {{
                         background-color: #f4f6f8;
                         font-family: 'Lora', 'Computer Modern', Georgia, serif;
                         font-size: 18px;
-                        line-height: 1.7;
+                        line-height: var(--latex-baselineskip);
                         color: #2c3e50;
                         margin: 0;
                         padding: 40px 20px;
@@ -401,6 +415,31 @@ impl Templates {
                     /* Math text / operators */
                     .math-text {{ font-style: normal; font-family: 'Lora', Georgia, serif; }}
                     .math-op {{ font-style: normal; font-family: 'Cambria Math', 'Times New Roman', serif; margin-right: 0.15em; }}
+
+                    /* \setlength — driven by CSS custom properties */
+                    .document-container p {{
+                        margin-top:    var(--latex-parskip);
+                        margin-bottom: var(--latex-parskip);
+                        text-indent:   var(--latex-parindent);
+                        line-height:   var(--latex-baselineskip);
+                    }}
+
+                    /* \hfill — flexible inline spacer */
+                    span[style*="width:auto"] {{
+                        display: inline-block;
+                        flex: 1 1 auto;
+                        min-width: 0.5em;
+                    }}
+
+                    /* \dotfill */
+                    .latex-dotfill {{
+                        display: inline-block;
+                        flex: 1 1 auto;
+                        border-bottom: 1px dotted currentColor;
+                        min-width: 1em;
+                        margin: 0 2px;
+                        vertical-align: bottom;
+                    }}
 
                     /* Bibliography title */
                     .bib-title {{ border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; color: #1a252f; margin-top: 50px; font-size: 1.5em; font-weight: 600; }}

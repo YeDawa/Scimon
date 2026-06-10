@@ -22,6 +22,8 @@ pub struct RenderContext {
     pub citation_order: Vec<String>,
     pub citation_map:   HashMap<String, usize>,
     pub bib_database:   HashMap<String, BibEntry>,
+    /// true when \nocite{*} was seen — include every .bib entry at render time
+    pub nocite_all:     bool,
 
     pub footnote_num:      usize,
     pub pending_footnotes: Vec<(usize, String)>,
@@ -62,6 +64,7 @@ impl RenderContext {
             citation_order: Vec::new(),
             citation_map:   HashMap::new(),
             bib_database:   HashMap::new(),
+            nocite_all:     false,
 
             footnote_num:      0,
             pending_footnotes: Vec::new(),
