@@ -111,6 +111,7 @@ fn math_symbol(cmd: &str) -> Option<&'static str> {
         "langle" => Some("⟨"),
         "rangle" => Some("⟩"),
         "emptyset"   => Some("∅"),
+        "varnothing"  => Some("∅"),
         "infin"      => Some("∞"),
         "therefore"  => Some("∴"),
         "because"    => Some("∵"),
@@ -118,6 +119,164 @@ fn math_symbol(cmd: &str) -> Option<&'static str> {
         "parallel"   => Some("∥"),
         "angle"      => Some("∠"),
         "triangle"   => Some("△"),
+
+        // Variant Greek
+        "varphi"     => Some("φ"),
+        "varepsilon" => Some("ε"),
+        "vartheta"   => Some("ϑ"),
+        "varrho"     => Some("ϱ"),
+        "varsigma"   => Some("ς"),
+        "varpi"      => Some("ϖ"),
+        "varkappa"   => Some("ϰ"),
+
+        // Special math letters
+        "imath"      => Some("ı"),
+        "jmath"      => Some("ȷ"),
+        "ell"        => Some("ℓ"),
+        "hbar"       => Some("ℏ"),
+        "wp"         => Some("℘"),
+        "mho"        => Some("℧"),
+        "Re"         => Some("ℜ"),
+        "Im"         => Some("ℑ"),
+        "aleph"      => Some("ℵ"),
+        "beth"       => Some("ℶ"),
+        "gimel"      => Some("ℷ"),
+        "daleth"     => Some("ℸ"),
+
+        // More delimiters
+        "vert"       => Some("|"),
+        "Vert"       => Some("‖"),
+        "mid"        => Some("∣"),
+        "nmid"       => Some("∤"),
+
+        // Set operations
+        "setminus"       => Some("∖"),
+        "smallsetminus"  => Some("∖"),
+        "complement"     => Some("∁"),
+        "sqcup"          => Some("⊔"),
+        "sqcap"          => Some("⊓"),
+        "uplus"          => Some("⊎"),
+        "amalg"          => Some("⨿"),
+
+        // More relations
+        "prec"       => Some("≺"),
+        "succ"       => Some("≻"),
+        "preceq"     => Some("⪯"),
+        "succeq"     => Some("⪰"),
+        "ll"         => Some("≪"),
+        "gg"         => Some("≫"),
+        "lll"        => Some("⋘"),
+        "ggg"        => Some("⋙"),
+        "asymp"      => Some("≍"),
+        "bowtie"     => Some("⋈"),
+        "smile"      => Some("⌣"),
+        "frown"      => Some("⌢"),
+
+        // Logic / proof
+        "vdash"      => Some("⊢"),
+        "dashv"      => Some("⊣"),
+        "models"     => Some("⊨"),
+        "vDash"      => Some("⊨"),
+        "Vdash"      => Some("⊩"),
+        "top"        => Some("⊤"),
+        "bot"        => Some("⊥"),
+
+        // Square order
+        "sqsubset"   => Some("⊏"),
+        "sqsupset"   => Some("⊐"),
+        "sqsubseteq" => Some("⊑"),
+        "sqsupseteq" => Some("⊒"),
+
+        // Triangle relations
+        "lhd"        => Some("⊲"),
+        "rhd"        => Some("⊳"),
+        "unlhd"      => Some("⊴"),
+        "unrhd"      => Some("⊵"),
+
+        // More circle ops
+        "ominus"     => Some("⊖"),
+        "oslash"     => Some("⊘"),
+        "odot"       => Some("⊙"),
+        "circledast" => Some("⊛"),
+        "boxplus"    => Some("⊞"),
+        "boxminus"   => Some("⊟"),
+        "boxtimes"   => Some("⊠"),
+        "boxdot"     => Some("⊡"),
+
+        // Misc symbols
+        "dagger"     => Some("†"),
+        "ddagger"    => Some("‡"),
+        "bullet"     => Some("•"),
+        "star"       => Some("⋆"),
+        "ast"        => Some("∗"),
+        "sharp"      => Some("♯"),
+        "flat"       => Some("♭"),
+        "natural"    => Some("♮"),
+        "checkmark"  => Some("✓"),
+        "maltese"    => Some("✠"),
+        "clubsuit"   => Some("♣"),
+        "diamondsuit"=> Some("♦"),
+        "heartsuit"  => Some("♥"),
+        "spadesuit"  => Some("♠"),
+        "surd"       => Some("√"),
+        "backslash"  => Some("\\"),
+
+        // Harpoons
+        "rightharpoonup"   => Some("⇀"),
+        "leftharpoonup"    => Some("↼"),
+        "rightharpoondown" => Some("⇁"),
+        "leftharpoondown"  => Some("↽"),
+        "rightleftharpoons"=> Some("⇌"),
+        "leftrightharpoons"=> Some("⇋"),
+
+        // Diagonal arrows
+        "nearrow"    => Some("↗"),
+        "searrow"    => Some("↘"),
+        "nwarrow"    => Some("↖"),
+        "swarrow"    => Some("↙"),
+        "leadsto"    => Some("⇝"),
+
+        // More double arrows
+        "Uparrow"    => Some("⇑"),
+        "Downarrow"  => Some("⇓"),
+        "Updownarrow"=> Some("⇕"),
+        "updownarrow"=> Some("↕"),
+        "hookleftarrow"  => Some("↩"),
+        "hookrightarrow" => Some("↪"),
+        "looparrowleft"  => Some("↫"),
+        "looparrowright" => Some("↬"),
+        "twoheadrightarrow" => Some("↠"),
+        "twoheadleftarrow"  => Some("↞"),
+        "rightarrowtail"    => Some("↣"),
+        "leftarrowtail"     => Some("↢"),
+        "multimap"   => Some("⊸"),
+        "lightning"  => Some("↯"),
+
+        // Long arrows
+        "longrightarrow"      => Some("⟶"),
+        "longleftarrow"       => Some("⟵"),
+        "longleftrightarrow"  => Some("⟷"),
+        "Longrightarrow"      => Some("⟹"),
+        "Longleftarrow"       => Some("⟸"),
+        "Longleftrightarrow"  => Some("⟺"),
+
+        // Not-equal variants
+        "nless"      => Some("≮"),
+        "ngtr"       => Some("≯"),
+        "nleq"       => Some("≰"),
+        "ngeq"       => Some("≱"),
+        "nsubseteq"  => Some("⊄"),
+        "nsupseteq"  => Some("⊅"),
+        "nprec"      => Some("⊀"),
+        "nsucc"      => Some("⊁"),
+
+        // Dots
+        "dots"       => Some("…"),
+        "dotsc"      => Some("…"),
+        "dotsb"      => Some("⋯"),
+        "dotsm"      => Some("⋯"),
+        "dotsi"      => Some("…"),
+
         _ => None,
     }
 }
@@ -223,6 +382,116 @@ impl Parser {
 
     pub fn peek_ahead(&self, offset: usize) -> Option<char> {
         self.chars.get(self.pos + offset).copied()
+    }
+
+    /// Read a TeX dimension token (number + optional unit) from current position.
+    /// Returns the raw string, e.g. "1.5em", "-2pt", "0".
+    fn read_dimension(&mut self) -> String {
+        self.skip_whitespace();
+        let mut s = String::new();
+        // optional sign
+        if matches!(self.peek(), Some('+') | Some('-')) {
+            s.push(self.next_char().unwrap());
+        }
+        self.skip_whitespace();
+        // digits and decimal point
+        while matches!(self.peek(), Some('0'..='9') | Some('.')) {
+            s.push(self.next_char().unwrap());
+        }
+        self.skip_whitespace();
+        // unit (up to 2 letters)
+        let mut unit = String::new();
+        while unit.len() < 4 && matches!(self.peek(), Some('a'..='z') | Some('A'..='Z')) {
+            unit.push(self.next_char().unwrap());
+        }
+        if !unit.is_empty() { s.push_str(&unit); }
+        s
+    }
+
+    /// Capitalise first character of a string.
+    fn capitalise(s: &str) -> String {
+        let mut c = s.chars();
+        match c.next() {
+            None    => String::new(),
+            Some(f) => f.to_uppercase().to_string() + c.as_str(),
+        }
+    }
+
+    /// Parse enumitem `[label=\alph*, label=(\roman*), ...]` option string
+    /// and return the equivalent CSS `list-style-type` value.
+    fn enumitem_label_style(opt: &str) -> String {
+        // Extract `label=<value>` from option string
+        let lower = opt.to_lowercase();
+        let label_val = if let Some(pos) = lower.find("label=") {
+            opt[pos + 6..].trim().trim_end_matches(',').trim()
+        } else {
+            return String::new();
+        };
+
+        // Map common patterns
+        if label_val.contains("\\alph") || label_val.contains("\\alph*") {
+            "lower-alpha".to_string()
+        } else if label_val.contains("\\Alph") || label_val.contains("\\Alph*") {
+            "upper-alpha".to_string()
+        } else if label_val.contains("\\roman") {
+            "lower-roman".to_string()
+        } else if label_val.contains("\\Roman") {
+            "upper-roman".to_string()
+        } else if label_val.contains("\\arabic") {
+            "decimal".to_string()
+        } else if label_val.starts_with('(') {
+            // e.g. (\arabic*) — use decimal in parens via CSS counter
+            "decimal".to_string()
+        } else {
+            String::new()
+        }
+    }
+
+    /// Render a LaTeX tabbing environment body to HTML.
+    /// \= sets tab stops, \> advances, \kill discards a line, \\ ends line.
+    fn render_tabbing(body: &str) -> String {
+        let mut html = String::from("<div class=\"latex-tabbing\">");
+        let mut tab_stops: Vec<usize> = Vec::new();
+
+        for raw_line in body.split("\\\\") {
+            let line = raw_line.trim();
+            if line.is_empty() { continue; }
+
+            // \kill — discard this line, keep tab stops
+            if line.ends_with("\\kill") {
+                let content = &line[..line.len() - 5];
+                // measure tab stop positions from \= markers
+                tab_stops.clear();
+                let mut col: usize = 0;
+                for segment in content.split("\\=") {
+                    col += segment.len();
+                    tab_stops.push(col);
+                }
+                continue;
+            }
+
+            // split by \> (advance to next tab stop)
+            let segments: Vec<&str> = line.split("\\>").collect();
+            html.push_str("<span class=\"tabbing-line\">");
+            for (i, seg) in segments.iter().enumerate() {
+                // strip \= (set tab stop marker) from segment
+                let seg_clean = seg.replace("\\=", "");
+                html.push_str(&seg_clean);
+                if i + 1 < segments.len() {
+                    // pad to next tab stop
+                    let target = tab_stops.get(i).copied().unwrap_or((i + 1) * 8);
+                    let current = seg_clean.len();
+                    let pad = if target > current { target - current } else { 1 };
+                    for _ in 0..pad {
+                        html.push_str("&nbsp;");
+                    }
+                }
+            }
+            html.push_str("</span><br>");
+        }
+
+        html.push_str("</div>");
+        html
     }
 
     /// Read an alphabetic command word (letters only) from current position.
@@ -642,6 +911,20 @@ impl Parser {
                                 Parser::new(raw.trim()).parse(true, labels)
                             ));
 
+                        } else if (env == "IEEEkeywords" || env == "keywords") && self.in_document {
+                            let raw = self.read_until_end(&env);
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(
+                                "<div class=\"latex-keywords\"><strong>Keywords:</strong> ".to_string()
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        } else if env == "tabbing" && self.in_document {
+                            let raw = self.read_until_end("tabbing");
+                            let html = Self::render_tabbing(&raw);
+                            nodes.push(LatexNode::Text(html));
+
                         } else if env == "verse" && self.in_document {
                             let raw = self.read_until_end("verse");
                             let inner = Parser::new(raw.trim()).parse(true, labels);
@@ -708,9 +991,19 @@ impl Parser {
                             nodes.push(LatexNode::Itemize(items));
 
                         } else if env == "enumerate" && self.in_document {
+                            let opt = self.parse_optional_arg(); // [label=\alph*, ...] (enumitem)
                             let block = self.read_until_end("enumerate");
                             let items = Self::split_items(&block, labels);
-                            nodes.push(LatexNode::Enumerate(items));
+                            if let Some(opt_str) = opt {
+                                let style = Self::enumitem_label_style(&opt_str);
+                                if !style.is_empty() {
+                                    nodes.push(LatexNode::EnumerateLabeled { style, items });
+                                } else {
+                                    nodes.push(LatexNode::Enumerate(items));
+                                }
+                            } else {
+                                nodes.push(LatexNode::Enumerate(items));
+                            }
 
                         } else if env == "description" && self.in_document {
                             let block = self.read_until_end("description");
@@ -1839,6 +2132,100 @@ impl Parser {
                         }
                     }
 
+                    // --------------------------------------------------------
+                    // Glossaries package
+                    // --------------------------------------------------------
+                    // \newacronym{label}{short}{long}
+                    "newacronym" | "newglossaryentry" => {
+                        let label = self.parse_braces_content();
+                        let short = self.parse_braces_content();
+                        let long  = self.parse_braces_content();
+                        // store: short form and long form keyed by label
+                        self.macros.insert(
+                            format!("gls@{}", label),
+                            (0, short.clone())
+                        );
+                        self.macros.insert(
+                            format!("gls@long@{}", label),
+                            (0, long)
+                        );
+                        self.macros.insert(
+                            format!("gls@pl@{}", label),
+                            (0, format!("{}s", short))
+                        );
+                    }
+
+                    // \gls{label} — short form
+                    "gls" | "glsentrytext" if self.in_document => {
+                        self.parse_optional_arg();
+                        let label = self.parse_braces_content();
+                        let text = self.macros.get(&format!("gls@{}", label))
+                            .map(|(_, b)| b.clone())
+                            .unwrap_or_else(|| label.clone());
+                        nodes.push(LatexNode::Text(text));
+                    }
+                    // \Gls{label} — capitalised short form
+                    "Gls" | "GLS" if self.in_document => {
+                        self.parse_optional_arg();
+                        let label = self.parse_braces_content();
+                        let text = self.macros.get(&format!("gls@{}", label))
+                            .map(|(_, b)| b.clone())
+                            .unwrap_or_else(|| label.clone());
+                        let cap = Self::capitalise(&text);
+                        nodes.push(LatexNode::Text(cap));
+                    }
+                    // \glspl{label} — plural short form
+                    "glspl" | "Glspl" | "GLSpl" if self.in_document => {
+                        self.parse_optional_arg();
+                        let label = self.parse_braces_content();
+                        let text = self.macros.get(&format!("gls@pl@{}", label))
+                            .map(|(_, b)| b.clone())
+                            .unwrap_or_else(|| format!("{}s", label));
+                        let cap = if command.starts_with('G') { Self::capitalise(&text) } else { text };
+                        nodes.push(LatexNode::Text(cap));
+                    }
+                    // \glslong / \glsfull — long or "long (short)" form
+                    "glslong" | "glsfull" | "acrlong" | "acrfull"
+                    | "acf" | "acl" if self.in_document => {
+                        self.parse_optional_arg();
+                        let label = self.parse_braces_content();
+                        let long  = self.macros.get(&format!("gls@long@{}", label))
+                            .map(|(_, b)| b.clone())
+                            .unwrap_or_else(|| label.clone());
+                        let short = self.macros.get(&format!("gls@{}", label))
+                            .map(|(_, b)| b.clone())
+                            .unwrap_or_default();
+                        let text = if command == "acf" || command == "glsfull" || command == "acrfull" {
+                            if short.is_empty() { long } else { format!("{} ({})", long, short) }
+                        } else {
+                            long
+                        };
+                        nodes.push(LatexNode::Text(text));
+                    }
+                    // \ac{label} / \acs{label} — short form (acronym package)
+                    "ac" | "acs" | "acr" | "acrshort" if self.in_document => {
+                        self.parse_optional_arg();
+                        let label = self.parse_braces_content();
+                        let text = self.macros.get(&format!("gls@{}", label))
+                            .map(|(_, b)| b.clone())
+                            .unwrap_or_else(|| label.clone());
+                        nodes.push(LatexNode::Text(text));
+                    }
+                    // \acp / \acsp — plural short form
+                    "acp" | "acsp" if self.in_document => {
+                        self.parse_optional_arg();
+                        let label = self.parse_braces_content();
+                        let text = self.macros.get(&format!("gls@pl@{}", label))
+                            .map(|(_, b)| b.clone())
+                            .unwrap_or_else(|| format!("{}s", label));
+                        nodes.push(LatexNode::Text(text));
+                    }
+                    // \printglossaries / \printacronyms / \printindex — placeholders
+                    "printglossaries" | "printglossary" | "printacronyms"
+                    | "printindex" | "makeindex" | "makeglossaries" => {}
+                    // \index{entry} — consume silently
+                    "index" | "glossary" => { self.parse_braces_content(); }
+
                     "nocite" if self.in_document => {
                         let raw = self.parse_braces_content();
                         let keys: Vec<String> = raw.split(',')
@@ -2198,6 +2585,113 @@ impl Parser {
 
                     "vfill" | "vfil" if self.in_document =>
                         nodes.push(LatexNode::VSpace("auto".to_string())),
+
+                    // --------------------------------------------------------
+                    // TeX primitive spacing: \kern, \mkern
+                    // --------------------------------------------------------
+                    "kern" | "hskip" if self.in_document => {
+                        // read a dimension token (e.g. 1em, 5pt, -2mm)
+                        self.skip_whitespace();
+                        let dim = self.read_dimension();
+                        let css = Self::conv_width(&dim);
+                        nodes.push(LatexNode::HSpace(css));
+                    }
+                    "mkern" | "mskip" if self.in_document => {
+                        // math units (mu) — consume and map to a small space
+                        self.skip_whitespace();
+                        let _mu = self.read_dimension();
+                        nodes.push(LatexNode::HSpace("0.18em".to_string()));
+                    }
+                    "vskip" if self.in_document => {
+                        self.skip_whitespace();
+                        let dim = self.read_dimension();
+                        let css = Self::conv_width(&dim);
+                        nodes.push(LatexNode::VSpace(css));
+                    }
+
+                    // --------------------------------------------------------
+                    // TeX box primitives: \hbox, \vbox, \vtop, \vcenter
+                    // --------------------------------------------------------
+                    "hbox" | "vbox" | "vtop" | "vcenter" if self.in_document => {
+                        // optional [height spec], then {content}
+                        self.parse_optional_arg();
+                        let raw   = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.extend(inner);
+                    }
+
+                    // --------------------------------------------------------
+                    // Line-break / hyphenation hints (no visual output)
+                    // --------------------------------------------------------
+                    "penalty" | "widowpenalty" | "clubpenalty"
+                    | "interlinepenalty" if self.in_document => {
+                        // consume optional number
+                        self.skip_whitespace();
+                        self.read_dimension(); // reads the number
+                    }
+                    "allowbreak" if self.in_document => {}
+                    "nobreak"    if self.in_document => {}
+                    "discretionary" if self.in_document => {
+                        self.parse_braces_content(); // pre-break
+                        self.parse_braces_content(); // post-break
+                        let raw = self.parse_braces_content(); // no-break
+                        nodes.extend(Parser::new(&raw).parse(true, labels));
+                    }
+                    "slash" if self.in_document =>
+                        nodes.push(LatexNode::Text("/".to_string())),
+
+                    // --------------------------------------------------------
+                    // \not — negate next symbol
+                    // --------------------------------------------------------
+                    "not" if self.in_document => {
+                        self.skip_whitespace();
+                        // read the next command or char and emit negated form
+                        if self.peek() == Some('\\') {
+                            self.pos += 1;
+                            let sym = self.read_command_word();
+                            let negated = match sym.as_str() {
+                                "in"        => "∉",
+                                "ni"        => "∌",
+                                "subset"    => "⊄",
+                                "supset"    => "⊅",
+                                "subseteq"  => "⊄",
+                                "supseteq"  => "⊅",
+                                "sim"       => "≁",
+                                "approx"    => "≉",
+                                "equiv"     => "≢",
+                                "prec"      => "⊀",
+                                "succ"      => "⊁",
+                                "preceq"    => "⋠",
+                                "succeq"    => "⋡",
+                                "vdash"     => "⊬",
+                                "models"    => "⊭",
+                                "parallel"  => "∦",
+                                "perp"      => "⊬",
+                                "leq"       => "≰",
+                                "geq"       => "≱",
+                                _           => "≠",
+                            };
+                            nodes.push(LatexNode::Text(negated.to_string()));
+                        } else if let Some(c) = self.next_char() {
+                            let negated = match c {
+                                '=' => "≠",
+                                '<' => "≮",
+                                '>' => "≯",
+                                _   => { nodes.push(LatexNode::Text(c.to_string())); continue; }
+                            };
+                            nodes.push(LatexNode::Text(negated.to_string()));
+                        }
+                    }
+
+                    // --------------------------------------------------------
+                    // \pmod{m} / \bmod outside math
+                    // --------------------------------------------------------
+                    "pmod" if self.in_document => {
+                        let m = self.parse_braces_content();
+                        nodes.push(LatexNode::Text(format!(" (mod {})", m)));
+                    }
+                    "bmod" if self.in_document =>
+                        nodes.push(LatexNode::Text(" mod ".to_string())),
 
                     // --------------------------------------------------------
                     // Line spacing

@@ -469,8 +469,12 @@ impl Templates {
                     /* \path \nolinkurl */
                     code.latex-path {{ font-family: monospace; font-size: 0.9em; word-break: break-all; }}
 
-                    /* \keywords */
+                    /* \keywords / IEEEkeywords */
                     .latex-keywords {{ margin: 0.8em 0; font-size: 0.95em; color: #555; }}
+
+                    /* \begin{{tabbing}} */
+                    .latex-tabbing {{ font-family: monospace; line-height: 1.6; white-space: pre; overflow-x: auto; }}
+                    .tabbing-line {{ display: block; }}
 
                     /* siunitx */
                     .si-value {{ font-variant-numeric: lining-nums; }}

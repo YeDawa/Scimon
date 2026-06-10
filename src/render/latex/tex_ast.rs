@@ -62,6 +62,8 @@ pub enum LatexNode {
     // --- Lists ---
     Itemize(Vec<Vec<LatexNode>>),
     Enumerate(Vec<Vec<LatexNode>>),
+    /// enumitem \begin{enumerate}[label=...] — carries CSS list-style-type
+    EnumerateLabeled { style: String, items: Vec<Vec<LatexNode>> },
     Description(Vec<(String, Vec<LatexNode>)>),
 
     // --- Math ---
@@ -373,6 +375,14 @@ impl LatexNode {
                     .map(|item| format!("<li>{}</li>", Nodes::render(item, ctx)))
                     .collect();
                 format!("<ol>{}</ol>", items_html)
+            }
+
+            LatexNode::EnumerateLabeled { style, items } => {
+                let items_html: String = items
+                    .iter()
+                    .map(|item| format!("<li>{}</li>", Nodes::render(item, ctx)))
+                    .collect();
+                format!("<ol style=\"list-style-type:{}\">{}</ol>", style, items_html)
             }
 
             LatexNode::Description(items) => {
