@@ -17,12 +17,6 @@ pub struct TableCell {
     pub hline:   bool,           // border-top from \hline / \cline
 }
 
-impl TableCell {
-    pub fn simple(content: Vec<LatexNode>) -> Self {
-        TableCell { content, colspan: 1, rowspan: 1,
-                    align: String::new(), width: None, hline: false }
-    }
-}
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
