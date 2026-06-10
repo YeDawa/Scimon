@@ -1500,7 +1500,14 @@ impl Parser {
 
                     "subparagraph" if self.in_document => {
                         self.parse_optional_arg();
-                        nodes.push(LatexNode::Paragraph(self.parse_braces_content()));
+                        let title = self.parse_braces_content();
+                        if starred {
+                            nodes.push(LatexNode::Text(format!(
+                                "<h6 class=\"section-star\">{}</h6>", title
+                            )));
+                        } else {
+                            nodes.push(LatexNode::Paragraph(title));
+                        }
                     }
 
                     // --------------------------------------------------------
@@ -1573,6 +1580,24 @@ impl Parser {
                         nodes.extend(
                             Parser::new(&self.parse_braces_content()).parse(true, labels)
                         );
+                    }
+
+                    "textsf" | "mathsf" if self.in_document => {
+                        let inner = Parser::new(&self.parse_braces_content()).parse(true, labels);
+                        nodes.push(LatexNode::Text(
+                            "<span style=\"font-family: sans-serif;\">".to_string()
+                        ));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    "textsl" if self.in_document => {
+                        let inner = Parser::new(&self.parse_braces_content()).parse(true, labels);
+                        nodes.push(LatexNode::Text(
+                            "<span style=\"font-style: oblique;\">".to_string()
+                        ));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
                     }
 
                     // --------------------------------------------------------
