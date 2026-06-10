@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     system::pdf::Pdf,
-    generator::templates::Templates,
+    templates::latex::TemplateLaTex,
     ui::success_alerts::SuccessAlerts,
 
     utils::{
@@ -43,9 +43,13 @@ impl LaTex {
             html_body.push_str(&footnotes);
         }
 
-        let header_html = if context.has_fancy { Self::build_header_footer(&context) } else { String::new() };
+        let header_html = if context.has_fancy {
+            Self::build_header_footer(&context)
+        } else {
+            String::new()
+        };
 
-        Templates::latex(&html_body, &header_html)
+        TemplateLaTex.base(&html_body, &header_html)
     }
 
     fn build_toc(ctx: &RenderContext) -> String {

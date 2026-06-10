@@ -14,6 +14,7 @@ mod configs;
 mod security;
 mod args_cli;
 mod handlers;
+mod templates;
 mod generator;
 
 use crate::scimon::Scimon;

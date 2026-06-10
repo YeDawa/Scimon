@@ -4,8 +4,8 @@ use urlencoding::encode;
 use crate::{
     consts::addons::Addons,
     utils::scraping::Scraping,
-    generator::templates::Templates,
     ui::success_alerts::SuccessAlerts,
+    templates::generic::TemplateGeneric,
     helpers::chatgpt_cleaner::ChatGPTCleaner,
 };
 
@@ -53,7 +53,7 @@ impl ChatGPT {
 
     pub async fn convert(&self) -> Result<(), Box<dyn Error>> {
         let (file_name, html_content) = self.get_content()?;
-        let styled_html = Templates.generic(&html_content);
+        let styled_html = TemplateGeneric.base(&html_content);
 
         let file = self.custom_name(&file_name);
         let path = format!("{}{}", &self.path, &file);
