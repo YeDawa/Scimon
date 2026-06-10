@@ -181,6 +181,10 @@ pub struct Parser {
     pub current_subsection: usize,
     pub current_table: usize,
     pub current_equation: usize,
+
+    /// User-defined macros: name → (num_args, body_template)
+    /// `#1` .. `#9` in body are replaced by positional arguments.
+    pub macros: HashMap<String, (usize, String)>,
 }
 
 impl Parser {
@@ -195,6 +199,7 @@ impl Parser {
             current_subsection: 0,
             current_table: 0,
             current_equation: 0,
+            macros: HashMap::new(),
         }
     }
 
@@ -218,6 +223,16 @@ impl Parser {
 
     pub fn peek_ahead(&self, offset: usize) -> Option<char> {
         self.chars.get(self.pos + offset).copied()
+    }
+
+    /// Read an alphabetic command word (letters only) from current position.
+    fn read_command_word(&mut self) -> String {
+        let mut word = String::new();
+        while let Some(&c) = self.chars.get(self.pos) {
+            if c.is_alphabetic() { word.push(c); self.pos += 1; }
+            else { break; }
+        }
+        word
     }
 
     /// Skip whitespace characters without consuming them permanently.
@@ -272,7 +287,10 @@ impl Parser {
     pub fn parse_argument(&mut self) -> Vec<LatexNode> {
         self.skip_whitespace();
         if self.peek() == Some('{') {
-            Parser::new(&self.parse_braces_content()).parse(true, &mut HashMap::new())
+            let raw = self.parse_braces_content();
+            let mut sub = Parser::new(&raw);
+            sub.macros = self.macros.clone();
+            sub.parse(true, &mut HashMap::new())
         } else {
             vec![LatexNode::Text(self.next_char().unwrap_or(' ').to_string())]
         }
@@ -477,7 +495,7 @@ impl Parser {
                     // Preamble / metadata (allowed outside \begin{document})
                     // --------------------------------------------------------
                     "documentclass" | "usepackage" | "pagestyle"
-                    | "setcounter" | "renewcommand"
+                    | "setcounter"
                     | "geometry" | "hypersetup" => {
                         self.parse_optional_arg();
                         self.parse_braces_content();
@@ -493,10 +511,49 @@ impl Parser {
                         }
                     }
 
-                    "newcommand" | "providecommand" => {
-                        self.parse_braces_content(); // command name
-                        self.parse_optional_arg();   // optional arg count
-                        self.parse_braces_content(); // definition body
+                    "newcommand" | "providecommand" | "renewcommand" => {
+                        // \newcommand{\name}[n]{body}
+                        let raw_name = self.parse_braces_content(); // e.g. \myCmd
+                        let name     = raw_name.trim_start_matches('\\').to_string();
+                        let nargs: usize = self.parse_optional_arg()
+                            .and_then(|s| s.trim().parse().ok())
+                            .unwrap_or(0);
+                        let body = self.parse_braces_content();
+                        if !name.is_empty() {
+                            self.macros.insert(name, (nargs, body));
+                        }
+                    }
+
+                    "def" => {
+                        // \def\name{body}  — no argument count syntax
+                        self.skip_whitespace();
+                        if self.peek() == Some('\\') {
+                            self.pos += 1;
+                            let name = self.read_command_word();
+                            let body = self.parse_braces_content();
+                            if !name.is_empty() {
+                                self.macros.insert(name, (0, body));
+                            }
+                        }
+                    }
+
+                    "let" => {
+                        // \let\new=\existing  — record as 0-arg alias
+                        self.skip_whitespace();
+                        if self.peek() == Some('\\') {
+                            self.pos += 1;
+                            let new_name = self.read_command_word();
+                            self.skip_whitespace();
+                            if self.peek() == Some('=') { self.pos += 1; }
+                            self.skip_whitespace();
+                            if self.peek() == Some('\\') {
+                                self.pos += 1;
+                                let existing = self.read_command_word();
+                                // Store as alias expansion
+                                let body = format!("\\{}", existing);
+                                self.macros.insert(new_name, (0, body));
+                            }
+                        }
                     }
 
                     "newtheorem" | "theoremstyle" => {
@@ -1042,7 +1099,7 @@ impl Parser {
                     // Math formatting
                     // --------------------------------------------------------
                     "math" if self.in_document =>
-                        nodes.push(LatexNode::MathInline(self.parse_argument())),
+                        nodes.push(LatexNode::RawMathInline(self.parse_braces_content())),
 
                     "frac" if self.in_document => {
                         // Captura o LaTeX bruto e passa para KaTeX
@@ -1061,8 +1118,14 @@ impl Parser {
                     }
 
                     "left" | "right" if self.in_document => {
-                        // \left( ... \right) — consume the delimiter, ignore it
-                        self.next_char();
+                        // consume the delimiter — single char OR a \command
+                        self.skip_whitespace();
+                        if self.peek() == Some('\\') {
+                            self.pos += 1; // skip backslash
+                            self.read_command_word(); // e.g. rangle, lfloor, vert …
+                        } else {
+                            self.next_char(); // (, ), [, ], |, . etc.
+                        }
                     }
 
                     // --------------------------------------------------------
@@ -1525,13 +1588,21 @@ impl Parser {
                             self.current_equation.to_string()
                         } else if label_name.starts_with("fig:") {
                             self.current_section.to_string()
-                        } else if label_name.starts_with("sec:") {
+                        } else if label_name.starts_with("sec:")
+                               || label_name.starts_with("sec.")
+                               || label_name.starts_with("chap.")
+                        {
                             self.current_section.to_string()
                         } else {
-                            if self.current_equation > 0 {
+                            // Unknown prefix — use nearest enclosing counter.
+                            // Prefer section over equation to avoid eq number
+                            // leaking into structural refs.
+                            if self.current_section > 0 {
+                                self.current_section.to_string()
+                            } else if self.current_equation > 0 {
                                 self.current_equation.to_string()
                             } else {
-                                self.current_section.to_string()
+                                self.current_chapter.to_string()
                             }
                         };
 
@@ -2012,6 +2083,48 @@ impl Parser {
                         nodes.push(LatexNode::Text(
                             "<div class=\"toc\"><h2>List of Tables</h2><p><em>(auto-generated)</em></p></div>".to_string()
                         )),
+
+                    // --------------------------------------------------------
+                    // \multicolumn / \multirow outside tabular — render content
+                    // --------------------------------------------------------
+                    "multicolumn" if self.in_document => {
+                        self.parse_braces_content(); // {N}
+                        self.parse_braces_content(); // {spec}
+                        let raw = self.parse_braces_content(); // {content}
+                        nodes.extend(Parser::new(&raw).parse(true, labels));
+                    }
+
+                    "multirow" if self.in_document => {
+                        self.parse_braces_content(); // {N}
+                        self.parse_optional_arg();   // [vpos]
+                        self.parse_braces_content(); // {width}
+                        self.parse_optional_arg();   // [fixup]
+                        let raw = self.parse_braces_content(); // {content}
+                        nodes.extend(Parser::new(&raw).parse(true, labels));
+                    }
+
+                    // --------------------------------------------------------
+                    // User-defined macro expansion  (\newcommand / \def / \let)
+                    // --------------------------------------------------------
+                    _ if self.macros.contains_key(command.as_str()) => {
+                        let (nargs, body) = self.macros[command.as_str()].clone();
+                        let mut expanded = body.clone();
+                        for i in 1..=nargs {
+                            let arg = self.parse_braces_content();
+                            expanded = expanded.replace(&format!("#{}", i), &arg);
+                        }
+                        // Re-parse the expanded body and splice nodes
+                        let mut sub = Parser::new(&expanded);
+                        sub.in_document     = self.in_document;
+                        sub.macros          = self.macros.clone();
+                        sub.current_chapter   = self.current_chapter;
+                        sub.current_section   = self.current_section;
+                        sub.current_subsection= self.current_subsection;
+                        sub.current_equation  = self.current_equation;
+                        sub.current_table     = self.current_table;
+                        let expanded_nodes = sub.parse(true, labels);
+                        nodes.extend(expanded_nodes);
+                    }
 
                     // --------------------------------------------------------
                     // Math symbols (catches all entries in math_symbol())
