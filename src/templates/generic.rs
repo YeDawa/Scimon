@@ -2,18 +2,16 @@ pub struct TemplateGeneric;
 
 impl TemplateGeneric {
 
-    pub fn base(&self, html_content: &str) -> String {
+    pub fn base(&self, css_style: &str, html_content: &str) -> String {
         format!(r#"
             <html>
             <head>
                 <meta charset="utf-8">
-                <style>
-                    body {{ font-family: 'Helvetica', serif; }}
-                </style>
+                <style>{}</style>
             </head>
-            <body>{}</body>
+            <body class='markdown-body'>{}</body>
             </html>
-        "#, html_content)
+        "#, css_style, html_content)
     }
 
 }

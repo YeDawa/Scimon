@@ -6,6 +6,7 @@ use crate::{
     utils::scraping::Scraping,
     ui::success_alerts::SuccessAlerts,
     templates::generic::TemplateGeneric,
+    render::render_inject::RenderInject,
 };
 
 pub struct Gemini {
@@ -49,7 +50,9 @@ impl Gemini {
 
     pub async fn convert(&self) -> Result<(), Box<dyn Error>> {
         let (file_name, html_content) = self.get_content()?;
-        let styled_html = TemplateGeneric.base(&html_content);
+        
+        let css_style = RenderInject.default_css_style().await;
+        let styled_html = TemplateGeneric.base(&css_style, &html_content);
 
         let file = self.custom_name(&file_name);
         let path = format!("{}{}", &self.path, &file);
