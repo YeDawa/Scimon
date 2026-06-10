@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::Local;
 
-use crate::render::latex::tex_ast::LatexNode;
+use crate::render::latex::tex_ast::{LatexNode, TableCell};
 
 // ---------------------------------------------------------------------------
 // Greek letters, operators and other math symbols supported as \commands
@@ -562,10 +562,20 @@ impl Parser {
                             let raw = self.read_until_end("mermaid");
                             nodes.push(LatexNode::Mermaid(raw));
 
-                        } else if env == "tabular" && self.in_document {
-                            self.parse_braces_content(); // column spec
-                            let table_block = self.read_until_end("tabular");
-                            let rows = Self::parse_tabular(&table_block, labels);
+                        } else if (env == "tabular" || env == "tabular*") && self.in_document {
+                            if env == "tabular*" {
+                                self.parse_braces_content(); // overall width (ignore)
+                            }
+                            let colspec     = self.parse_braces_content();
+                            let table_block = self.read_until_end(&env);
+                            let rows        = Self::parse_tabular(&table_block, &colspec, labels);
+                            nodes.push(LatexNode::Table(rows));
+
+                        } else if (env == "tabularx" || env == "tabulary") && self.in_document {
+                            self.parse_braces_content(); // overall width
+                            let colspec     = self.parse_braces_content();
+                            let table_block = self.read_until_end(&env);
+                            let rows        = Self::parse_tabular(&table_block, &colspec, labels);
                             nodes.push(LatexNode::Table(rows));
 
                         } else if env == "table" && self.in_document {
@@ -801,9 +811,10 @@ impl Parser {
                                 || env == "xltabular") && self.in_document
                         {
                             self.parse_optional_arg(); // [pos]
-                            self.parse_braces_content(); // {cols}
+                            if env == "xltabular" { self.parse_braces_content(); } // {width}
+                            let colspec = self.parse_braces_content(); // {cols}
                             let raw  = self.read_until_end(&env);
-                            let rows = Self::parse_tabular(&raw, labels);
+                            let rows = Self::parse_tabular(&raw, &colspec, labels);
                             nodes.push(LatexNode::Table(rows));
 
                         // ------------------------------------------------
@@ -2127,26 +2138,273 @@ impl Parser {
         items
     }
 
+    // -----------------------------------------------------------------------
+    // Brace / colspec / cell-meta helpers
+    // -----------------------------------------------------------------------
+
+    /// Extract the content of the first `{...}` from `s`, return (inner, rest).
+    fn take_brace(s: &str) -> Option<(String, String)> {
+        let s = s.trim_start();
+        if !s.starts_with('{') { return None; }
+        let inner = &s[1..];
+        let mut depth = 1usize;
+        let mut end   = 0usize;
+        for (i, c) in inner.char_indices() {
+            match c {
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 { end = i; break; }
+                }
+                _ => {}
+            }
+        }
+        if depth != 0 { return None; }
+        Some((inner[..end].to_string(), inner[end + 1..].to_string()))
+    }
+
+    /// Parse a LaTeX column-spec string into `Vec<(text-align, width)>`.
+    fn parse_colspec(spec: &str) -> Vec<(String, Option<String>)> {
+        let mut cols: Vec<(String, Option<String>)> = Vec::new();
+        let bytes = spec.as_bytes();
+        let mut i   = 0usize;
+
+        while i < bytes.len() {
+            match bytes[i] {
+                b'l' | b's' => { cols.push(("left".into(),   None)); i += 1; }
+                b'c'        => { cols.push(("center".into(), None)); i += 1; }
+                b'r'        => { cols.push(("right".into(),  None)); i += 1; }
+                // tabularx auto-width columns
+                b'X' | b'Y' | b'Z' => {
+                    cols.push(("left".into(), Some("1%".into()))); i += 1;
+                }
+                // fixed-width cells: p{w}  m{w}  b{w}
+                b'p' | b'm' | b'b' => {
+                    i += 1;
+                    if i < bytes.len() && bytes[i] == b'{' {
+                        if let Some((w, rest)) = Self::take_brace(&spec[i..]) {
+                            cols.push(("left".into(), Some(Self::conv_width(&w))));
+                            i = spec.len() - rest.len();
+                            continue;
+                        }
+                    }
+                    cols.push(("left".into(), None));
+                }
+                // vertical rule, spaces → skip
+                b'|' | b' ' | b'\t' | b'\n' => { i += 1; }
+                // decorators: @{...}  >{...}  <{...}  !{...}
+                b'@' | b'>' | b'<' | b'!' => {
+                    i += 1;
+                    if i < bytes.len() && bytes[i] == b'{' {
+                        if let Some((_, rest)) = Self::take_brace(&spec[i..]) {
+                            i = spec.len() - rest.len();
+                            continue;
+                        }
+                    }
+                }
+                // *{n}{spec} — repeat
+                b'*' => {
+                    i += 1;
+                    if let Some((n_str, rest)) = Self::take_brace(&spec[i..]) {
+                        let n: usize = n_str.trim().parse().unwrap_or(1);
+                        let rest = rest.trim_start();
+                        if let Some((sub, rest2)) = Self::take_brace(rest) {
+                            let sub_cols = Self::parse_colspec(&sub);
+                            for _ in 0..n { cols.extend(sub_cols.clone()); }
+                            i = spec.len() - rest2.len();
+                            continue;
+                        }
+                    }
+                    i += 1;
+                }
+                _ => { i += 1; }
+            }
+        }
+        cols
+    }
+
+    /// Try to extract `\multicolumn{N}{spec}{content}` from the start of `cell`.
+    /// Returns `(colspan, align_css, content_str)` if it matches.
+    fn extract_multicolumn(cell: &str) -> Option<(usize, String, String)> {
+        let s = cell.trim();
+        if !s.starts_with("\\multicolumn") { return None; }
+        let rest = s["\\multicolumn".len()..].trim_start();
+        let (n_str, rest)     = Self::take_brace(rest)?;
+        let n: usize          = n_str.trim().parse().ok()?;
+        let rest              = rest.trim_start();
+        let (spec, rest)      = Self::take_brace(&rest)?;
+        let rest              = rest.trim_start();
+        let (content, _)      = Self::take_brace(&rest)?;
+        let align             = Self::colspec_align(&spec);
+        Some((n, align, content))
+    }
+
+    /// Try to extract `\multirow{N}[vpos]{width}[fixup]{content}` from `cell`.
+    /// Returns `(rowspan, content_str)` if it matches.
+    fn extract_multirow(cell: &str) -> Option<(usize, String)> {
+        let s = cell.trim();
+        if !s.starts_with("\\multirow") { return None; }
+        let rest           = s["\\multirow".len()..].trim_start();
+        let (n_str, rest)  = Self::take_brace(rest)?;
+        let n: usize       = n_str.trim().parse().ok()?;
+        // optional [vpos]
+        let rest = if rest.trim_start().starts_with('[') {
+            let after = rest.trim_start();
+            if let Some(end) = after.find(']') { &after[end+1..] } else { &rest }
+        } else { &rest };
+        let rest           = rest.trim_start();
+        let (_w, rest)     = Self::take_brace(rest)?;   // width arg (ignore)
+        // optional fixup arg
+        let rest = if rest.trim_start().starts_with('[') {
+            let after = rest.trim_start();
+            if let Some(end) = after.find(']') { &after[end+1..] } else { &rest }
+        } else { &rest };
+        let rest           = rest.trim_start();
+        let (content, _)   = Self::take_brace(rest)?;
+        Some((n, content))
+    }
+
+    /// Map a single-column spec char/string to a CSS text-align value.
+    fn colspec_align(spec: &str) -> String {
+        for c in spec.trim().chars() {
+            match c {
+                'l' | 'p' | 's' => return "left".to_string(),
+                'c'             => return "center".to_string(),
+                'r'             => return "right".to_string(),
+                _ => {}
+            }
+        }
+        String::new()
+    }
+
+    /// Strip `\cline{...}` and `\cmidrule[...]{...}` patterns from a row string.
+    fn strip_partial_rules(s: &str) -> (String, bool) {
+        let mut result = String::new();
+        let mut has_hline = false;
+        let bytes = s.as_bytes();
+        let mut i = 0usize;
+
+        while i < bytes.len() {
+            // Check for \hline / \toprule / \midrule / \bottomrule
+            for rule in &["\\hline", "\\toprule", "\\midrule", "\\bottomrule"] {
+                if s[i..].starts_with(rule) {
+                    has_hline = true;
+                    i += rule.len();
+                    // continue outer while
+                }
+            }
+            // Check for \cline / \cmidrule
+            if s[i..].starts_with("\\cline") || s[i..].starts_with("\\cmidrule") {
+                let cmd_len = if s[i..].starts_with("\\cline") { 6 } else { 9 };
+                i += cmd_len;
+                // optional [l|r] or [trim] arg
+                if i < bytes.len() && bytes[i] == b'[' {
+                    if let Some(end) = s[i..].find(']') { i += end + 1; }
+                }
+                // required {1-3} arg
+                if i < bytes.len() && bytes[i] == b'{' {
+                    if let Some((_, rest)) = Self::take_brace(&s[i..]) {
+                        i = s.len() - rest.len();
+                    }
+                }
+                continue;
+            }
+            if i < bytes.len() {
+                result.push(bytes[i] as char);
+                i += 1;
+            }
+        }
+        (result, has_hline)
+    }
+
+    // -----------------------------------------------------------------------
+    // Main table parser
+    // -----------------------------------------------------------------------
+
     fn parse_tabular(
         table_block: &str,
+        colspec: &str,
         labels: &mut HashMap<String, String>,
-    ) -> Vec<Vec<Vec<LatexNode>>> {
-        let mut rows = Vec::new();
+    ) -> Vec<Vec<TableCell>> {
+        let col_specs = Self::parse_colspec(colspec);
+        let mut rows: Vec<Vec<TableCell>> = Vec::new();
+        let mut pending_hline = false;
+
         for row_str in table_block.split(r"\\") {
-            let clean_row = row_str
-                .replace("\\hline", "")
-                .replace("\\toprule", "")
-                .replace("\\midrule", "")
-                .replace("\\bottomrule", "")
-                .trim()
-                .to_string();
-            if clean_row.is_empty() { continue; }
-            let mut cells = Vec::new();
-            for cell_str in clean_row.split('&') {
-                cells.push(Parser::new(cell_str.trim()).parse(true, labels));
+            let (clean, has_hline) = Self::strip_partial_rules(row_str);
+            let clean = clean.trim().to_string();
+            if clean.is_empty() {
+                if has_hline { pending_hline = true; }
+                continue;
             }
-            rows.push(cells);
+
+            let row_hline = pending_hline || has_hline;
+            pending_hline = false;
+
+            let mut cells: Vec<TableCell> = Vec::new();
+            let mut col_idx = 0usize;
+            let is_first_row = rows.is_empty();
+
+            for cell_str in clean.split('&') {
+                let cell_str = cell_str.trim();
+
+                // \multicolumn{N}{spec}{content}
+                if let Some((span, align, content)) = Self::extract_multicolumn(cell_str) {
+                    let nodes = Parser::new(&content).parse(true, labels);
+                    cells.push(TableCell {
+                        content: nodes,
+                        colspan: span,
+                        rowspan: 1,
+                        align,
+                        width: None,
+                        hline: row_hline && cells.is_empty(),
+                    });
+                    col_idx += span;
+                    continue;
+                }
+
+                // \multirow may wrap other content too; extract it first
+                let (rowspan, inner_str) = Self::extract_multirow(cell_str)
+                    .unwrap_or((1, cell_str.to_string()));
+
+                // Apply column spec styling
+                let (align, width) = col_specs.get(col_idx)
+                    .cloned()
+                    .unwrap_or_default();
+
+                let nodes = Parser::new(&inner_str).parse(true, labels);
+
+                // First row of a table that has only header-looking cells → use th
+                cells.push(TableCell {
+                    content: nodes,
+                    colspan: 1,
+                    rowspan,
+                    align,
+                    width,
+                    hline: row_hline && cells.is_empty(),
+                });
+                col_idx += 1;
+            }
+
+            if !cells.is_empty() {
+                // Apply hline to ALL cells in the row (not just the first)
+                if row_hline {
+                    for cell in &mut cells {
+                        cell.hline = true;
+                    }
+                }
+                // Promote first row cells to <th> by wrapping in Bold if
+                // the table starts with \hline (booktabs / standard tables)
+                if is_first_row && row_hline {
+                    for cell in &mut cells {
+                        let old = std::mem::take(&mut cell.content);
+                        cell.content = vec![LatexNode::Bold(old)];
+                    }
+                }
+                rows.push(cells);
+            }
         }
+
         rows
     }
 

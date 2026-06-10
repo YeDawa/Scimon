@@ -4,6 +4,26 @@ use crate::render::latex::{
     context::RenderContext,
 };
 
+// ---------------------------------------------------------------------------
+// Table cell — carries colspan, rowspan and column-spec styling
+// ---------------------------------------------------------------------------
+#[derive(Debug, Clone)]
+pub struct TableCell {
+    pub content: Vec<LatexNode>,
+    pub colspan: usize,
+    pub rowspan: usize,
+    pub align:   String,         // CSS text-align value
+    pub width:   Option<String>, // CSS width value
+    pub hline:   bool,           // border-top from \hline / \cline
+}
+
+impl TableCell {
+    pub fn simple(content: Vec<LatexNode>) -> Self {
+        TableCell { content, colspan: 1, rowspan: 1,
+                    align: String::new(), width: None, hline: false }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum LatexNode {
@@ -69,7 +89,7 @@ pub enum LatexNode {
     // --- Floats ---
     Image(String),
     Caption(String),
-    Table(Vec<Vec<Vec<LatexNode>>>),
+    Table(Vec<Vec<TableCell>>),
 
     /// Wrapper for \begin{table}...\end{table} — increments tab_num first,
     /// then renders children so \caption sees the correct counter.
@@ -499,21 +519,46 @@ impl LatexNode {
             }
 
             LatexNode::Table(rows) => {
-                // If inside a TableFloat, tab_num and last_counter are already set.
-                // If standalone (no float wrapper), increment now.
                 if ctx.last_counter == "0" || !ctx.in_float {
                     ctx.tab_num += 1;
                     ctx.last_counter = ctx.tab_num.to_string();
                 }
 
                 let num = ctx.last_counter.clone();
-                let mut html = format!("<table class=\"latex-table\" id=\"item-{}\"><tbody>\n", num);
+                let mut html = format!(
+                    "<table class=\"latex-table\" id=\"item-{}\"><tbody>\n", num
+                );
+
                 for row in rows {
                     html.push_str("  <tr>\n");
                     for cell in row {
-                        html.push_str("    <td>");
-                        html.push_str(&Nodes::render(cell, ctx));
-                        html.push_str("</td>\n");
+                        let mut attrs = String::new();
+
+                        if cell.colspan > 1 {
+                            attrs.push_str(&format!(" colspan=\"{}\"", cell.colspan));
+                        }
+                        if cell.rowspan > 1 {
+                            attrs.push_str(&format!(" rowspan=\"{}\"", cell.rowspan));
+                        }
+
+                        let mut style = Vec::new();
+                        if !cell.align.is_empty() {
+                            style.push(format!("text-align:{}", cell.align));
+                        }
+                        if let Some(w) = &cell.width {
+                            style.push(format!("width:{}", w));
+                        }
+                        if cell.hline {
+                            style.push("border-top:2px solid #2c3e50".to_string());
+                        }
+                        if !style.is_empty() {
+                            attrs.push_str(&format!(" style=\"{}\"", style.join("; ")));
+                        }
+
+                        html.push_str(&format!(
+                            "    <td{}>{}</td>\n",
+                            attrs, Nodes::render(&cell.content, ctx)
+                        ));
                     }
                     html.push_str("  </tr>\n");
                 }
