@@ -53,8 +53,8 @@ impl LaTex {
             String::new()
         };
 
-        let css_style = RenderInjectFiles.default_latex_css_style().await;
-        let js_script = RenderInjectFiles.default_latex_js_script().await;
+        let css_style = RenderInjectFiles.latex_css_style().await;
+        let js_script = RenderInjectFiles.latex_js_script().await;
         TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
     }
 

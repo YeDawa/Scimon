@@ -55,7 +55,7 @@ impl ChatGPT {
     pub async fn convert(&self) -> Result<(), Box<dyn Error>> {
         let (file_name, html_content) = self.get_content()?;
         
-        let css_style = RenderInjectFiles.default_css_style().await;
+        let css_style = RenderInjectFiles.css_style().await;
         let styled_html = TemplateGeneric.base(&css_style, &html_content);
 
         let file = self.custom_name(&file_name);
