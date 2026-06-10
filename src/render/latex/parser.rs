@@ -495,10 +495,59 @@ impl Parser {
                     // Preamble / metadata (allowed outside \begin{document})
                     // --------------------------------------------------------
                     "documentclass" | "usepackage" | "pagestyle"
-                    | "setcounter"
                     | "geometry" | "hypersetup" => {
                         self.parse_optional_arg();
                         self.parse_braces_content();
+                    }
+
+                    // \setcounter{name}{value}
+                    "setcounter" | "stepcounter" | "refstepcounter" | "addtocounter" => {
+                        self.parse_braces_content(); // counter name
+                        if command == "setcounter" || command == "addtocounter" {
+                            self.parse_braces_content(); // value
+                        }
+                        // counter mutation not tracked in HTML rendering
+                    }
+
+                    // \definecolor{name}{model}{spec}
+                    "definecolor" | "providecolor" | "colorlet" => {
+                        let name  = self.parse_braces_content();
+                        let model = self.parse_braces_content();
+                        let spec  = self.parse_braces_content();
+                        let css   = Self::latex_color_model(&model, &spec);
+                        nodes.push(LatexNode::DefineColor { name, css });
+                    }
+
+                    // \DeclareMathOperator{\cmd}{name}
+                    "DeclareMathOperator" => {
+                        let raw_name = self.parse_braces_content();
+                        let display  = self.parse_braces_content();
+                        let op_name  = raw_name.trim_start_matches('\\').to_string();
+                        if !op_name.is_empty() {
+                            self.macros.insert(op_name, (0,
+                                format!("\\operatorname{{{}}}", display)));
+                        }
+                    }
+
+                    // \newtheorem{env}{label}
+                    "newtheorem" | "theoremstyle" => {
+                        self.parse_optional_arg();
+                        self.parse_braces_content();
+                        if command == "newtheorem" { self.parse_braces_content(); }
+                    }
+
+                    // \newcolumntype{X}[n]{spec}
+                    "newcolumntype" => {
+                        self.parse_braces_content();
+                        self.parse_optional_arg();
+                        self.parse_braces_content();
+                    }
+
+                    // \captionsetup, \floatname, \floatsetup — consume silently
+                    "captionsetup" | "floatname" | "floatsetup" => {
+                        self.parse_optional_arg();
+                        self.parse_braces_content();
+                        self.parse_optional_arg();
                     }
 
                     // \setlength{\param}{value} — emit a CSS custom-property block
@@ -554,13 +603,6 @@ impl Parser {
                                 self.macros.insert(new_name, (0, body));
                             }
                         }
-                    }
-
-                    "newtheorem" | "theoremstyle" => {
-                        self.parse_optional_arg();
-                        self.parse_braces_content();
-                        self.parse_optional_arg();
-                        self.parse_braces_content();
                     }
 
                     "title" => {
@@ -685,6 +727,27 @@ impl Parser {
                             nodes.push(LatexNode::EquationBlock(
                                 vec![LatexNode::RawMathDisplay(raw.trim().to_string())]
                             ));
+
+                        // \begin{array}{spec}...\end{array}
+                        // \begin{cases}...\end{cases}
+                        // \begin{split}...\end{split}
+                        // These are math-mode environments — wrap in $$ and pass raw
+                        } else if matches!(env.as_str(),
+                            "array" | "cases" | "dcases" | "rcases" |
+                            "split" | "aligned" | "alignedat" | "gathered"
+                        ) && self.in_document {
+                            if env == "array" || env == "alignedat" {
+                                self.parse_braces_content(); // {colspec} or {n}
+                            }
+                            let raw   = self.read_until_end(&env);
+                            let latex = format!("\\begin{{{}}}{}\\end{{{}}}", env, raw.trim(), env);
+                            nodes.push(LatexNode::RawMathDisplay(latex));
+
+                        // \begin{subequations}...\end{subequations}
+                        } else if env == "subequations" && self.in_document {
+                            let raw = self.read_until_end("subequations");
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.extend(inner);
 
                         } else if (env == "align"  || env == "align*"
                                 || env == "eqnarray" || env == "eqnarray*"
@@ -1061,10 +1124,80 @@ impl Parser {
                         ));
                     }
                     "textrm" | "mathrm" | "textnormal" | "textmd" | "textup" if self.in_document => {
-                        // Remove special formatting – render as plain group
                         nodes.extend(
                             Parser::new(&self.parse_braces_content()).parse(true, labels)
                         );
+                    }
+
+                    // --------------------------------------------------------
+                    // Font declaration commands (no braces — apply to rest of group)
+                    // --------------------------------------------------------
+                    "itshape" | "slshape" | "bfseries" | "ttfamily"
+                    | "sffamily" | "rmfamily" | "upshape" | "scshape"
+                    | "normalfont"
+                    if self.in_document => {
+                        // Collect remaining content up to the enclosing } or end
+                        let rest = self.collect_until_close_brace();
+                        let inner = Parser::new(&rest).parse(true, labels);
+                        nodes.push(LatexNode::FontDecl {
+                            style: command.clone(),
+                            nodes: inner,
+                        });
+                    }
+
+                    // --------------------------------------------------------
+                    // \color{name}  — declaration (scoped to enclosing group)
+                    // --------------------------------------------------------
+                    "color" if self.in_document => {
+                        let color = self.parse_braces_content();
+                        let rest  = self.collect_until_close_brace();
+                        let inner = Parser::new(&rest).parse(true, labels);
+                        nodes.push(LatexNode::ColorDecl { color, nodes: inner });
+                    }
+
+                    // --------------------------------------------------------
+                    // \parbox[pos]{width}{content}
+                    // --------------------------------------------------------
+                    "parbox" if self.in_document => {
+                        self.parse_optional_arg(); // [pos]
+                        let w   = Self::conv_width(&self.parse_braces_content());
+                        let raw = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::Parbox { width: w, nodes: inner });
+                    }
+
+                    // --------------------------------------------------------
+                    // \raisebox{lift}[h][d]{content}
+                    // --------------------------------------------------------
+                    "raisebox" if self.in_document => {
+                        let lift = Self::conv_width(&self.parse_braces_content());
+                        self.parse_optional_arg(); // [height]
+                        self.parse_optional_arg(); // [depth]
+                        let raw   = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::Raisebox { lift, nodes: inner });
+                    }
+
+                    // --------------------------------------------------------
+                    // \scalebox \rotatebox \resizebox — consume, render content
+                    // --------------------------------------------------------
+                    "scalebox" if self.in_document => {
+                        self.parse_braces_content(); // scale
+                        self.parse_optional_arg();   // [yscale]
+                        let raw = self.parse_braces_content();
+                        nodes.extend(Parser::new(&raw).parse(true, labels));
+                    }
+                    "rotatebox" if self.in_document => {
+                        self.parse_optional_arg();   // [origin]
+                        self.parse_braces_content(); // angle
+                        let raw = self.parse_braces_content();
+                        nodes.extend(Parser::new(&raw).parse(true, labels));
+                    }
+                    "resizebox" if self.in_document => {
+                        self.parse_braces_content(); // width
+                        self.parse_braces_content(); // height
+                        let raw = self.parse_braces_content();
+                        nodes.extend(Parser::new(&raw).parse(true, labels));
                     }
 
                     // Font size declarations (scoped to the current group by the caller;
@@ -1098,8 +1231,26 @@ impl Parser {
                     // --------------------------------------------------------
                     // Math formatting
                     // --------------------------------------------------------
-                    "math" if self.in_document =>
+                    "math" | "ensuremath" if self.in_document =>
                         nodes.push(LatexNode::RawMathInline(self.parse_braces_content())),
+
+                    // \nonumber / \notag — suppress equation number in align
+                    "nonumber" | "notag" if self.in_document => {
+                        // Inject \notag into the last RawMathDisplay node if present,
+                        // otherwise emit nothing.
+                        if let Some(LatexNode::RawMathDisplay(s)) = nodes.last_mut() {
+                            s.push_str("\\notag");
+                        }
+                    }
+
+                    // \dfrac \tfrac \cfrac → raw KaTeX
+                    "dfrac" | "tfrac" | "cfrac" if self.in_document => {
+                        let num = self.parse_braces_content();
+                        let den = self.parse_braces_content();
+                        nodes.push(LatexNode::RawMathInline(
+                            format!("\\{}{{{}}}{{{}}}",  command, num, den)
+                        ));
+                    }
 
                     "frac" if self.in_document => {
                         // Captura o LaTeX bruto e passa para KaTeX
@@ -1509,12 +1660,22 @@ impl Parser {
                             "<div style=\"break-after:column;\"></div>".to_string()
                         )),
 
-                    "noindent" | "indent" | "centering" | "raggedright"
-                    | "raggedleft" | "clearpage" | "cleardoublepage"
-                    | "smallskip" | "medskip" | "bigskip" => {}
+                    "clearpage" | "cleardoublepage" if self.in_document =>
+                        nodes.push(LatexNode::NewPage),
 
-                    "newline" if self.in_document => nodes.push(LatexNode::LineBreak),
-                    "newpage" | "pagebreak" if self.in_document => nodes.push(LatexNode::NewPage),
+                    "noindent" | "indent" | "centering" | "raggedright"
+                    | "raggedleft" | "smallskip" | "medskip" | "bigskip" => {}
+
+                    "newline" | "linebreak" if self.in_document => {
+                        self.parse_optional_arg(); // \linebreak[n] optional penalty
+                        nodes.push(LatexNode::LineBreak);
+                    }
+                    "nopagebreak" | "nolinebreak" if self.in_document => {
+                        self.parse_optional_arg(); // optional penalty
+                        // No visual output — hint only
+                    }
+                    "newpage" | "pagebreak"
+                    if self.in_document => nodes.push(LatexNode::NewPage),
 
                     "par" if self.in_document => nodes.push(LatexNode::Text("\n\n".to_string())),
                     "nobreakspace" if self.in_document =>
@@ -1614,6 +1775,35 @@ impl Parser {
                         nodes.push(LatexNode::Ref(self.parse_braces_content())),
                     "pageref" if self.in_document =>
                         nodes.push(LatexNode::PageRef(self.parse_braces_content())),
+                    "nameref" if self.in_document =>
+                        nodes.push(LatexNode::NameRef(self.parse_braces_content())),
+                    "hyperref" if self.in_document => {
+                        let label = self.parse_optional_arg().unwrap_or_default();
+                        let raw   = self.parse_braces_content();
+                        let text  = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::HyperRef { label, text });
+                    }
+
+                    // --------------------------------------------------------
+                    // Counter display  \arabic{c}  \roman{c} …
+                    // --------------------------------------------------------
+                    "arabic" | "roman" | "Roman" | "alph" | "Alph" | "fnsymbol"
+                    if self.in_document => {
+                        let counter = self.parse_braces_content();
+                        nodes.push(LatexNode::CounterValue {
+                            style: command.clone(), counter
+                        });
+                    }
+
+                    // \listoffigures / \listoftables — placeholder (no actual list built)
+                    "listoffigures" if self.in_document =>
+                        nodes.push(LatexNode::Text(
+                            "<p class=\"list-placeholder\">[List of Figures]</p>".to_string()
+                        )),
+                    "listoftables" if self.in_document =>
+                        nodes.push(LatexNode::Text(
+                            "<p class=\"list-placeholder\">[List of Tables]</p>".to_string()
+                        )),
 
                     // --------------------------------------------------------
                     // Footnotes
@@ -2771,6 +2961,78 @@ impl Parser {
         let g = (base.1 as f32 * f + mix.1 as f32 * (1.0 - f)) as u8;
         let b = (base.2 as f32 * f + mix.2 as f32 * (1.0 - f)) as u8;
         format!("#{:02x}{:02x}{:02x}", r, g, b)
+    }
+
+    /// Collect everything from the current position until the matching `}` that
+    /// closes the enclosing group (depth-0 close brace), without consuming it.
+    /// Used by font-declaration commands like `\itshape`.
+    fn collect_until_close_brace(&mut self) -> String {
+        let mut result = String::new();
+        let mut depth  = 0usize;
+        while let Some(&c) = self.chars.get(self.pos) {
+            match c {
+                '{' => { depth += 1; result.push(c); self.pos += 1; }
+                '}' => {
+                    if depth == 0 {
+                        // Leave the brace for the outer parser to consume
+                        break;
+                    }
+                    depth -= 1;
+                    result.push(c);
+                    self.pos += 1;
+                }
+                _ => { result.push(c); self.pos += 1; }
+            }
+        }
+        result
+    }
+
+    /// Convert a \definecolor model + spec to a CSS color value.
+    fn latex_color_model(model: &str, spec: &str) -> String {
+        match model.trim().to_lowercase().as_str() {
+            "rgb" => {
+                // spec is "r,g,b" where each is 0–1
+                let parts: Vec<f32> = spec.split(',')
+                    .filter_map(|s| s.trim().parse().ok())
+                    .collect();
+                if parts.len() == 3 {
+                    let r = (parts[0] * 255.0) as u8;
+                    let g = (parts[1] * 255.0) as u8;
+                    let b = (parts[2] * 255.0) as u8;
+                    return format!("#{:02x}{:02x}{:02x}", r, g, b);
+                }
+                spec.to_string()
+            }
+            "rgb255" => {
+                let parts: Vec<u8> = spec.split(',')
+                    .filter_map(|s| s.trim().parse::<u8>().ok())
+                    .collect();
+                if parts.len() == 3 {
+                    return format!("#{:02x}{:02x}{:02x}", parts[0], parts[1], parts[2]);
+                }
+                spec.to_string()
+            }
+            "HTML" | "html" => format!("#{}", spec.trim().trim_start_matches('#')),
+            "gray" | "grey" => {
+                let v: f32 = spec.trim().parse().unwrap_or(0.5);
+                let g = (v * 255.0) as u8;
+                format!("#{:02x}{:02x}{:02x}", g, g, g)
+            }
+            "cmyk" => {
+                let p: Vec<f32> = spec.split(',')
+                    .filter_map(|s| s.trim().parse().ok())
+                    .collect();
+                if p.len() == 4 {
+                    let r = ((1.0 - p[0]) * (1.0 - p[3]) * 255.0) as u8;
+                    let g = ((1.0 - p[1]) * (1.0 - p[3]) * 255.0) as u8;
+                    let b = ((1.0 - p[2]) * (1.0 - p[3]) * 255.0) as u8;
+                    return format!("#{:02x}{:02x}{:02x}", r, g, b);
+                }
+                spec.to_string()
+            }
+            // named — treat spec as a named color
+            _ => Self::latex_color(spec),
+        }
     }
 
     /// Normalise a fancyhdr position argument like "LE,RO" → "L,R".

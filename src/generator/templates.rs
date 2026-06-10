@@ -444,6 +444,13 @@ impl Templates {
                     /* Bibliography title */
                     .bib-title {{ border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; color: #1a252f; margin-top: 50px; font-size: 1.5em; font-weight: 600; }}
 
+                    /* \listoffigures / \listoftables placeholder */
+                    .list-placeholder {{ color: #888; font-style: italic; border: 1px dashed #ccc; padding: 8px 16px; margin: 16px 0; }}
+
+                    /* \nameref \hyperref links */
+                    a.nameref, a.hyperref {{ color: #2980b9; text-decoration: none; border-bottom: 1px dotted #2980b9; }}
+                    a.nameref:hover, a.hyperref:hover {{ border-bottom-style: solid; }}
+
                     /* Blockquote */
                     blockquote.latex-quote, .latex-quote {{
                         border-left: 4px solid #bdc3c7;

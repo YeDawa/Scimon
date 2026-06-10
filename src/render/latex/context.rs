@@ -24,6 +24,8 @@ pub struct RenderContext {
     pub bib_database:   HashMap<String, BibEntry>,
     /// true when \nocite{*} was seen — include every .bib entry at render time
     pub nocite_all:     bool,
+    /// User-defined colors from \definecolor
+    pub color_defs:     HashMap<String, String>,
 
     pub footnote_num:      usize,
     pub pending_footnotes: Vec<(usize, String)>,
@@ -65,6 +67,7 @@ impl RenderContext {
             citation_map:   HashMap::new(),
             bib_database:   HashMap::new(),
             nocite_all:     false,
+            color_defs:     HashMap::new(),
 
             footnote_num:      0,
             pending_footnotes: Vec::new(),
@@ -78,6 +81,51 @@ impl RenderContext {
             footer_center: String::new(),
             footer_right:  String::new(),
             has_fancy:     false,
+        }
+    }
+
+    /// Resolve a LaTeX color name to a CSS value.
+    /// Checks user-defined colors first, then standard named colors.
+    pub fn resolve_color(&self, name: &str) -> String {
+        if let Some(css) = self.color_defs.get(name) {
+            return css.clone();
+        }
+        match name {
+            "black"   => "#000000",
+            "white"   => "#ffffff",
+            "red"     => "#ff0000",
+            "green"   => "#00aa00",
+            "blue"    => "#0000ff",
+            "cyan"    => "#00cccc",
+            "magenta" => "#cc00cc",
+            "yellow"  => "#cccc00",
+            "gray"    => "#808080",
+            "grey"    => "#808080",
+            "orange"  => "#ff8800",
+            "violet"  => "#8800ff",
+            "purple"  => "#880088",
+            "brown"   => "#8b4513",
+            "pink"    => "#ff69b4",
+            "teal"    => "#008080",
+            "lime"    => "#32cd32",
+            "olive"   => "#808000",
+            "navy"    => "#000080",
+            _         => name,  // pass through (may already be a CSS value)
+        }.to_string()
+    }
+
+    /// Return the current value of a named counter.
+    pub fn counter_value(&self, name: &str) -> usize {
+        match name {
+            "section"      | "section*"      => self.sec_num,
+            "subsection"   | "subsection*"   => self.subsec_num,
+            "subsubsection"                  => self.subsubsec_num,
+            "chapter"                        => self.chap_num,
+            "equation"                       => self.eq_num,
+            "figure"                         => self.fig_num,
+            "table"                          => self.tab_num,
+            "footnote"                       => self.footnote_num,
+            _                                => 0,
         }
     }
 

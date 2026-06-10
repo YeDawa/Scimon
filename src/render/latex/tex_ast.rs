@@ -132,14 +132,35 @@ pub enum LatexNode {
     TableOfContents,
 
     // --- fancyhdr ---
-    /// Set one header slot. `pos` is "L", "C", or "R".
     FancyHeader { pos: String, nodes: Vec<LatexNode> },
-    /// Set one footer slot. `pos` is "L", "C", or "R".
     FancyFooter { pos: String, nodes: Vec<LatexNode> },
-    /// \fancyhf{} — clear all header/footer slots.
     FancyClear,
-    /// \thepage — current page number placeholder.
     ThePage,
+
+    // --- font declarations (group-scoped) ---
+    FontDecl { style: String, nodes: Vec<LatexNode> },
+
+    // --- color ---
+    /// \definecolor{name}{model}{spec}
+    DefineColor { name: String, css: String },
+    /// \color{x} scoped to a group
+    ColorDecl { color: String, nodes: Vec<LatexNode> },
+
+    // --- boxes ---
+    /// \parbox[pos]{width}{content}
+    Parbox { width: String, nodes: Vec<LatexNode> },
+    /// \raisebox{lift}[h][d]{content}
+    Raisebox { lift: String, nodes: Vec<LatexNode> },
+
+    // --- counter display ---
+    /// \arabic{c}, \roman{c}, \Roman{c}, \alph{c}, \Alph{c}
+    CounterValue { style: String, counter: String },
+
+    // --- cross-reference ---
+    /// \nameref{label}
+    NameRef(String),
+    /// \hyperref[label]{text}
+    HyperRef { label: String, text: Vec<LatexNode> },
 }
 
 impl LatexNode {
@@ -805,6 +826,106 @@ impl LatexNode {
 
             LatexNode::ThePage =>
                 "<span class=\"thepage\" aria-label=\"page number\"></span>".to_string(),
+
+            // ----------------------------------------------------------------
+            // Font declarations  \itshape \bfseries \ttfamily …
+            // ----------------------------------------------------------------
+            LatexNode::FontDecl { style, nodes } => {
+                let inner = Nodes::render(nodes, ctx);
+                match style.as_str() {
+                    "itshape" | "slshape"  => format!("<em>{}</em>", inner),
+                    "bfseries"             => format!("<strong>{}</strong>", inner),
+                    "ttfamily"             => format!("<code>{}</code>", inner),
+                    "sffamily"             => format!("<span style=\"font-family:sans-serif\">{}</span>", inner),
+                    "rmfamily"             => format!("<span style=\"font-family:serif\">{}</span>", inner),
+                    "upshape"              => format!("<span style=\"font-style:normal\">{}</span>", inner),
+                    "scshape"              => format!("<span style=\"font-variant:small-caps\">{}</span>", inner),
+                    "normalfont"           => format!("<span style=\"font-style:normal;font-weight:normal\">{}</span>", inner),
+                    _                     => inner,
+                }
+            }
+
+            // ----------------------------------------------------------------
+            // \definecolor — register CSS value in context, no output
+            // ----------------------------------------------------------------
+            LatexNode::DefineColor { name, css } => {
+                ctx.color_defs.insert(name.clone(), css.clone());
+                String::new()
+            }
+
+            // ----------------------------------------------------------------
+            // \color{x} — scoped text color
+            // ----------------------------------------------------------------
+            LatexNode::ColorDecl { color, nodes } => {
+                let css = ctx.resolve_color(color);
+                let inner = Nodes::render(nodes, ctx);
+                format!("<span style=\"color:{}\">{}</span>", css, inner)
+            }
+
+            // ----------------------------------------------------------------
+            // \parbox{w}{content}
+            // ----------------------------------------------------------------
+            LatexNode::Parbox { width, nodes } => {
+                let inner = Nodes::render(nodes, ctx);
+                format!(
+                    "<div style=\"display:inline-block;vertical-align:top;width:{}\">{}</div>",
+                    width, inner
+                )
+            }
+
+            // ----------------------------------------------------------------
+            // \raisebox{lift}{content}
+            // ----------------------------------------------------------------
+            LatexNode::Raisebox { lift, nodes } => {
+                let inner = Nodes::render(nodes, ctx);
+                format!(
+                    "<span style=\"position:relative;bottom:{}\">{}</span>",
+                    lift, inner
+                )
+            }
+
+            // ----------------------------------------------------------------
+            // Counter display  \arabic{c} \roman{c} …
+            // ----------------------------------------------------------------
+            LatexNode::CounterValue { style, counter } => {
+                let n = ctx.counter_value(counter);
+                match style.as_str() {
+                    "arabic"  => n.to_string(),
+                    "roman"   => Self::to_roman(n),
+                    "Roman"   => Self::to_roman(n).to_uppercase(),
+                    "alph"    => {
+                        let idx = ((n.saturating_sub(1)) % 26) as u8;
+                        (b'a' + idx) as char
+                    }.to_string(),
+                    "Alph"    => {
+                        let idx = ((n.saturating_sub(1)) % 26) as u8;
+                        (b'A' + idx) as char
+                    }.to_string(),
+                    "fnsymbol" => match n {
+                        1 => "*", 2 => "†", 3 => "‡", 4 => "§",
+                        5 => "¶", 6 => "‖", 7 => "**", 8 => "††",
+                        _ => "?",
+                    }.to_string(),
+                    _ => n.to_string(),
+                }
+            }
+
+            // ----------------------------------------------------------------
+            // \nameref{label}
+            // ----------------------------------------------------------------
+            LatexNode::NameRef(label) => {
+                let target = ctx.labels.get(label).cloned().unwrap_or_default();
+                format!("<a href=\"#item-{}\" class=\"nameref\">{}</a>", target, label)
+            }
+
+            // ----------------------------------------------------------------
+            // \hyperref[label]{text}
+            // ----------------------------------------------------------------
+            LatexNode::HyperRef { label, text } => {
+                let target = ctx.labels.get(label).cloned().unwrap_or_default();
+                let inner  = Nodes::render(text, ctx);
+                format!("<a href=\"#item-{}\" class=\"hyperref\">{}</a>", target, inner)
+            }
         }
     }
 
