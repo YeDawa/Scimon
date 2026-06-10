@@ -99,6 +99,8 @@ pub enum LatexNode {
     // --- Floats ---
     Image(String),
     Caption(String),
+    /// \caption*{text} — unnumbered caption
+    CaptionStar(String),
     Table(Vec<Vec<TableCell>>),
 
     /// Wrapper for \begin{table}...\end{table} — increments tab_num first,
@@ -161,6 +163,16 @@ pub enum LatexNode {
     NameRef(String),
     /// \hyperref[label]{text}
     HyperRef { label: String, text: Vec<LatexNode> },
+    /// \hypertarget{name}{text} — named anchor
+    HyperTarget { name: String, nodes: Vec<LatexNode> },
+    /// \hyperlink{name}{text} — link to \hypertarget
+    HyperLink { name: String, nodes: Vec<LatexNode> },
+    /// \phantomsection — invisible anchor for hyperref
+    PhantomSection,
+
+    // --- line / page spacing ---
+    /// \linespread or setspace commands — emits a <style> block
+    LineSpread(f64),
 }
 
 impl LatexNode {
@@ -643,6 +655,9 @@ impl LatexNode {
                     ctx.last_counter, text
                 ),
 
+            LatexNode::CaptionStar(text) =>
+                format!("<div class=\"caption\">{}</div>", text),
+
             LatexNode::Image(url) => {
                 if !ctx.in_float {
                     ctx.fig_num += 1;
@@ -926,6 +941,37 @@ impl LatexNode {
                 let inner  = Nodes::render(text, ctx);
                 format!("<a href=\"#item-{}\" class=\"hyperref\">{}</a>", target, inner)
             }
+
+            // ----------------------------------------------------------------
+            // \hypertarget{name}{text}
+            // ----------------------------------------------------------------
+            LatexNode::HyperTarget { name, nodes } => {
+                let inner = Nodes::render(nodes, ctx);
+                format!("<span id=\"ht-{}\">{}</span>", name, inner)
+            }
+
+            // ----------------------------------------------------------------
+            // \hyperlink{name}{text}
+            // ----------------------------------------------------------------
+            LatexNode::HyperLink { name, nodes } => {
+                let inner = Nodes::render(nodes, ctx);
+                format!("<a href=\"#ht-{}\" class=\"hyperlink\">{}</a>", name, inner)
+            }
+
+            // ----------------------------------------------------------------
+            // \phantomsection
+            // ----------------------------------------------------------------
+            LatexNode::PhantomSection => {
+                ctx.phantom_id += 1;
+                format!("<span id=\"phantom-{}\" aria-hidden=\"true\"></span>", ctx.phantom_id)
+            }
+
+            // ----------------------------------------------------------------
+            // \linespread / \onehalfspacing / \doublespacing
+            // ----------------------------------------------------------------
+            LatexNode::LineSpread(factor) =>
+                format!("<style>:root {{ --latex-baselineskip: {}; }} .document-container p, .document-container li {{ line-height: {}; }}</style>",
+                    factor, factor),
         }
     }
 

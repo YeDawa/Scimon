@@ -447,9 +447,35 @@ impl Templates {
                     /* \listoffigures / \listoftables placeholder */
                     .list-placeholder {{ color: #888; font-style: italic; border: 1px dashed #ccc; padding: 8px 16px; margin: 16px 0; }}
 
-                    /* \nameref \hyperref links */
-                    a.nameref, a.hyperref {{ color: #2980b9; text-decoration: none; border-bottom: 1px dotted #2980b9; }}
-                    a.nameref:hover, a.hyperref:hover {{ border-bottom-style: solid; }}
+                    /* \nameref \hyperref \hyperlink links */
+                    a.nameref, a.hyperref, a.hyperlink {{ color: #2980b9; text-decoration: none; border-bottom: 1px dotted #2980b9; }}
+                    a.nameref:hover, a.hyperref:hover, a.hyperlink:hover {{ border-bottom-style: solid; }}
+
+                    /* \qed */
+                    .qed {{ float: right; font-style: normal; }}
+
+                    /* \verse */
+                    .latex-verse {{ margin: 1.5em 2em; font-style: italic; white-space: pre-wrap; line-height: 1.8; }}
+                    .latex-verse br {{ display: block; margin-bottom: 0.2em; }}
+
+                    /* \begin{{titlepage}} */
+                    .latex-titlepage {{ min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always; padding: 60px; }}
+
+                    /* \begin{{landscape}} */
+                    .latex-landscape {{ transform: rotate(0deg); overflow-x: auto; }}
+                    @media print {{ .latex-landscape {{ page: landscape; }} }}
+                    @page landscape {{ size: landscape; }}
+
+                    /* \path \nolinkurl */
+                    code.latex-path {{ font-family: monospace; font-size: 0.9em; word-break: break-all; }}
+
+                    /* \keywords */
+                    .latex-keywords {{ margin: 0.8em 0; font-size: 0.95em; color: #555; }}
+
+                    /* siunitx */
+                    .si-value {{ font-variant-numeric: lining-nums; }}
+                    .si-unit {{ font-style: normal; }}
+                    .si-ang {{ font-style: normal; }}
 
                     /* Blockquote */
                     blockquote.latex-quote, .latex-quote {{

@@ -29,6 +29,7 @@ pub struct RenderContext {
 
     pub footnote_num:      usize,
     pub pending_footnotes: Vec<(usize, String)>,
+    pub phantom_id:        usize,
 
     pub in_float: bool,
 
@@ -71,6 +72,7 @@ impl RenderContext {
 
             footnote_num:      0,
             pending_footnotes: Vec::new(),
+            phantom_id:        0,
 
             in_float: false,
 

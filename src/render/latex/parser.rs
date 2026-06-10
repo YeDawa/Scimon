@@ -642,6 +642,49 @@ impl Parser {
                                 Parser::new(raw.trim()).parse(true, labels)
                             ));
 
+                        } else if env == "verse" && self.in_document {
+                            let raw = self.read_until_end("verse");
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text("<div class=\"latex-verse\">".to_string()));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        } else if env == "titlepage" && self.in_document {
+                            let raw = self.read_until_end("titlepage");
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text("<div class=\"latex-titlepage\">".to_string()));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        } else if (env == "landscape" || env == "pdflscape") && self.in_document {
+                            let raw = self.read_until_end(&env);
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text("<div class=\"latex-landscape\">".to_string()));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        } else if env == "spacing" && self.in_document {
+                            let factor: f64 = self.parse_braces_content()
+                                .trim().parse().unwrap_or(1.2);
+                            let raw   = self.read_until_end("spacing");
+                            let inner = Parser::new(raw.trim()).parse(true, labels);
+                            nodes.push(LatexNode::Text(
+                                format!("<div style=\"line-height:{}\">", factor)
+                            ));
+                            nodes.extend(inner);
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+
+                        } else if matches!(env.as_str(), "samepage" | "sloppypar" | "comment")
+                               && self.in_document
+                        {
+                            // samepage / sloppypar — no visual change in HTML
+                            // comment — suppress content
+                            let raw = self.read_until_end(&env);
+                            if env != "comment" {
+                                let inner = Parser::new(raw.trim()).parse(true, labels);
+                                nodes.extend(inner);
+                            }
+
                         } else if env == "thebibliography" && self.in_document {
                             self.parse_braces_content(); // {widest-label} — ignored
                             let raw = self.read_until_end("thebibliography");
@@ -1229,6 +1272,53 @@ impl Parser {
                     }
 
                     // --------------------------------------------------------
+                    // siunitx — \SI{value}{unit}  \si{unit}  \num{number}  \ang{deg}
+                    // --------------------------------------------------------
+                    "SI" if self.in_document => {
+                        self.parse_optional_arg(); // [options]
+                        let val  = self.parse_braces_content();
+                        let unit = self.parse_braces_content();
+                        let unit_html = Self::siunitx_unit(&unit);
+                        nodes.push(LatexNode::Text(
+                            format!("<span class=\"si-value\">{}</span>\u{202F}<span class=\"si-unit\">{}</span>",
+                                val, unit_html)
+                        ));
+                    }
+                    "si" if self.in_document => {
+                        self.parse_optional_arg();
+                        let unit = self.parse_braces_content();
+                        nodes.push(LatexNode::Text(
+                            format!("<span class=\"si-unit\">{}</span>", Self::siunitx_unit(&unit))
+                        ));
+                    }
+                    "num" if self.in_document => {
+                        self.parse_optional_arg();
+                        let val = self.parse_braces_content();
+                        let formatted = Self::siunitx_num(&val);
+                        nodes.push(LatexNode::Text(
+                            format!("<span class=\"si-value\">{}</span>", formatted)
+                        ));
+                    }
+                    "ang" if self.in_document => {
+                        self.parse_optional_arg();
+                        let raw = self.parse_braces_content();
+                        // raw may be "45" or "30;10;5" (deg;min;sec)
+                        let formatted = if raw.contains(';') {
+                            let parts: Vec<&str> = raw.split(';').collect();
+                            let mut s = String::new();
+                            if !parts[0].is_empty() { s.push_str(&format!("{}°", parts[0])); }
+                            if parts.len() > 1 && !parts[1].is_empty() { s.push_str(&format!("{}'", parts[1])); }
+                            if parts.len() > 2 && !parts[2].is_empty() { s.push_str(&format!("{}″", parts[2])); }
+                            s
+                        } else {
+                            format!("{}°", raw)
+                        };
+                        nodes.push(LatexNode::Text(
+                            format!("<span class=\"si-ang\">{}</span>", formatted)
+                        ));
+                    }
+
+                    // --------------------------------------------------------
                     // Math formatting
                     // --------------------------------------------------------
                     "math" | "ensuremath" if self.in_document =>
@@ -1695,11 +1785,40 @@ impl Parser {
                         nodes.push(LatexNode::Url(self.parse_braces_content()));
                     }
 
+                    // \path{...} / \nolinkurl{...} — verbatim path without hyperlink
+                    "path" | "nolinkurl" if self.in_document => {
+                        let raw = self.parse_braces_content();
+                        nodes.push(LatexNode::Text(
+                            format!("<code class=\"latex-path\">{}</code>",
+                                raw.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;"))
+                        ));
+                    }
+
                     "href" if self.in_document => {
                         let link_url = self.parse_braces_content();
                         let link_text = self.parse_argument();
                         nodes.push(LatexNode::Href { url: link_url, text: link_text });
                     }
+
+                    // \hypertarget{name}{text}
+                    "hypertarget" if self.in_document => {
+                        let name = self.parse_braces_content();
+                        let raw  = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::HyperTarget { name, nodes: inner });
+                    }
+
+                    // \hyperlink{name}{text}
+                    "hyperlink" if self.in_document => {
+                        let name = self.parse_braces_content();
+                        let raw  = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::HyperLink { name, nodes: inner });
+                    }
+
+                    // \phantomsection — invisible anchor
+                    "phantomsection" if self.in_document =>
+                        nodes.push(LatexNode::PhantomSection),
 
                     // --------------------------------------------------------
                     // Citations & bibliography
@@ -1836,8 +1955,13 @@ impl Parser {
                         self.parse_optional_arg(); // [width=…]
                         nodes.push(LatexNode::Image(self.parse_braces_content()));
                     }
-                    "caption" if self.in_document =>
-                        nodes.push(LatexNode::Caption(self.parse_braces_content())),
+                    "caption" if self.in_document => {
+                        if starred {
+                            nodes.push(LatexNode::CaptionStar(self.parse_braces_content()));
+                        } else {
+                            nodes.push(LatexNode::Caption(self.parse_braces_content()));
+                        }
+                    }
 
                     // --------------------------------------------------------
                     // \addcontentsline{toc}{level}{title}
@@ -2074,6 +2198,79 @@ impl Parser {
 
                     "vfill" | "vfil" if self.in_document =>
                         nodes.push(LatexNode::VSpace("auto".to_string())),
+
+                    // --------------------------------------------------------
+                    // Line spacing
+                    // --------------------------------------------------------
+                    "linespread" => {
+                        let raw: f64 = self.parse_braces_content()
+                            .trim().parse().unwrap_or(1.0);
+                        if self.in_document {
+                            nodes.push(LatexNode::LineSpread(raw * 1.2));
+                        }
+                    }
+                    "onehalfspacing" if self.in_document =>
+                        nodes.push(LatexNode::LineSpread(1.5)),
+                    "doublespacing" if self.in_document =>
+                        nodes.push(LatexNode::LineSpread(2.0)),
+                    "singlespacing" if self.in_document =>
+                        nodes.push(LatexNode::LineSpread(1.2)),
+
+                    // --------------------------------------------------------
+                    // \qed / \qedhere — proof end marker ∎
+                    // --------------------------------------------------------
+                    "qed" | "qedhere" if self.in_document =>
+                        nodes.push(LatexNode::Text(
+                            "<span class=\"qed\">∎</span>".to_string()
+                        )),
+
+                    // --------------------------------------------------------
+                    // \smash{content} — render content with zero height
+                    // --------------------------------------------------------
+                    "smash" if self.in_document => {
+                        let raw   = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::Text(
+                            "<span style=\"display:inline-block;height:0;overflow:visible;\">".to_string()
+                        ));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \llap{content} / \rlap{content} — overlap boxes
+                    // --------------------------------------------------------
+                    "llap" if self.in_document => {
+                        let raw   = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::Text(
+                            "<span style=\"display:inline-block;width:0;overflow:visible;direction:rtl;\">".to_string()
+                        ));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+                    "rlap" if self.in_document => {
+                        let raw   = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::Text(
+                            "<span style=\"display:inline-block;width:0;overflow:visible;\">".to_string()
+                        ));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    // --------------------------------------------------------
+                    // \keywords{...} — abstract keywords
+                    // --------------------------------------------------------
+                    "keywords" if self.in_document => {
+                        let raw   = self.parse_braces_content();
+                        let inner = Parser::new(&raw).parse(true, labels);
+                        nodes.push(LatexNode::Text(
+                            "<div class=\"latex-keywords\"><strong>Keywords:</strong> ".to_string()
+                        ));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</div>".to_string()));
+                    }
 
                     // --------------------------------------------------------
                     // Phantom boxes
@@ -2912,6 +3109,113 @@ impl Parser {
             }
         }
         (title, colback, colframe)
+    }
+
+    /// Format a siunitx number: group digits, handle scientific notation.
+    fn siunitx_num(raw: &str) -> String {
+        let s = raw.trim();
+        // Handle scientific notation: 1e6, 1.5e-3, 1.5E10
+        if let Some(pos) = s.to_lowercase().find('e') {
+            let mantissa = &s[..pos];
+            let exp = &s[pos + 1..];
+            return format!("{} × 10<sup>{}</sup>", mantissa, exp);
+        }
+        // Group integer digits in threes
+        let (int_part, dec_part) = if let Some(dot) = s.find('.') {
+            (&s[..dot], Some(&s[dot..]))
+        } else {
+            (s, None)
+        };
+        let digits: String = int_part.chars().rev().enumerate()
+            .flat_map(|(i, c)| {
+                if i > 0 && i % 3 == 0 && c.is_ascii_digit() {
+                    vec!['\u{202F}', c] // narrow no-break space
+                } else {
+                    vec![c]
+                }
+            })
+            .collect::<String>()
+            .chars().rev().collect();
+        match dec_part {
+            Some(d) => format!("{}{}", digits, d),
+            None    => digits,
+        }
+    }
+
+    /// Convert siunitx unit macros to HTML (e.g. \meter\per\second → m s⁻¹).
+    fn siunitx_unit(raw: &str) -> String {
+        let mut result = String::new();
+        let mut per = false;
+        let mut i = 0;
+        let chars: Vec<char> = raw.chars().collect();
+        while i < chars.len() {
+            if chars[i] == '\\' {
+                i += 1;
+                let start = i;
+                while i < chars.len() && chars[i].is_alphabetic() { i += 1; }
+                let cmd: String = chars[start..i].iter().collect();
+                match cmd.as_str() {
+                    "per"        => { per = true; continue; }
+                    "square"     => { result.push_str("<sup>2</sup>"); continue; }
+                    "cubic"      => { result.push_str("<sup>3</sup>"); continue; }
+                    "squared"    => { result.push_str("<sup>2</sup>"); continue; }
+                    "cubed"      => { result.push_str("<sup>3</sup>"); continue; }
+                    "meter" | "metre"     => result.push('m'),
+                    "gram"                => result.push('g'),
+                    "kilogram"            => result.push_str("kg"),
+                    "second"              => result.push('s'),
+                    "minute"              => result.push_str("min"),
+                    "hour"                => result.push('h'),
+                    "kelvin"              => result.push('K'),
+                    "mole"                => result.push_str("mol"),
+                    "ampere"              => result.push('A'),
+                    "candela"             => result.push_str("cd"),
+                    "newton"              => result.push('N'),
+                    "pascal"              => result.push_str("Pa"),
+                    "joule"               => result.push('J'),
+                    "watt"                => result.push('W'),
+                    "volt"                => result.push('V'),
+                    "ohm"                 => result.push('Ω'),
+                    "siemens"             => result.push('S'),
+                    "farad"               => result.push('F'),
+                    "henry"               => result.push('H'),
+                    "tesla"               => result.push('T'),
+                    "hertz"               => result.push_str("Hz"),
+                    "liter" | "litre"     => result.push('L'),
+                    // SI prefixes used standalone (e.g. \kilo\gram)
+                    "kilo"   => result.push('k'),
+                    "mega"   => result.push('M'),
+                    "giga"   => result.push('G'),
+                    "tera"   => result.push('T'),
+                    "milli"  => result.push('m'),
+                    "micro"  => result.push('μ'),
+                    "nano"   => result.push('n'),
+                    "pico"   => result.push('p'),
+                    "centi"  => result.push('c'),
+                    "deci"   => result.push('d'),
+                    "hecto"  => result.push('h'),
+                    "degree" | "degreeCelsius" => result.push('°'),
+                    "celsius"  => result.push_str("°C"),
+                    "fahrenheit" => result.push_str("°F"),
+                    "radian"   => result.push_str("rad"),
+                    "steradian"=> result.push_str("sr"),
+                    "percent"  => result.push('%'),
+                    other      => result.push_str(other),
+                }
+                if per {
+                    // wrap last unit in superscript -1
+                    result.push_str("<sup>−1</sup>");
+                    per = false;
+                }
+            } else if chars[i].is_whitespace() {
+                result.push('\u{202F}'); // narrow no-break space between units
+                i += 1;
+            } else {
+                result.push(chars[i]);
+                i += 1;
+            }
+        }
+        result
     }
 
     /// Convert a LaTeX color expression (name or `color!pct!base`) to CSS hex.
