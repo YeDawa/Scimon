@@ -1134,6 +1134,10 @@ impl Parser {
                         } else if env == "theorem" || env == "lemma" || env == "corollary"
                                 || env == "proposition" || env == "proof"
                                 || env == "definition" || env == "remark" || env == "example"
+                                || env == "conjecture" || env == "claim" || env == "exercise"
+                                || env == "solution" || env == "question" || env == "answer"
+                                || env == "notation" || env == "observation" || env == "assumption"
+                                || env == "fact" || env == "problem" || env == "note"
                         {
                             let raw = self.read_until_end(&env);
                             let inner = Parser::new(raw.trim()).parse(true, labels);
@@ -1647,7 +1651,11 @@ impl Parser {
                         nodes.push(LatexNode::RawMathInline(format!("\\sqrt{{{}}}", arg)));
                     }
 
-                    "overline" | "hat" | "bar" if self.in_document => {
+                    "overline" | "hat" | "bar"
+                    | "vec" | "dot" | "ddot" | "tilde" | "widehat" | "widetilde"
+                    | "overrightarrow" | "overleftarrow" | "breve" | "check"
+                    | "acute" | "grave" | "mathring" | "underline" | "underbrace"
+                    | "overbrace" if self.in_document => {
                         nodes.extend(self.parse_argument());
                     }
 
@@ -2495,10 +2503,51 @@ impl Parser {
                     "hline" | "cline" | "toprule" | "midrule" | "bottomrule"
                     | "appendix" | "frontmatter"
                     | "mainmatter" | "backmatter" | "sloppy" | "frenchspacing"
-                    | "nonfrenchspacing" | "protect" => {}
+                    | "nonfrenchspacing" | "protect"
+                    | "makeatletter" | "makeatother"
+                    | "unskip" | "ignorespaces" | "relax" | "empty" => {}
 
                     "input" | "include" | "includeonly" => {
                         self.parse_braces_content(); // ignore file name
+                    }
+
+                    // --------------------------------------------------------
+                    // Package config — consume silently
+                    // --------------------------------------------------------
+                    "lstset" | "lstdefinestyle" | "tcbset" | "tcbuselibrary"
+                    | "pgfplotsset" | "usetikzlibrary" | "tikzset" => {
+                        self.parse_braces_content();
+                    }
+
+                    "lstinputlisting" => {
+                        self.parse_optional_arg();
+                        self.parse_braces_content(); // filename
+                    }
+
+                    "fcolorbox" if self.in_document => {
+                        let frame_color = self.parse_braces_content();
+                        let bg_color    = self.parse_braces_content();
+                        let content     = self.parse_braces_content();
+                        let inner = Parser::new(&content).parse(true, labels);
+                        nodes.push(LatexNode::Text(format!(
+                            "<span style=\"border: 2px solid {}; background-color: {}; padding: 2px 6px;\">",
+                            frame_color, bg_color
+                        )));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    "shadowbox" | "doublebox" | "ovalbox" if self.in_document => {
+                        let content = self.parse_braces_content();
+                        let inner = Parser::new(&content).parse(true, labels);
+                        let style = match command.as_str() {
+                            "doublebox" => "border: 3px double currentColor; padding: 2px 6px;",
+                            "ovalbox"   => "border: 1px solid currentColor; border-radius: 8px; padding: 2px 6px;",
+                            _           => "border: 1px solid currentColor; box-shadow: 2px 2px 4px rgba(0,0,0,0.4); padding: 2px 6px;",
+                        };
+                        nodes.push(LatexNode::Text(format!("<span style=\"{}\">", style)));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
                     }
 
                     // --------------------------------------------------------
