@@ -5,6 +5,7 @@ impl Addons {
     pub const DOWNLOAD_FILES_URI: &'static str = "https://raw.githubusercontent.com/YeDawa/Scimon/main/";
     pub const DEFAULT_CSS_STYLE: &'static str = "https://static.monlib.net/md-default.css";
     pub const DEFAULT_LATEX_CSS_STYLE: &'static str = "https://static.monlib.net/latex.css";
+    pub const DEFAULT_LATEX_JS_SCRIPT: &'static str = "https://static.monlib.net/latex.js";
 
     // Scimon
     pub const SCIMON_SCRAPE_API_ENDPOINT: &'static str = "https://addons.scimon.dev/pdfscrape?url=";

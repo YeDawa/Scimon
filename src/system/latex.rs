@@ -15,7 +15,7 @@ use crate::{
     },
     
     render::{
-        render_inject::RenderInject,
+        render_inject_files::RenderInjectFiles,
 
         latex::{
             nodes::Nodes, 
@@ -53,8 +53,9 @@ impl LaTex {
             String::new()
         };
 
-        let css_style = RenderInject.default_latex_css_style().await;
-        TemplateLaTex.base(&html_body, &header_html, &css_style)
+        let css_style = RenderInjectFiles.default_latex_css_style().await;
+        let js_script = RenderInjectFiles.default_latex_js_script().await;
+        TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
     }
 
     fn build_toc(ctx: &RenderContext) -> String {

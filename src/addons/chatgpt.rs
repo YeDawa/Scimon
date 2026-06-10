@@ -6,8 +6,8 @@ use crate::{
     utils::scraping::Scraping,
     ui::success_alerts::SuccessAlerts,
     templates::generic::TemplateGeneric,
-    render::render_inject::RenderInject,
     helpers::chatgpt_cleaner::ChatGPTCleaner,
+    render::render_inject_files::RenderInjectFiles,
 };
 
 pub struct ChatGPT {
@@ -55,7 +55,7 @@ impl ChatGPT {
     pub async fn convert(&self) -> Result<(), Box<dyn Error>> {
         let (file_name, html_content) = self.get_content()?;
         
-        let css_style = RenderInject.default_css_style().await;
+        let css_style = RenderInjectFiles.default_css_style().await;
         let styled_html = TemplateGeneric.base(&css_style, &html_content);
 
         let file = self.custom_name(&file_name);

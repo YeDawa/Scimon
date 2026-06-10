@@ -7,3 +7,4 @@ pub mod render_images;
 
 // Helpers
 pub mod render_inject;
+pub mod render_inject_files;

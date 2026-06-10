@@ -54,15 +54,5 @@ impl RenderInject {
 
         Ok(html)
     }
-
-    pub async fn default_css_style(&self) -> String {
-        let css_cdn = Addons::DEFAULT_CSS_STYLE.to_string();
-        Remote.content(&css_cdn).await.unwrap_or_default()
-    }
-
-    pub async fn default_latex_css_style(&self) -> String {
-        let css_cdn = Addons::DEFAULT_LATEX_CSS_STYLE.to_string();
-        Remote.content(&css_cdn).await.unwrap_or_default()
-    }
     
 }
