@@ -156,12 +156,16 @@ impl Templates {
 
                     /* Font Sizes */
                     .font-tiny {{ font-size: 0.6em; }}
+                    .font-scriptsize {{ font-size: 0.7em; }}
+                    .font-footnotesize {{ font-size: 0.8em; }}
                     .font-small {{ font-size: 0.85em; }}
+                    .font-normalsize {{ font-size: 1em; }}
                     .font-large {{ font-size: 1.2em; }}
                     .font-Large {{ font-size: 1.4em; }}
                     .font-LARGE {{ font-size: 1.8em; }}
                     .font-huge {{ font-size: 2.0em; }}
                     .font-Huge {{ font-size: 2.5em; }}
+                    .font-HUGE {{ font-size: 3.0em; }}
 
                     /* Footnotes */
                     .footnote-rule {{ margin-top: 60px; border: none; border-top: 1px solid #eaeaea; }}
@@ -180,6 +184,38 @@ impl Templates {
                     /* Math text / operators */
                     .math-text {{ font-style: normal; font-family: 'Lora', Georgia, serif; }}
                     .math-op {{ font-style: normal; font-family: 'Cambria Math', 'Times New Roman', serif; margin-right: 0.15em; }}
+
+                    /* Bibliography title */
+                    .bib-title {{ border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; color: #1a252f; margin-top: 50px; font-size: 1.5em; font-weight: 600; }}
+
+                    /* Blockquote */
+                    blockquote.latex-quote, .latex-quote {{
+                        border-left: 4px solid #bdc3c7;
+                        margin: 20px 0 20px 20px;
+                        padding: 10px 20px;
+                        color: #555;
+                        font-style: italic;
+                        background: #fafafa;
+                        border-radius: 0 6px 6px 0;
+                    }}
+
+                    /* Horizontal rule */
+                    hr.latex-hr {{ border: none; border-top: 1px solid #bdc3c7; margin: 30px 0; }}
+
+                    /* Date in title block */
+                    .title-block .date {{ font-size: 1em; color: #95a5a6; margin-top: 8px; }}
+
+                    /* Paragraph command */
+                    .latex-paragraph {{ margin-top: 1em; }}
+
+                    /* Starred sections (no numbering) */
+                    .section-star {{ border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; color: #1a252f; margin-top: 50px; font-weight: 600; }}
+
+                    /* Math align */
+                    .math-align {{ text-align: left; }}
+
+                    /* Math intertext */
+                    .math-intertext {{ font-style: normal; font-size: 0.95em; margin: 10px 0; text-align: left; }}
 
                     /* Responsive */
                     @media (max-width: 768px) {{

@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use chrono::Local;
+
 use crate::render::latex::tex_ast::LatexNode;
 
 // ---------------------------------------------------------------------------
@@ -120,6 +122,55 @@ fn math_symbol(cmd: &str) -> Option<&'static str> {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Diacritic / accent helpers
+// ---------------------------------------------------------------------------
+fn accent_char(accent: char, base: char) -> String {
+    match (accent, base) {
+        // Acute (')
+        ('\'', 'a') => "á", ('\'', 'e') => "é", ('\'', 'i') => "í",
+        ('\'', 'o') => "ó", ('\'', 'u') => "ú", ('\'', 'y') => "ý",
+        ('\'', 'A') => "Á", ('\'', 'E') => "É", ('\'', 'I') => "Í",
+        ('\'', 'O') => "Ó", ('\'', 'U') => "Ú", ('\'', 'Y') => "Ý",
+        ('\'', 'c') => "ć", ('\'', 'C') => "Ć",
+        ('\'', 'n') => "ń", ('\'', 'N') => "Ń",
+        ('\'', 's') => "ś", ('\'', 'S') => "Ś",
+        ('\'', 'z') => "ź", ('\'', 'Z') => "Ź",
+        // Grave (`)
+        ('`', 'a') => "à", ('`', 'e') => "è", ('`', 'i') => "ì",
+        ('`', 'o') => "ò", ('`', 'u') => "ù",
+        ('`', 'A') => "À", ('`', 'E') => "È", ('`', 'I') => "Ì",
+        ('`', 'O') => "Ò", ('`', 'U') => "Ù",
+        // Umlaut / diaeresis (")
+        ('"', 'a') => "ä", ('"', 'e') => "ë", ('"', 'i') => "ï",
+        ('"', 'o') => "ö", ('"', 'u') => "ü", ('"', 'y') => "ÿ",
+        ('"', 'A') => "Ä", ('"', 'E') => "Ë", ('"', 'I') => "Ï",
+        ('"', 'O') => "Ö", ('"', 'U') => "Ü",
+        // Circumflex (^)
+        ('^', 'a') => "â", ('^', 'e') => "ê", ('^', 'i') => "î",
+        ('^', 'o') => "ô", ('^', 'u') => "û", ('^', 'w') => "ŵ",
+        ('^', 'A') => "Â", ('^', 'E') => "Ê", ('^', 'I') => "Î",
+        ('^', 'O') => "Ô", ('^', 'U') => "Û", ('^', 'W') => "Ŵ",
+        // Tilde (~)
+        ('~', 'n') => "ñ", ('~', 'N') => "Ñ",
+        ('~', 'a') => "ã", ('~', 'A') => "Ã",
+        ('~', 'o') => "õ", ('~', 'O') => "Õ",
+        // Macron (=)
+        ('=', 'a') => "ā", ('=', 'e') => "ē", ('=', 'i') => "ī",
+        ('=', 'o') => "ō", ('=', 'u') => "ū",
+        ('=', 'A') => "Ā", ('=', 'E') => "Ē", ('=', 'I') => "Ī",
+        ('=', 'O') => "Ō", ('=', 'U') => "Ū",
+        // Dot above (.)
+        ('.', 'z') => "ż", ('.', 'Z') => "Ż",
+        ('.', 'c') => "ċ", ('.', 'C') => "Ċ",
+        ('.', 'e') => "ė", ('.', 'E') => "Ė",
+        ('.', 'g') => "ġ", ('.', 'G') => "Ġ",
+        ('.', 'I') => "İ",
+        // Fallback: return the base character unchanged
+        (_, c) => return c.to_string(),
+    }.to_string()
+}
+
 pub struct Parser {
     pub chars: Vec<char>,
     pub pos: usize,
@@ -184,7 +235,7 @@ impl Parser {
     pub fn parse_text(&mut self) -> String {
         let mut text = String::new();
         while let Some(&c) = self.chars.get(self.pos) {
-            if matches!(c, '\\' | '{' | '}' | '^' | '_' | '%' | '$' | '~' | '&') {
+            if matches!(c, '\\' | '{' | '}' | '^' | '_' | '%' | '$' | '~' | '&' | '`' | '\'' | '-') {
                 break;
             }
             text.push(c);
@@ -349,24 +400,54 @@ impl Parser {
                 // Special single-char commands like \{ \} \_ etc.
                 if let Some(&nc) = self.chars.get(self.pos) {
                     if !nc.is_alphabetic() {
-                        self.pos += 1;
+                        self.pos += 1; // consume nc
+
+                        // Accent commands: read the base letter from {x} or bare x
+                        if matches!(nc, '\'' | '`' | '"' | '^' | '~' | '=' | '.') && self.in_document {
+                            let base = if self.peek() == Some('{') {
+                                self.parse_braces_content()
+                            } else if self.peek().map_or(false, |c| c.is_alphabetic()) {
+                                let c = self.next_char().unwrap();
+                                c.to_string()
+                            } else {
+                                // Accent without a following letter — emit the accent itself
+                                match nc {
+                                    '\'' => "'",
+                                    '`'  => "`",
+                                    '"'  => "\"",
+                                    '^'  => "^",
+                                    '~'  => "~",
+                                    '='  => "=",
+                                    '.'  => ".",
+                                    _    => "",
+                                }.to_string()
+                            };
+                            if let Some(c) = base.chars().next() {
+                                if base.len() == 1 {
+                                    nodes.push(LatexNode::Text(accent_char(nc, c)));
+                                } else {
+                                    // multi-char base (shouldn't happen) — just pass through
+                                    nodes.push(LatexNode::Text(base));
+                                }
+                            }
+                            continue;
+                        }
+
                         let sym = match nc {
                             '{' => "{",
                             '}' => "}",
                             '_' => "_",
-                            '^' => "^",
                             '&' => "&amp;",
                             '#' => "#",
                             '$' => "$",
                             '%' => "%",
-                            '~' => "~",
                             ',' => "\u{2009}", // thin space
                             ';' => "\u{2009}",
                             '!' => "",         // negative thin space – ignore
                             ' ' => " ",
                             '-' => "\u{00AD}", // soft hyphen
                             '|' => "∥",
-                            '.' | ':' | '`' | '\'' | '"' | '=' => "",
+                            ':' => "",
                             _ => "",
                         };
                         if self.in_document && !sym.is_empty() {
@@ -380,6 +461,10 @@ impl Parser {
                     if c.is_alphabetic() { command.push(c); self.pos += 1; }
                     else { break; }
                 }
+
+                // Consume optional starred variant marker (e.g. \section*)
+                let starred = self.peek() == Some('*');
+                if starred { self.next_char(); }
 
                 // Skip trailing whitespace after a command (LaTeX semantics)
                 if !command.is_empty() {
@@ -601,27 +686,47 @@ impl Parser {
 
                     "chapter" if self.in_document => {
                         self.parse_optional_arg(); // short title
-                        self.current_chapter += 1;
-                        self.current_section = 0;
-                        nodes.push(LatexNode::Chapter(self.parse_braces_content()));
+                        let title = self.parse_braces_content();
+                        if starred {
+                            nodes.push(LatexNode::Text(format!("<h1>{}</h1>", title)));
+                        } else {
+                            self.current_chapter += 1;
+                            self.current_section = 0;
+                            nodes.push(LatexNode::Chapter(title));
+                        }
                     }
 
                     "section" if self.in_document => {
                         self.parse_optional_arg();
-                        self.current_section += 1;
-                        self.current_subsection = 0;
-                        nodes.push(LatexNode::Section(self.parse_braces_content()));
+                        let title = self.parse_braces_content();
+                        if starred {
+                            nodes.push(LatexNode::Text(format!("<h2 class=\"section-star\">{}</h2>", title)));
+                        } else {
+                            self.current_section += 1;
+                            self.current_subsection = 0;
+                            nodes.push(LatexNode::Section(title));
+                        }
                     }
 
                     "subsection" if self.in_document => {
                         self.parse_optional_arg();
-                        self.current_subsection += 1;
-                        nodes.push(LatexNode::Subsection(self.parse_braces_content()));
+                        let title = self.parse_braces_content();
+                        if starred {
+                            nodes.push(LatexNode::Text(format!("<h3 class=\"section-star\">{}</h3>", title)));
+                        } else {
+                            self.current_subsection += 1;
+                            nodes.push(LatexNode::Subsection(title));
+                        }
                     }
 
                     "subsubsection" if self.in_document => {
                         self.parse_optional_arg();
-                        nodes.push(LatexNode::Subsubsection(self.parse_braces_content()));
+                        let title = self.parse_braces_content();
+                        if starred {
+                            nodes.push(LatexNode::Text(format!("<h4 class=\"section-star\">{}</h4>", title)));
+                        } else {
+                            nodes.push(LatexNode::Subsubsection(title));
+                        }
                     }
 
                     "paragraph" if self.in_document => {
@@ -709,17 +814,15 @@ impl Parser {
                         nodes.push(LatexNode::MathInline(self.parse_argument())),
 
                     "frac" if self.in_document => {
-                        let num = self.parse_argument();
-                        let den = self.parse_argument();
-                        nodes.push(LatexNode::Fraction { num, den });
+                        // Captura o LaTeX bruto e passa para KaTeX
+                        let num = self.parse_braces_content();
+                        let den = self.parse_braces_content();
+                        nodes.push(LatexNode::RawMathInline(format!("\\frac{{{}}}{{{}}}", num, den)));
                     }
-
                     "sqrt" if self.in_document => {
-                        self.parse_optional_arg(); // optional index
-                        let arg = self.parse_argument();
-                        nodes.push(LatexNode::Text("√(".to_string()));
-                        nodes.extend(arg);
-                        nodes.push(LatexNode::Text(")".to_string()));
+                        self.parse_optional_arg();
+                        let arg = self.parse_braces_content();
+                        nodes.push(LatexNode::RawMathInline(format!("\\sqrt{{{}}}", arg)));
                     }
 
                     "overline" | "hat" | "bar" if self.in_document => {
@@ -952,6 +1055,254 @@ impl Parser {
                     }
 
                     // --------------------------------------------------------
+                    // Date
+                    // --------------------------------------------------------
+                    "today" if self.in_document => {
+                        let date = Local::now().format("%B %d, %Y").to_string();
+                        nodes.push(LatexNode::Text(date));
+                    }
+
+                    // --------------------------------------------------------
+                    // Author helpers
+                    // --------------------------------------------------------
+                    "and" if self.in_document =>
+                        nodes.push(LatexNode::Text(" and ".to_string())),
+
+                    "thanks" if self.in_document => {
+                        let content = self.parse_braces_content();
+                        nodes.push(LatexNode::Footnote(
+                            Parser::new(&content).parse(true, labels)
+                        ));
+                    }
+
+                    // --------------------------------------------------------
+                    // Colors & boxes
+                    // --------------------------------------------------------
+                    "textcolor" if self.in_document => {
+                        let color = self.parse_braces_content();
+                        let content = self.parse_braces_content();
+                        let inner = Parser::new(&content).parse(true, labels);
+                        nodes.push(LatexNode::Text(format!("<span style=\"color: {};\">", color)));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    "colorbox" if self.in_document => {
+                        let color = self.parse_braces_content();
+                        let content = self.parse_braces_content();
+                        let inner = Parser::new(&content).parse(true, labels);
+                        nodes.push(LatexNode::Text(format!(
+                            "<span style=\"background-color: {}; padding: 2px 5px; border-radius: 3px;\">", color
+                        )));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    "fbox" | "framebox" if self.in_document => {
+                        self.parse_optional_arg();
+                        let content = self.parse_braces_content();
+                        let inner = Parser::new(&content).parse(true, labels);
+                        nodes.push(LatexNode::Text(
+                            "<span style=\"border: 1px solid currentColor; padding: 2px 6px;\">".to_string()
+                        ));
+                        nodes.extend(inner);
+                        nodes.push(LatexNode::Text("</span>".to_string()));
+                    }
+
+                    "mbox" | "makebox" if self.in_document => {
+                        self.parse_optional_arg();
+                        self.parse_optional_arg();
+                        let content = self.parse_braces_content();
+                        nodes.extend(Parser::new(&content).parse(true, labels));
+                    }
+
+                    // --------------------------------------------------------
+                    // Horizontal fill
+                    // --------------------------------------------------------
+                    "hfill" | "hfil" | "dotfill" if self.in_document => {
+                        nodes.push(LatexNode::Text(
+                            "<span style=\"display:inline-block; flex:1; min-width:1em;\"></span>".to_string()
+                        ));
+                    }
+
+                    "vfill" if self.in_document => nodes.push(LatexNode::VSpace("auto".to_string())),
+
+                    // --------------------------------------------------------
+                    // Special letters
+                    // --------------------------------------------------------
+                    "ss" if self.in_document => nodes.push(LatexNode::Text("ß".to_string())),
+                    "ae" if self.in_document => nodes.push(LatexNode::Text("æ".to_string())),
+                    "AE" if self.in_document => nodes.push(LatexNode::Text("Æ".to_string())),
+                    "oe" if self.in_document => nodes.push(LatexNode::Text("œ".to_string())),
+                    "OE" if self.in_document => nodes.push(LatexNode::Text("Œ".to_string())),
+                    "aa" if self.in_document => nodes.push(LatexNode::Text("å".to_string())),
+                    "AA" if self.in_document => nodes.push(LatexNode::Text("Å".to_string())),
+                    "o"  if self.in_document => nodes.push(LatexNode::Text("ø".to_string())),
+                    "O"  if self.in_document => nodes.push(LatexNode::Text("Ø".to_string())),
+                    "l"  if self.in_document => nodes.push(LatexNode::Text("ł".to_string())),
+                    "L"  if self.in_document => nodes.push(LatexNode::Text("Ł".to_string())),
+                    "i"  if self.in_document => nodes.push(LatexNode::Text("ı".to_string())),
+                    "j"  if self.in_document => nodes.push(LatexNode::Text("ȷ".to_string())),
+
+                    // --------------------------------------------------------
+                    // Named accent commands
+                    // --------------------------------------------------------
+                    "c" if self.in_document => {
+                        let base = self.parse_braces_content();
+                        let result = match base.as_str() {
+                            "c" => "ç", "C" => "Ç", "s" => "ş", "S" => "Ş",
+                            "t" => "ţ", "T" => "Ţ", "n" => "ņ", "N" => "Ņ",
+                            "k" => "ķ", "K" => "Ķ", "l" => "ļ", "L" => "Ļ",
+                            "r" => "ŗ", "R" => "Ŗ", _ => &base,
+                        };
+                        nodes.push(LatexNode::Text(result.to_string()));
+                    }
+
+                    "v" if self.in_document => {
+                        let base = self.parse_braces_content();
+                        let result = match base.as_str() {
+                            "c" => "č", "C" => "Č", "s" => "š", "S" => "Š",
+                            "z" => "ž", "Z" => "Ž", "e" => "ě", "E" => "Ě",
+                            "n" => "ň", "N" => "Ň", "r" => "ř", "R" => "Ř",
+                            "d" => "ď", "D" => "Ď", "t" => "ť", "T" => "Ť",
+                            _ => &base,
+                        };
+                        nodes.push(LatexNode::Text(result.to_string()));
+                    }
+
+                    "u" if self.in_document => {
+                        let base = self.parse_braces_content();
+                        let result = match base.as_str() {
+                            "a" => "ă", "A" => "Ă", "e" => "ĕ", "E" => "Ĕ",
+                            "g" => "ğ", "G" => "Ğ", "i" => "ĭ", "I" => "Ĭ",
+                            "o" => "ŏ", "O" => "Ŏ", "u" => "ŭ", "U" => "Ŭ",
+                            _ => &base,
+                        };
+                        nodes.push(LatexNode::Text(result.to_string()));
+                    }
+
+                    "H" if self.in_document => {
+                        let base = self.parse_braces_content();
+                        let result = match base.as_str() {
+                            "o" => "ő", "O" => "Ő", "u" => "ű", "U" => "Ű", _ => &base,
+                        };
+                        nodes.push(LatexNode::Text(result.to_string()));
+                    }
+
+                    "k" if self.in_document => {
+                        let base = self.parse_braces_content();
+                        let result = match base.as_str() {
+                            "a" => "ą", "A" => "Ą", "e" => "ę", "E" => "Ę",
+                            "i" => "į", "I" => "Į", "u" => "ų", "U" => "Ų",
+                            "o" => "ǫ", _ => &base,
+                        };
+                        nodes.push(LatexNode::Text(result.to_string()));
+                    }
+
+                    "d" if self.in_document => {
+                        // dot below
+                        let base = self.parse_braces_content();
+                        let result = match base.as_str() {
+                            "a" => "ạ", "A" => "Ạ", "e" => "ẹ", "E" => "Ẹ",
+                            "i" => "ị", "I" => "Ị", "o" => "ọ", "O" => "Ọ",
+                            "u" => "ụ", "U" => "Ụ", _ => &base,
+                        };
+                        nodes.push(LatexNode::Text(result.to_string()));
+                    }
+
+                    "b" if self.in_document => {
+                        // bar under — just render base letter
+                        let base = self.parse_braces_content();
+                        nodes.push(LatexNode::Text(base));
+                    }
+
+                    // --------------------------------------------------------
+                    // Quote typography helpers
+                    // --------------------------------------------------------
+                    "lq" if self.in_document =>
+                        nodes.push(LatexNode::Text("\u{2018}".to_string())), // '
+                    "rq" if self.in_document =>
+                        nodes.push(LatexNode::Text("\u{2019}".to_string())), // '
+                    "ldq" if self.in_document =>
+                        nodes.push(LatexNode::Text("\u{201C}".to_string())), // "
+                    "rdq" if self.in_document =>
+                        nodes.push(LatexNode::Text("\u{201D}".to_string())), // "
+                    "textquoteleft" if self.in_document =>
+                        nodes.push(LatexNode::Text("\u{2018}".to_string())),
+                    "textquoteright" if self.in_document =>
+                        nodes.push(LatexNode::Text("\u{2019}".to_string())),
+                    "textquotedblleft" if self.in_document =>
+                        nodes.push(LatexNode::Text("\u{201C}".to_string())),
+                    "textquotedblright" if self.in_document =>
+                        nodes.push(LatexNode::Text("\u{201D}".to_string())),
+                    "guillemotleft" if self.in_document =>
+                        nodes.push(LatexNode::Text("«".to_string())),
+                    "guillemotright" if self.in_document =>
+                        nodes.push(LatexNode::Text("»".to_string())),
+                    "guilsinglleft" if self.in_document =>
+                        nodes.push(LatexNode::Text("‹".to_string())),
+                    "guilsinglright" if self.in_document =>
+                        nodes.push(LatexNode::Text("›".to_string())),
+
+                    // --------------------------------------------------------
+                    // Text symbols
+                    // --------------------------------------------------------
+                    "textasciicircum" if self.in_document =>
+                        nodes.push(LatexNode::Text("^".to_string())),
+                    "textasciitilde" if self.in_document =>
+                        nodes.push(LatexNode::Text("~".to_string())),
+                    "textbackslash" if self.in_document =>
+                        nodes.push(LatexNode::Text("\\".to_string())),
+                    "textbar" if self.in_document =>
+                        nodes.push(LatexNode::Text("|".to_string())),
+                    "textless" if self.in_document =>
+                        nodes.push(LatexNode::Text("&lt;".to_string())),
+                    "textgreater" if self.in_document =>
+                        nodes.push(LatexNode::Text("&gt;".to_string())),
+                    "textbullet" if self.in_document =>
+                        nodes.push(LatexNode::Text("•".to_string())),
+                    "textdagger" | "dag" if self.in_document =>
+                        nodes.push(LatexNode::Text("†".to_string())),
+                    "textdaggerdbl" | "ddag" if self.in_document =>
+                        nodes.push(LatexNode::Text("‡".to_string())),
+                    "textsection" | "S" if self.in_document =>
+                        nodes.push(LatexNode::Text("§".to_string())),
+                    "textparagraph" | "P" if self.in_document =>
+                        nodes.push(LatexNode::Text("¶".to_string())),
+                    "copyright" if self.in_document =>
+                        nodes.push(LatexNode::Text("©".to_string())),
+                    "textregistered" if self.in_document =>
+                        nodes.push(LatexNode::Text("®".to_string())),
+                    "texttrademark" | "trademark" if self.in_document =>
+                        nodes.push(LatexNode::Text("™".to_string())),
+                    "pounds" if self.in_document =>
+                        nodes.push(LatexNode::Text("£".to_string())),
+                    "euro" if self.in_document =>
+                        nodes.push(LatexNode::Text("€".to_string())),
+                    "textyen" if self.in_document =>
+                        nodes.push(LatexNode::Text("¥".to_string())),
+                    "textdegree" if self.in_document =>
+                        nodes.push(LatexNode::Text("°".to_string())),
+                    "textellipsis" if self.in_document =>
+                        nodes.push(LatexNode::Text("…".to_string())),
+                    "textendash" | "endash" if self.in_document =>
+                        nodes.push(LatexNode::Text("–".to_string())),
+                    "textemdash" | "emdash" if self.in_document =>
+                        nodes.push(LatexNode::Text("—".to_string())),
+
+                    // --------------------------------------------------------
+                    // List-of-figures / list-of-tables (placeholder)
+                    // --------------------------------------------------------
+                    "listoffigures" if self.in_document =>
+                        nodes.push(LatexNode::Text(
+                            "<div class=\"toc\"><h2>List of Figures</h2><p><em>(auto-generated)</em></p></div>".to_string()
+                        )),
+                    "listoftables" if self.in_document =>
+                        nodes.push(LatexNode::Text(
+                            "<div class=\"toc\"><h2>List of Tables</h2><p><em>(auto-generated)</em></p></div>".to_string()
+                        )),
+
+                    // --------------------------------------------------------
                     // Math symbols (catches all entries in math_symbol())
                     // --------------------------------------------------------
                     _ if self.in_document => {
@@ -1034,6 +1385,51 @@ impl Parser {
 
             if current == '}' && self.in_document {
                 self.pos += 1;
+                continue;
+            }
+
+            // ----------------------------------------------------------------
+            // LaTeX typographic quotes:
+            //   ``  →  " (U+201C)     ''  →  " (U+201D)
+            //   `   →  ' (U+2018)     '   in text → ' (U+2019)
+            // These are just source characters, not commands.
+            // ----------------------------------------------------------------
+            if current == '`' && self.in_document {
+                self.pos += 1;
+                if self.peek() == Some('`') {
+                    self.pos += 1;
+                    nodes.push(LatexNode::Text("\u{201C}".to_string())); // "
+                } else {
+                    nodes.push(LatexNode::Text("\u{2018}".to_string())); // '
+                }
+                continue;
+            }
+
+            if current == '\'' && self.in_document {
+                self.pos += 1;
+                if self.peek() == Some('\'') {
+                    self.pos += 1;
+                    nodes.push(LatexNode::Text("\u{201D}".to_string())); // "
+                } else {
+                    nodes.push(LatexNode::Text("\u{2019}".to_string())); // '
+                }
+                continue;
+            }
+
+            // Em-dash  ---  and en-dash  --  (hyphens in text)
+            if current == '-' && self.in_document {
+                self.pos += 1;
+                if self.peek() == Some('-') {
+                    self.pos += 1;
+                    if self.peek() == Some('-') {
+                        self.pos += 1;
+                        nodes.push(LatexNode::Text("—".to_string())); // em-dash
+                    } else {
+                        nodes.push(LatexNode::Text("–".to_string())); // en-dash
+                    }
+                } else {
+                    nodes.push(LatexNode::Text("-".to_string()));
+                }
                 continue;
             }
 
