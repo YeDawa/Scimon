@@ -33,7 +33,11 @@ impl BibTextRender {
         
         for block in lower_content.split('@').skip(1) {
             if let Some(start) = block.find('{') {
-                let key_end = block[start + 1..].find(',').unwrap_or(0) + start + 1;
+                let after_brace = &block[start + 1..];
+                let key_end = match after_brace.find(',') {
+                    Some(pos) => start + 1 + pos,
+                    None => continue,
+                };
                 let key = block[start + 1..key_end].trim().to_string();
 
                 let extract = |field: &str| -> String {

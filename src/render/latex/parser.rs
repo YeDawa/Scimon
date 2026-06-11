@@ -3554,7 +3554,7 @@ impl Parser {
                 b'r'        => { cols.push(("right".into(),  None)); i += 1; }
                 // tabularx auto-width columns
                 b'X' | b'Y' | b'Z' => {
-                    cols.push(("left".into(), Some("1%".into()))); i += 1;
+                    cols.push(("left".into(), None)); i += 1;
                 }
                 // fixed-width cells: p{w}  m{w}  b{w}
                 b'p' | b'm' | b'b' => {
@@ -3735,7 +3735,7 @@ impl Parser {
                         rowspan: 1,
                         align,
                         width: None,
-                        hline: row_hline && cells.is_empty(),
+                        hline: false,
                     });
                     col_idx += span;
                     continue;
@@ -3759,7 +3759,7 @@ impl Parser {
                     rowspan,
                     align,
                     width,
-                    hline: row_hline && cells.is_empty(),
+                    hline: false,
                 });
                 col_idx += 1;
             }
