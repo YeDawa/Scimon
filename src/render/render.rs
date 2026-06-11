@@ -1,6 +1,6 @@
 use minify::html::minify;
 
-use std::error::Error;
+use std::{error::Error, ffi::OsStr};
 
 use headless_chrome::{
     Browser,
@@ -43,8 +43,19 @@ impl Render {
     }
 
     pub async fn connect_to_browser(&self, content: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+        // --headless=new uses the new headless code path that never creates a visible
+        // window on Windows, unlike the legacy --headless flag.
+        // --window-position moves any residual window fully off-screen as a fallback.
+        let extra_args: Vec<&OsStr> = vec![
+            OsStr::new("--headless=new"),
+            OsStr::new("--window-position=-32000,-32000"),
+        ];
         let browser = Browser::new(
-            LaunchOptionsBuilder::default().build().expect(""),
+            LaunchOptionsBuilder::default()
+                .headless(true)
+                .args(extra_args)
+                .build()
+                .expect("failed to build launch options"),
         )?;
 
         let tab = browser.new_tab()?;

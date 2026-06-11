@@ -1,4 +1,5 @@
-use headless_chrome::Browser;
+use std::ffi::OsStr;
+use headless_chrome::{Browser, LaunchOptionsBuilder};
 
 use std::{
     fs::write,
@@ -23,7 +24,17 @@ impl Scraping {
     }
 
     pub fn get_html(&self) -> Result<String, Box<dyn Error>> {
-        let browser = Browser::default()?;
+        let extra_args: Vec<&OsStr> = vec![
+            OsStr::new("--headless=new"),
+            OsStr::new("--window-position=-32000,-32000"),
+        ];
+        let browser = Browser::new(
+            LaunchOptionsBuilder::default()
+                .headless(true)
+                .args(extra_args)
+                .build()
+                .expect("failed to build launch options"),
+        )?;
         let tab = browser.new_tab()?;
 
         tab.navigate_to(&self.url)?;
