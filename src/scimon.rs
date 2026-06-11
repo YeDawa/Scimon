@@ -3,13 +3,17 @@ use std::error::Error;
 
 use crate::{
     args_cli::*,
-    cmd::monset::Monset,
     addons::scrape::Scrape,
     syntax::blocks::readme_block::ReadMeBlock,
 
     ui::{
         ui_base::UI,
         errors_alerts::ErrorsAlerts,
+    },
+
+    cmd::{
+        monset::Monset,
+        compiler::Compiler,
     },
     
     monlib::{
@@ -116,6 +120,12 @@ impl Scimon {
 
                 Commands::Settings { cmd } => {
                     let _ = self.sync(&cmd).await;
+                },
+
+                Commands::Latex { file, output } => {
+                    if let Err(err) = Compiler::new(&file, output).latex().await {
+                        ErrorsAlerts::generic(&err.to_string());
+                    }
                 },
             }
         }

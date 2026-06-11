@@ -70,4 +70,14 @@ pub enum Commands {
         /// Pull or push settings file
         cmd: String,
     },
+
+    /// Compile a LaTeX file into PDF
+    Latex {
+        /// LaTeX file to be compiled
+        file: String,
+
+        /// Output file for the compiled PDF
+        #[arg(short, long)]
+        output: Option<String>,
+    },
 }

@@ -43,9 +43,7 @@ impl LaTex {
         html_body = html_body.replace("__TOC_PLACEHOLDER__", &toc_html);
 
         let footnotes = context.flush_footnotes();
-        if !footnotes.is_empty() {
-            html_body.push_str(&footnotes);
-        }
+        if !footnotes.is_empty() { html_body.push_str(&footnotes); }
 
         let header_html = if context.has_fancy {
             Self::build_header_footer(&context)

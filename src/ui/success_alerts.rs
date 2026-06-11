@@ -70,6 +70,16 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn generated_pdf(file: &str) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Generated pdf {}",
+            current_datetime.green().bold(),
+            file.blue(),
+        );
+    }
+
     pub fn qrcode(file: &str) {
         let current_datetime = General.date_time();
     
