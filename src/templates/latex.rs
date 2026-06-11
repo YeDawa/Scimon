@@ -17,8 +17,20 @@ impl TemplateLaTex {
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-                <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-                <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+                <script>
+                window.MathJax = {{
+                    tex: {{
+                        inlineMath: [['\\(', '\\)'], ['$', '$']],
+                        displayMath: [['\\[', '\\]'], ['$$', '$$']],
+                        processEscapes: true,
+                        tags: 'ams'
+                    }},
+                    options: {{
+                        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+                    }}
+                }};
+                </script>
+                <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
                 
                 <style>{2}</style>
                 

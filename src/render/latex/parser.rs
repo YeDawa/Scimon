@@ -333,7 +333,8 @@ fn accent_char(accent: char, base: char) -> String {
 }
 
 pub struct Parser {
-    pub chars: Vec<char>,
+    /// Source text; `pos` is a **byte** offset into this string.
+    pub input: String,
     pub pos: usize,
     pub in_document: bool,
 
@@ -352,7 +353,7 @@ impl Parser {
 
     pub fn new(input: &str) -> Self {
         Parser {
-            chars: input.chars().collect(),
+            input: input.to_string(),
             pos: 0,
             in_document: false,
             current_chapter: 0,
@@ -369,21 +370,18 @@ impl Parser {
     // -----------------------------------------------------------------------
 
     pub fn next_char(&mut self) -> Option<char> {
-        if self.pos >= self.chars.len() {
-            None
-        } else {
-            let c = self.chars[self.pos];
-            self.pos += 1;
-            Some(c)
-        }
+        let c = self.input[self.pos..].chars().next()?;
+        self.pos += c.len_utf8();
+        Some(c)
     }
 
     pub fn peek(&self) -> Option<char> {
-        self.chars.get(self.pos).copied()
+        self.input[self.pos..].chars().next()
     }
 
-    pub fn peek_ahead(&self, offset: usize) -> Option<char> {
-        self.chars.get(self.pos + offset).copied()
+    /// Look `n` chars ahead from the current position (0 = same as peek).
+    pub fn peek_ahead(&self, n: usize) -> Option<char> {
+        self.input[self.pos..].chars().nth(n)
     }
 
     /// Read a TeX dimension token (number + optional unit) from current position.
@@ -499,9 +497,13 @@ impl Parser {
     /// Read an alphabetic command word (letters only) from current position.
     fn read_command_word(&mut self) -> String {
         let mut word = String::new();
-        while let Some(&c) = self.chars.get(self.pos) {
-            if c.is_alphabetic() { word.push(c); self.pos += 1; }
-            else { break; }
+        while let Some(c) = self.peek() {
+            if c.is_alphabetic() {
+                word.push(c);
+                self.pos += c.len_utf8();
+            } else {
+                break;
+            }
         }
         word
     }
@@ -520,12 +522,12 @@ impl Parser {
     /// Collect plain text until a special character.
     pub fn parse_text(&mut self) -> String {
         let mut text = String::new();
-        while let Some(&c) = self.chars.get(self.pos) {
+        while let Some(c) = self.peek() {
             if matches!(c, '\\' | '{' | '}' | '^' | '_' | '%' | '$' | '~' | '&' | '`' | '\'' | '-') {
                 break;
             }
             text.push(c);
-            self.pos += 1;
+            self.pos += c.len_utf8();
         }
         text
     }
@@ -587,9 +589,8 @@ impl Parser {
     fn read_until_end(&mut self, env_name: &str) -> String {
         let end_tag = format!("\\end{{{}}}", env_name);
         let mut raw = String::new();
-        while self.pos < self.chars.len() {
-            let lookahead: String = self.chars[self.pos..].iter().take(end_tag.len()).collect();
-            if lookahead == end_tag {
+        while self.pos < self.input.len() {
+            if self.input[self.pos..].starts_with(end_tag.as_str()) {
                 self.pos += end_tag.len();
                 break;
             }
@@ -600,6 +601,42 @@ impl Parser {
         raw
     }
 
+    /// Consume `\OPEN ... \CLOSE` math delimiters and return the raw inner LaTeX.
+    /// Expects `pos` to be positioned BEFORE the leading `\`; advances past `\CLOSE`.
+    fn consume_math_block(&mut self, open: char, close: char) -> String {
+        self.pos += 2; // skip `\` + open char
+        let mut content = String::new();
+        while self.pos < self.input.len() {
+            if self.peek() == Some('\\') && self.peek_ahead(1) == Some(close) {
+                self.pos += 2;
+                break;
+            }
+            if let Some(c) = self.next_char() { content.push(c); }
+        }
+        let _ = open; // used only as documentation / symmetry
+        content
+    }
+
+    /// Consume `$...$` (inline) or `$$...$$` (display) and return the appropriate node.
+    fn consume_dollar_math(&mut self) -> LatexNode {
+        self.pos += 1; // skip first `$`
+        let display = self.peek() == Some('$');
+        if display { self.pos += 1; }
+
+        let mut content = String::new();
+        while let Some(c) = self.peek() {
+            if c == '$' {
+                self.pos += 1;
+                if display && self.peek() == Some('$') { self.pos += 1; }
+                break;
+            }
+            content.push(c);
+            self.pos += c.len_utf8();
+        }
+
+        if display { LatexNode::RawMathDisplay(content) } else { LatexNode::RawMathInline(content) }
+    }
+
     // -----------------------------------------------------------------------
     // Main parse loop
     // -----------------------------------------------------------------------
@@ -608,15 +645,15 @@ impl Parser {
         let mut nodes: Vec<LatexNode> = Vec::new();
         if force_active { self.in_document = true; }
 
-        while self.pos < self.chars.len() {
-            let current = self.chars[self.pos];
+        while self.pos < self.input.len() {
+            let current = match self.peek() { Some(c) => c, None => break };
 
             // ----------------------------------------------------------------
             // Comments  % ... \n
             // ----------------------------------------------------------------
             if current == '%' {
-                while self.pos < self.chars.len() && self.chars[self.pos] != '\n' {
-                    self.pos += 1;
+                while self.peek().map_or(false, |c| c != '\n') {
+                    self.next_char();
                 }
                 continue;
             }
@@ -636,16 +673,7 @@ impl Parser {
             if current == '\\' && self.in_document
                 && self.peek_ahead(1) == Some('[')
             {
-                self.pos += 2; // consume '\['
-                let mut math_block = String::new();
-                while self.pos < self.chars.len() {
-                    if self.chars[self.pos] == '\\' && self.peek_ahead(1) == Some(']') {
-                        self.pos += 2;
-                        break;
-                    }
-                    if let Some(c) = self.next_char() { math_block.push(c); }
-                }
-                nodes.push(LatexNode::RawMathDisplay(math_block));
+                nodes.push(LatexNode::RawMathDisplay(self.consume_math_block('[', ']')));
                 continue;
             }
 
@@ -655,16 +683,7 @@ impl Parser {
             if current == '\\' && self.in_document
                 && self.peek_ahead(1) == Some('(')
             {
-                self.pos += 2;
-                let mut math_block = String::new();
-                while self.pos < self.chars.len() {
-                    if self.chars[self.pos] == '\\' && self.peek_ahead(1) == Some(')') {
-                        self.pos += 2;
-                        break;
-                    }
-                    if let Some(c) = self.next_char() { math_block.push(c); }
-                }
-                nodes.push(LatexNode::RawMathInline(math_block));
+                nodes.push(LatexNode::RawMathInline(self.consume_math_block('(', ')')));
                 continue;
             }
 
@@ -687,9 +706,9 @@ impl Parser {
                 let mut command = String::new();
 
                 // Special single-char commands like \{ \} \_ etc.
-                if let Some(&nc) = self.chars.get(self.pos) {
+                if let Some(nc) = self.peek() {
                     if !nc.is_alphabetic() {
-                        self.pos += 1; // consume nc
+                        self.pos += nc.len_utf8(); // consume nc
 
                         // Accent commands: read the base letter from {x} or bare x
                         if matches!(nc, '\'' | '`' | '"' | '^' | '~' | '=' | '.') && self.in_document {
@@ -746,8 +765,8 @@ impl Parser {
                     }
                 }
 
-                while let Some(&c) = self.chars.get(self.pos) {
-                    if c.is_alphabetic() { command.push(c); self.pos += 1; }
+                while let Some(c) = self.peek() {
+                    if c.is_alphabetic() { command.push(c); self.pos += c.len_utf8(); }
                     else { break; }
                 }
 
@@ -1689,11 +1708,8 @@ impl Parser {
                             ));
                         } else {
                             // Declaration form: consume rest of stream
-                            let mut rest = String::new();
-                            while self.pos < self.chars.len() {
-                                rest.push(self.chars[self.pos]);
-                                self.pos += 1;
-                            }
+                            let rest = self.input[self.pos..].to_string();
+                            self.pos = self.input.len();
                             nodes.push(LatexNode::FontSize(
                                 command.clone(),
                                 Parser::new(&rest).parse(true, labels)
@@ -1984,11 +2000,8 @@ impl Parser {
                     "choose" if self.in_document => {
                         // nodes collected so far = numerator; rest of input = denominator
                         let num = std::mem::take(&mut nodes);
-                        let mut den_raw = String::new();
-                        while self.pos < self.chars.len() {
-                            den_raw.push(self.chars[self.pos]);
-                            self.pos += 1;
-                        }
+                        let den_raw = self.input[self.pos..].to_string();
+                        self.pos = self.input.len();
                         let den = Parser::new(&den_raw).parse(true, labels);
                         nodes.push(LatexNode::Text(
                             "<span class=\"latex-binom\">\
@@ -3328,27 +3341,7 @@ impl Parser {
             // Inline math  $...$  or  $$...$$
             // ----------------------------------------------------------------
             if current == '$' && self.in_document {
-                self.pos += 1;
-                let display = self.peek() == Some('$');
-                if display { self.pos += 1; }
-
-                let mut math_block = String::new();
-                while let Some(&c) = self.chars.get(self.pos) {
-                    if c == '$' {
-                        self.pos += 1;
-                        if display && self.peek() == Some('$') { self.pos += 1; }
-                        break;
-                    }
-                    math_block.push(c);
-                    self.pos += 1;
-                }
-
-                // Pass raw LaTeX to MathJax instead of rendering ourselves
-                if display {
-                    nodes.push(LatexNode::RawMathDisplay(math_block));
-                } else {
-                    nodes.push(LatexNode::RawMathInline(math_block));
-                }
+                nodes.push(self.consume_dollar_math());
                 continue;
             }
 
@@ -4040,7 +4033,7 @@ impl Parser {
     fn collect_until_close_brace(&mut self) -> String {
         let mut result = String::new();
         let mut depth  = 0usize;
-        while let Some(&c) = self.chars.get(self.pos) {
+        while let Some(c) = self.peek() {
             match c {
                 '{' => { depth += 1; result.push(c); self.pos += 1; }
                 '}' => {
@@ -4052,7 +4045,7 @@ impl Parser {
                     result.push(c);
                     self.pos += 1;
                 }
-                _ => { result.push(c); self.pos += 1; }
+                _ => { result.push(c); self.pos += c.len_utf8(); }
             }
         }
         result

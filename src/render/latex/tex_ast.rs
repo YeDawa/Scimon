@@ -179,48 +179,59 @@ pub enum LatexNode {
 
 impl LatexNode {
 
-    pub fn to_html(&self, ctx: &mut RenderContext) -> String {
+    /// Render this node to HTML, appending into `buf`.
+    /// This is the primary rendering path — a single buffer is reused across
+    /// the whole document, avoiding thousands of intermediate `String` allocations.
+    pub fn write_html(&self, ctx: &mut RenderContext, buf: &mut String) {
+        use std::fmt::Write as _;
         match self {
             // ----------------------------------------------------------------
             // Plain text
             // ----------------------------------------------------------------
-            LatexNode::Text(t) => t.clone(),
+            LatexNode::Text(t) => buf.push_str(t),
 
             // ----------------------------------------------------------------
             // Inline formatting
             // ----------------------------------------------------------------
-            LatexNode::Bold(nodes) =>
-                format!("<strong>{}</strong>", Nodes::render(nodes, ctx)),
-
-            LatexNode::Italic(nodes) =>
-                format!("<em>{}</em>", Nodes::render(nodes, ctx)),
-
-            LatexNode::Underline(nodes) =>
-                format!("<u>{}</u>", Nodes::render(nodes, ctx)),
-
-            LatexNode::Monospace(nodes) =>
-                format!("<code>{}</code>", Nodes::render(nodes, ctx)),
-
-            LatexNode::SmallCaps(nodes) =>
-                format!("<span style=\"font-variant: small-caps;\">{}</span>", Nodes::render(nodes, ctx)),
-
-            LatexNode::Strikethrough(nodes) =>
-                format!("<s>{}</s>", Nodes::render(nodes, ctx)),
+            LatexNode::Bold(nodes) => {
+                buf.push_str("<strong>"); Nodes::write(nodes, ctx, buf); buf.push_str("</strong>");
+            }
+            LatexNode::Italic(nodes) => {
+                buf.push_str("<em>"); Nodes::write(nodes, ctx, buf); buf.push_str("</em>");
+            }
+            LatexNode::Underline(nodes) => {
+                buf.push_str("<u>"); Nodes::write(nodes, ctx, buf); buf.push_str("</u>");
+            }
+            LatexNode::Monospace(nodes) => {
+                buf.push_str("<code>"); Nodes::write(nodes, ctx, buf); buf.push_str("</code>");
+            }
+            LatexNode::SmallCaps(nodes) => {
+                buf.push_str("<span style=\"font-variant: small-caps;\">");
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
+            }
+            LatexNode::Strikethrough(nodes) => {
+                buf.push_str("<s>"); Nodes::write(nodes, ctx, buf); buf.push_str("</s>");
+            }
 
             // ----------------------------------------------------------------
             // Font size
             // ----------------------------------------------------------------
-            LatexNode::FontSize(size, nodes) =>
-                format!("<span class=\"font-{}\">{}</span>", size, Nodes::render(nodes, ctx)),
+            LatexNode::FontSize(size, nodes) => {
+                let _ = write!(buf, "<span class=\"font-{}\">", size);
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
+            }
 
             // ----------------------------------------------------------------
             // Spacing & breaks
             // ----------------------------------------------------------------
-            LatexNode::VSpace(size) =>
-                format!("<div style=\"height: {}\"></div>", size),
-
-            LatexNode::HSpace(size) =>
-                format!("<span style=\"display: inline-block; width: {}\"></span>", size),
+            LatexNode::VSpace(size) => {
+                let _ = write!(buf, "<div style=\"height: {}\"></div>", size);
+            }
+            LatexNode::HSpace(size) => {
+                let _ = write!(buf, "<span style=\"display: inline-block; width: {}\"></span>", size);
+            }
 
             LatexNode::SetLength { param, value } => {
                 let css_var = match param.as_str() {
@@ -234,43 +245,30 @@ impl LatexNode {
                     "\\columnsep"    => "--latex-columnsep",
                     "\\topmargin"    => "--latex-topmargin",
                     "\\oddsidemargin"| "\\evensidemargin" => "--latex-sidemargin",
-                    _ => return String::new(),
+                    _ => return,
                 };
-                format!("<style>:root {{ {}: {}; }}</style>", css_var, value)
+                let _ = write!(buf, "<style>:root {{ {}: {}; }}</style>", css_var, value);
             }
 
             LatexNode::Phantom(nodes) => {
-                let inner = Nodes::render(nodes, ctx);
-                format!(
-                    "<span style=\"visibility:hidden;\">{}</span>",
-                    inner
-                )
+                buf.push_str("<span style=\"visibility:hidden;\">");
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
             }
-
             LatexNode::HPhantom(nodes) => {
-                let inner = Nodes::render(nodes, ctx);
-                format!(
-                    "<span style=\"visibility:hidden; display:inline-block; height:0; overflow:hidden;\">{}</span>",
-                    inner
-                )
+                buf.push_str("<span style=\"visibility:hidden; display:inline-block; height:0; overflow:hidden;\">");
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
             }
-
             LatexNode::VPhantom(nodes) => {
-                let inner = Nodes::render(nodes, ctx);
-                format!(
-                    "<span style=\"visibility:hidden; display:inline-block; width:0; overflow:hidden;\">{}</span>",
-                    inner
-                )
+                buf.push_str("<span style=\"visibility:hidden; display:inline-block; width:0; overflow:hidden;\">");
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
             }
 
-            LatexNode::LineBreak =>
-                "<br/>".to_string(),
-
-            LatexNode::NewPage =>
-                "<div style=\"page-break-after: always;\"></div>".to_string(),
-
-            LatexNode::HorizontalRule =>
-                "<hr class=\"latex-hr\"/>".to_string(),
+            LatexNode::LineBreak     => buf.push_str("<br/>"),
+            LatexNode::NewPage       => buf.push_str("<div style=\"page-break-after: always;\"></div>"),
+            LatexNode::HorizontalRule => buf.push_str("<hr class=\"latex-hr\"/>"),
 
             // ----------------------------------------------------------------
             // Document structure
@@ -282,11 +280,11 @@ impl LatexNode {
                 ctx.subsec_num = 0;
                 let roman = Self::to_roman(ctx.part_num);
                 ctx.toc.push((0, roman.clone(), title.clone()));
-
-                format!(
+                let _ = write!(
+                    buf,
                     "<div class=\"latex-part\" id=\"part-{}\"><span class=\"part-label\">Part {}</span><span class=\"part-title\">{}</span></div>",
                     ctx.part_num, roman, title
-                )
+                );
             }
 
             LatexNode::AddContentsLine(level, title) => {
@@ -306,27 +304,24 @@ impl LatexNode {
                     _ => String::new(),
                 };
                 ctx.toc.push((toc_level, num, title.clone()));
-                String::new()
             }
 
             LatexNode::Chapter(title) => {
                 ctx.chap_num += 1;
                 ctx.sec_num = 0;
                 ctx.subsec_num = 0;
-                let num = ctx.chap_num.to_string();
-                ctx.toc.push((1, num.clone(), title.clone()));
-
-                format!("<h1 id=\"item-{}\">{} &nbsp;&nbsp; {}</h1>", num, num, title)
+                let num = ctx.chap_num;
+                ctx.toc.push((1, num.to_string(), title.clone()));
+                let _ = write!(buf, "<h1 id=\"item-{}\">{} &nbsp;&nbsp; {}</h1>", num, num, title);
             }
 
             LatexNode::Section(title) => {
                 ctx.sec_num += 1;
                 ctx.subsec_num = 0;
                 ctx.subsubsec_num = 0;
-                let num = ctx.sec_num.to_string();
-                ctx.toc.push((2, num.clone(), title.clone()));
-
-                format!("<h2 id=\"item-{}\">{} &nbsp;&nbsp; {}</h2>", num, num, title)
+                let num = ctx.sec_num;
+                ctx.toc.push((2, num.to_string(), title.clone()));
+                let _ = write!(buf, "<h2 id=\"item-{}\">{} &nbsp;&nbsp; {}</h2>", num, num, title);
             }
 
             LatexNode::Subsection(title) => {
@@ -334,127 +329,129 @@ impl LatexNode {
                 ctx.subsubsec_num = 0;
                 let num = format!("{}.{}", ctx.sec_num, ctx.subsec_num);
                 ctx.toc.push((3, num.clone(), title.clone()));
-
-                format!("<h3 id=\"item-{}\">{} &nbsp;&nbsp; {}</h3>", num, num, title)
+                let _ = write!(buf, "<h3 id=\"item-{}\">{} &nbsp;&nbsp; {}</h3>", num, num, title);
             }
 
             LatexNode::Subsubsection(title) => {
                 ctx.subsubsec_num += 1;
                 let num = format!("{}.{}.{}", ctx.sec_num, ctx.subsec_num, ctx.subsubsec_num);
                 ctx.toc.push((4, num.clone(), title.clone()));
-
-                format!("<h4 id=\"item-{}\">{} &nbsp;&nbsp; {}</h4>", num, num, title)
+                let _ = write!(buf, "<h4 id=\"item-{}\">{} &nbsp;&nbsp; {}</h4>", num, num, title);
             }
 
-            LatexNode::Paragraph(title) =>
-                format!("<p class=\"latex-paragraph\"><strong>{}</strong> ", title),
+            LatexNode::Paragraph(title) => {
+                let _ = write!(buf, "<p class=\"latex-paragraph\"><strong>{}</strong> ", title);
+            }
 
             // ----------------------------------------------------------------
             // Abstract
             // ----------------------------------------------------------------
-            LatexNode::Abstract(nodes) =>
-                format!(
-                    "<div class=\"abstract\"><h3 class=\"abstract-title\">Abstract</h3><p>{}</p></div>",
-                    Nodes::render(nodes, ctx)
-                ),
+            LatexNode::Abstract(nodes) => {
+                buf.push_str("<div class=\"abstract\"><h3 class=\"abstract-title\">Abstract</h3><p>");
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</p></div>");
+            }
 
             // ----------------------------------------------------------------
             // Lists
             // ----------------------------------------------------------------
             LatexNode::Itemize(items) => {
-                let items_html: String = items
-                    .iter()
-                    .map(|item| format!("<li>{}</li>", Nodes::render(item, ctx)))
-                    .collect();
-                format!("<ul>{}</ul>", items_html)
+                buf.push_str("<ul>");
+                for item in items {
+                    buf.push_str("<li>"); Nodes::write(item, ctx, buf); buf.push_str("</li>");
+                }
+                buf.push_str("</ul>");
             }
 
             LatexNode::Enumerate(items) => {
-                let items_html: String = items
-                    .iter()
-                    .map(|item| format!("<li>{}</li>", Nodes::render(item, ctx)))
-                    .collect();
-                format!("<ol>{}</ol>", items_html)
+                buf.push_str("<ol>");
+                for item in items {
+                    buf.push_str("<li>"); Nodes::write(item, ctx, buf); buf.push_str("</li>");
+                }
+                buf.push_str("</ol>");
             }
 
             LatexNode::EnumerateLabeled { style, items } => {
-                let items_html: String = items
-                    .iter()
-                    .map(|item| format!("<li>{}</li>", Nodes::render(item, ctx)))
-                    .collect();
-                format!("<ol style=\"list-style-type:{}\">{}</ol>", style, items_html)
+                let _ = write!(buf, "<ol style=\"list-style-type:{}\">" , style);
+                for item in items {
+                    buf.push_str("<li>"); Nodes::write(item, ctx, buf); buf.push_str("</li>");
+                }
+                buf.push_str("</ol>");
             }
 
             LatexNode::Description(items) => {
-                let items_html: String = items
-                    .iter()
-                    .map(|(term, desc)| {
-                        format!("<dt><strong>{}</strong></dt><dd>{}</dd>", term, Nodes::render(desc, ctx))
-                    })
-                    .collect();
-                format!("<dl>{}</dl>", items_html)
+                buf.push_str("<dl>");
+                for (term, desc) in items {
+                    let _ = write!(buf, "<dt><strong>{}</strong></dt><dd>", term);
+                    Nodes::write(desc, ctx, buf);
+                    buf.push_str("</dd>");
+                }
+                buf.push_str("</dl>");
             }
 
             // ----------------------------------------------------------------
             // Math
             // ----------------------------------------------------------------
-
-            // Raw LaTeX passed directly to MathJax for full rendering
-            LatexNode::RawMathInline(raw) =>
-                format!("\\({}\\)", raw),
-
-            LatexNode::RawMathDisplay(raw) =>
-                format!("<div class=\"math-block\">\\[{}\\]</div>", raw),
-
-            #[allow(dead_code)]
-            LatexNode::MathInline(nodes) =>
-                format!("<span class=\"math-inline\">{}</span>", Nodes::render(nodes, ctx)),
+            LatexNode::RawMathInline(raw) => {
+                let _ = write!(buf, "\\({}\\)", raw);
+            }
+            LatexNode::RawMathDisplay(raw) => {
+                let _ = write!(buf, "<div class=\"math-block\">\\[{}\\]</div>", raw);
+            }
 
             #[allow(dead_code)]
-            LatexNode::MathDisplay(nodes) =>
-                format!("<div class=\"math-display\">{}</div>", Nodes::render(nodes, ctx)),
+            LatexNode::MathInline(nodes) => {
+                buf.push_str("<span class=\"math-inline\">");
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
+            }
 
-            LatexNode::Superscript(nodes) =>
-                format!("<sup>{}</sup>", Nodes::render(nodes, ctx)),
+            #[allow(dead_code)]
+            LatexNode::MathDisplay(nodes) => {
+                buf.push_str("<div class=\"math-display\">");
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</div>");
+            }
 
-            LatexNode::Subscript(nodes) =>
-                format!("<sub>{}</sub>", Nodes::render(nodes, ctx)),
+            LatexNode::Superscript(nodes) => {
+                buf.push_str("<sup>"); Nodes::write(nodes, ctx, buf); buf.push_str("</sup>");
+            }
+            LatexNode::Subscript(nodes) => {
+                buf.push_str("<sub>"); Nodes::write(nodes, ctx, buf); buf.push_str("</sub>");
+            }
 
-            LatexNode::Fraction { num, den } =>
-                format!(
-                    "<span class=\"latex-frac\"><span class=\"frac-num\">{}</span><span class=\"frac-den\">{}</span></span>",
-                    Nodes::render(num, ctx),
-                    Nodes::render(den, ctx)
-                ),
+            LatexNode::Fraction { num, den } => {
+                buf.push_str("<span class=\"latex-frac\"><span class=\"frac-num\">");
+                Nodes::write(num, ctx, buf);
+                buf.push_str("</span><span class=\"frac-den\">");
+                Nodes::write(den, ctx, buf);
+                buf.push_str("</span></span>");
+            }
 
             LatexNode::EquationBlock(nodes) => {
                 ctx.eq_num += 1;
-                let num = ctx.eq_num.to_string();
-                Self::register_inner_labels(nodes, &num, ctx);
-                let inner = if let Some(LatexNode::RawMathDisplay(raw)) = nodes.first() {
-                    format!("\\[{}\\]", raw)
+                let num = ctx.eq_num;
+                Self::register_inner_labels(nodes, &num.to_string(), ctx);
+                let _ = write!(buf, "<div class=\"math-block\" id=\"item-{}\">" , num);
+                if let Some(LatexNode::RawMathDisplay(raw)) = nodes.first() {
+                    let _ = write!(buf, "\\[{}\\]", raw);
                 } else {
-                    Nodes::render(nodes, ctx)
-                };
-                format!(
-                    "<div class=\"math-block\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
-                    num, inner, num
-                )
+                    Nodes::write(nodes, ctx, buf);
+                }
+                let _ = write!(buf, " <span class=\"eq-number\">({})</span></div>", num);
             }
 
             LatexNode::AlignBlock(nodes) => {
                 ctx.eq_num += 1;
-                let num = ctx.eq_num.to_string();
-                Self::register_inner_labels(nodes, &num, ctx);
-                let inner = if let Some(LatexNode::RawMathDisplay(raw)) = nodes.first() {
-                    raw.clone()
+                let num = ctx.eq_num;
+                Self::register_inner_labels(nodes, &num.to_string(), ctx);
+                let _ = write!(buf, "<div class=\"math-block math-align\" id=\"item-{}\">", num);
+                if let Some(LatexNode::RawMathDisplay(raw)) = nodes.first() {
+                    buf.push_str(raw);
                 } else {
-                    Nodes::render(nodes, ctx)
-                };
-                format!(
-                    "<div class=\"math-block math-align\" id=\"item-{}\">{} <span class=\"eq-number\">({})</span></div>",
-                    num, inner, num
-                )
+                    Nodes::write(nodes, ctx, buf);
+                }
+                let _ = write!(buf, " <span class=\"eq-number\">({})</span></div>", num);
             }
 
             // ----------------------------------------------------------------
@@ -465,50 +462,41 @@ impl LatexNode {
                 let num = ctx.footnote_num;
                 let content = Nodes::render(nodes, ctx);
                 ctx.pending_footnotes.push((num, content));
-
-                format!(
+                let _ = write!(
+                    buf,
                     "<sup class=\"footnote-ref\"><a href=\"#fn-{}\" id=\"fnref-{}\">{}</a></sup>",
                     num, num, num
-                )
+                );
             }
 
-            // \footnotemark — place mark without text; deferred number resolved later
             LatexNode::FootnoteMark(explicit) => {
-                let num = if let Some(n) = explicit {
-                    *n
-                } else {
-                    ctx.footnote_num += 1;
-                    ctx.footnote_num
+                let num = if let Some(n) = explicit { *n } else {
+                    ctx.footnote_num += 1; ctx.footnote_num
                 };
-                format!(
+                let _ = write!(
+                    buf,
                     "<sup class=\"footnote-ref\"><a href=\"#fn-{}\" id=\"fnref-{}\">{}</a></sup>",
                     num, num, num
-                )
+                );
             }
 
-            // \footnotetext — register text without emitting a mark
             LatexNode::FootnoteText { num, content } => {
-                let n = if let Some(n) = num {
-                    *n
-                } else {
-                    // use current counter (mark was placed first)
-                    ctx.footnote_num
-                };
+                let n = if let Some(n) = num { *n } else { ctx.footnote_num };
                 let html = Nodes::render(content, ctx);
                 ctx.pending_footnotes.push((n, html));
-                String::new()
             }
 
             // ----------------------------------------------------------------
             // References & labels
             // ----------------------------------------------------------------
-            LatexNode::Label(name) =>
-                format!("<span id=\"label-{}\"></span>", name),
+            LatexNode::Label(name) => {
+                let _ = write!(buf, "<span id=\"label-{}\"></span>", name);
+            }
 
             LatexNode::Ref(key) => {
                 let num = ctx.labels.get(key).cloned().unwrap_or_else(|| "??".to_string());
                 let prefix = if key.starts_with("ref-") { "ref" } else { "item" };
-                format!("<a href=\"#{}-{}\" class=\"cross-ref\">{}</a>", prefix, num, num)
+                let _ = write!(buf, "<a href=\"#{}-{}\" class=\"cross-ref\">{}</a>", prefix, num, num);
             }
 
             LatexNode::PageRef(label) => {
@@ -517,168 +505,147 @@ impl LatexNode {
                 } else {
                     (format!("label-{}", label), format!("label-{}", label))
                 };
-
-                format!(
+                let _ = write!(
+                    buf,
                     "<a href=\"#{}\" class=\"cross-ref pageref\" data-ref=\"{}\">??</a>",
                     href, data_ref
-                )
+                );
             }
 
             LatexNode::Cite(key) => {
                 let number = ctx.register_citation(key);
-                format!("<a href=\"#ref-{}\" class=\"cite\">[{}]</a>", key, number)
+                let _ = write!(buf, "<a href=\"#ref-{}\" class=\"cite\">[{}]</a>", key, number);
             }
 
             LatexNode::CiteMultiple(keys) => {
-                let links: Vec<String> = keys
-                    .iter()
-                    .map(|key| {
-                        let number = ctx.register_citation(key);
-                        format!("<a href=\"#ref-{}\" class=\"cite\">{}</a>", key, number)
-                    })
-                    .collect();
-
-                format!("[{}]", links.join(", "))
+                buf.push_str("[");
+                let mut first = true;
+                for key in keys {
+                    if !first { buf.push_str(", "); }
+                    first = false;
+                    let number = ctx.register_citation(key);
+                    let _ = write!(buf, "<a href=\"#ref-{}\" class=\"cite\">{}</a>", key, number);
+                }
+                buf.push_str("]");
             }
 
             // ----------------------------------------------------------------
             // Bibliography
             // ----------------------------------------------------------------
             LatexNode::Bibliography(file) => {
-                let mut html = String::from("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
-
                 let source = if file.starts_with("http://") || file.starts_with("https://") {
                     file.clone()
                 } else {
                     format!("{}.bib", file)
                 };
-
                 let bib_content = BibTextRender::fetch_bibliography(&source).unwrap_or_default();
                 ctx.bib_database = BibTextRender::parse_bibtex(&bib_content);
 
-                // \nocite{*} → include every entry in the database
                 if ctx.nocite_all {
                     let mut all: Vec<String> = ctx.bib_database.keys().cloned().collect();
                     all.sort();
                     for key in all {
-                        if !ctx.citation_map.contains_key(&key) {
-                            ctx.register_citation(&key);
-                        }
+                        if !ctx.citation_map.contains_key(&key) { ctx.register_citation(&key); }
                     }
                 }
 
-                // Render in citation order if we have one, otherwise alphabetical
                 let keys_ordered: Vec<String> = if !ctx.citation_order.is_empty() {
                     ctx.citation_order.clone()
                 } else {
                     let mut k: Vec<String> = ctx.bib_database.keys().cloned().collect();
-                    k.sort();
-                    k
+                    k.sort(); k
                 };
 
+                buf.push_str("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
                 for key in &keys_ordered {
                     if let Some(entry) = ctx.bib_database.get(key) {
-                        html.push_str(&format!(
+                        let _ = write!(
+                            buf,
                             "<li id=\"ref-{}\">{}, <em>{}</em>, {}.</li>",
                             key, entry.author, entry.title, entry.year
-                        ));
+                        );
                     } else {
-                        html.push_str(&format!(
+                        let _ = write!(
+                            buf,
                             "<li><strong style='color:red;'>Error: Ref '{}' not found!</strong></li>",
                             key
-                        ));
+                        );
                     }
                 }
-
-                html.push_str("</ol>");
-                html
+                buf.push_str("</ol>");
             }
 
-            // \nocite{*} or \nocite{key,...} — no visual output; registers keys
             LatexNode::NoCite(keys) => {
                 for key in keys {
-                    if key == "*" {
-                        ctx.nocite_all = true;
-                    } else {
-                        ctx.register_citation(key);
-                    }
+                    if key == "*" { ctx.nocite_all = true; } else { ctx.register_citation(key); }
                 }
-                String::new()
             }
 
-            // \begin{thebibliography}{widest} \bibitem{key} ... \end{thebibliography}
             LatexNode::TheBibliography(items) => {
-                let mut html = String::from("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
+                buf.push_str("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
                 for (key, nodes) in items {
-                    let content = Nodes::render(nodes, ctx);
-                    html.push_str(&format!(
-                        "<li id=\"ref-{}\">{}</li>",
-                        key, content
-                    ));
+                    let _ = write!(buf, "<li id=\"ref-{}\">", key);
+                    Nodes::write(nodes, ctx, buf);
+                    buf.push_str("</li>");
                 }
-                html.push_str("</ol>");
-                html
+                buf.push_str("</ol>");
             }
 
             // ----------------------------------------------------------------
             // Links
             // ----------------------------------------------------------------
-            LatexNode::Url(url) =>
-                format!("<a href=\"{}\">{}</a>", url, url),
-
-            LatexNode::Href { url, text } =>
-                format!("<a href=\"{}\">{}</a>", url, Nodes::render(text, ctx)),
+            LatexNode::Url(url) => {
+                let _ = write!(buf, "<a href=\"{}\">{}</a>", url, url);
+            }
+            LatexNode::Href { url, text } => {
+                let _ = write!(buf, "<a href=\"{}\">", url);
+                Nodes::write(text, ctx, buf);
+                buf.push_str("</a>");
+            }
 
             // ----------------------------------------------------------------
             // TOC
             // ----------------------------------------------------------------
-            LatexNode::TableOfContents =>
-                // Filled in after the full render pass by LaTex::build_toc()
-                "__TOC_PLACEHOLDER__".to_string(),
+            LatexNode::TableOfContents => buf.push_str("__TOC_PLACEHOLDER__"),
 
             // ----------------------------------------------------------------
             // Floats
             // ----------------------------------------------------------------
-            // TableFloat increments tab_num FIRST so \caption inside sees the
-            // correct number regardless of where it appears in the float body.
             LatexNode::TableFloat(children) => {
                 ctx.tab_num += 1;
                 ctx.last_counter = ctx.tab_num.to_string();
                 ctx.in_float = true;
-                let html = Nodes::render(children, ctx);
+                Nodes::write(children, ctx, buf);
                 ctx.in_float = false;
-                html
             }
 
             LatexNode::FigureFloat(children) => {
                 ctx.fig_num += 1;
                 ctx.last_counter = ctx.fig_num.to_string();
                 ctx.in_float = true;
-                let html = Nodes::render(children, ctx);
+                Nodes::write(children, ctx, buf);
                 ctx.in_float = false;
-                html
             }
 
-            LatexNode::Caption(text) =>
-                format!(
+            LatexNode::Caption(text) => {
+                let _ = write!(
+                    buf,
                     "<div class=\"caption\"><strong>Figure/Table {}:</strong> {}</div>",
                     ctx.last_counter, text
-                ),
-
-            LatexNode::CaptionStar(text) =>
-                format!("<div class=\"caption\">{}</div>", text),
+                );
+            }
+            LatexNode::CaptionStar(text) => {
+                let _ = write!(buf, "<div class=\"caption\">{}</div>", text);
+            }
 
             LatexNode::Image(url) => {
-                if !ctx.in_float {
-                    ctx.fig_num += 1;
-                    ctx.last_counter = ctx.fig_num.to_string();
-                }
-
-                let num = ctx.last_counter.clone();
-                format!(
+                if !ctx.in_float { ctx.fig_num += 1; ctx.last_counter = ctx.fig_num.to_string(); }
+                let num = &ctx.last_counter;
+                let _ = write!(
+                    buf,
                     "<img src=\"{}\" class=\"latex-image\" id=\"item-{}\" alt=\"Figure {}\" />",
                     url, num, num
-                )
+                );
             }
 
             LatexNode::Table(rows) => {
@@ -686,126 +653,92 @@ impl LatexNode {
                     ctx.tab_num += 1;
                     ctx.last_counter = ctx.tab_num.to_string();
                 }
-
                 let num = ctx.last_counter.clone();
-                let mut html = format!(
-                    "<table class=\"latex-table\" id=\"item-{}\"><tbody>\n", num
-                );
+                let _ = write!(buf, "<table class=\"latex-table\" id=\"item-{}\"><tbody>\n", num);
 
                 for row in rows {
-                    html.push_str("  <tr>\n");
+                    buf.push_str("  <tr>\n");
                     for cell in row {
                         let mut attrs = String::new();
+                        if cell.colspan > 1 { let _ = write!(attrs, " colspan=\"{}\"", cell.colspan); }
+                        if cell.rowspan > 1 { let _ = write!(attrs, " rowspan=\"{}\"", cell.rowspan); }
 
-                        if cell.colspan > 1 {
-                            attrs.push_str(&format!(" colspan=\"{}\"", cell.colspan));
-                        }
-                        if cell.rowspan > 1 {
-                            attrs.push_str(&format!(" rowspan=\"{}\"", cell.rowspan));
-                        }
-
-                        let mut style = Vec::new();
+                        let mut style_parts: Vec<String> = Vec::new();
                         if !cell.align.is_empty() {
-                            style.push(format!("text-align:{}", cell.align));
+                            style_parts.push(format!("text-align:{}", cell.align));
                         }
                         if let Some(w) = &cell.width {
-                            style.push(format!("width:{}", w));
+                            style_parts.push(format!("width:{}", w));
                         }
                         if cell.hline {
-                            style.push("border-top:2px solid #2c3e50".to_string());
+                            style_parts.push("border-top:2px solid #2c3e50".to_string());
                         }
-                        if !style.is_empty() {
-                            attrs.push_str(&format!(" style=\"{}\"", style.join("; ")));
+                        if !style_parts.is_empty() {
+                            let _ = write!(attrs, " style=\"{}\"", style_parts.join("; "));
                         }
 
-                        html.push_str(&format!(
-                            "    <td{}>{}</td>\n",
-                            attrs, Nodes::render(&cell.content, ctx)
-                        ));
+                        let _ = write!(buf, "    <td{}>", attrs);
+                        Nodes::write(&cell.content, ctx, buf);
+                        buf.push_str("</td>\n");
                     }
-                    html.push_str("  </tr>\n");
+                    buf.push_str("  </tr>\n");
                 }
-
-                html.push_str("</tbody></table>\n");
-                html
+                buf.push_str("</tbody></table>\n");
             }
 
-            // Inline math matrix — delimiters + inline-grid, all in one span
             LatexNode::Matrix { open, close, rows } => {
                 if rows.is_empty() {
-                    return format!("{}{}", open, close);
+                    let _ = write!(buf, "{}{}", open, close);
+                    return;
                 }
-
                 let col_count = rows.iter().map(|r| r.len()).max().unwrap_or(1);
-                let mut cells_html = String::new();
+                let _ = write!(
+                    buf,
+                    "<span class=\"latex-matrix-wrap\"><span class=\"matrix-delim\">{open}</span>\
+                     <span class=\"latex-matrix\" style=\"grid-template-columns: repeat({col_count}, auto);\">",
+                );
                 for row in rows {
                     for cell in row {
-                        // inline-flex keeps sub/sup attached to their base glyph
-                        // instead of becoming independent grid items (display:contents bug)
-                        cells_html.push_str(&format!(
-                            "<span class=\"matrix-cell\">{}</span>",
-                            Nodes::render(cell, ctx)
-                        ));
+                        buf.push_str("<span class=\"matrix-cell\">");
+                        Nodes::write(cell, ctx, buf);
+                        buf.push_str("</span>");
                     }
-
-                    // Pad short rows so the grid stays rectangular
                     for _ in row.len()..col_count {
-                        cells_html.push_str("<span class=\"matrix-cell\"></span>");
+                        buf.push_str("<span class=\"matrix-cell\"></span>");
                     }
                 }
-
-                format!(
-                    "<span class=\"latex-matrix-wrap\">\
-                        <span class=\"matrix-delim\">{open}</span>\
-                        <span class=\"latex-matrix\" \
-                              style=\"grid-template-columns: repeat({col_count}, auto);\">\
-                            {cells_html}\
-                        </span>\
-                        <span class=\"matrix-delim\">{close}</span>\
-                    </span>"
-                )
+                let _ = write!(buf, "</span><span class=\"matrix-delim\">{close}</span></span>");
             }
 
             // ----------------------------------------------------------------
             // Code / Mermaid
             // ----------------------------------------------------------------
-            LatexNode::CodeBlock(code) =>
-                format!(
-                    "<pre class=\"code-block\"><code>{}</code></pre>",
-                    code.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
-                ),
-
-            LatexNode::Mermaid(raw_code) =>
-                format!("<div class=\"mermaid\">\n{}\n</div>", raw_code),
+            LatexNode::CodeBlock(code) => {
+                buf.push_str("<pre class=\"code-block\"><code>");
+                buf.push_str(&code.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;"));
+                buf.push_str("</code></pre>");
+            }
+            LatexNode::Mermaid(raw_code) => {
+                let _ = write!(buf, "<div class=\"mermaid\">\n{}\n</div>", raw_code);
+            }
 
             // ----------------------------------------------------------------
             // Document metadata
             // ----------------------------------------------------------------
-            LatexNode::Title(t) => {
-                ctx.doc_title = Nodes::render(t, ctx);
-                String::new()
-            }
-
-            LatexNode::Author(a) => {
-                ctx.doc_author = Nodes::render(a, ctx);
-                String::new()
-            }
-
-            LatexNode::Date(d) => {
-                ctx.doc_date = Nodes::render(d, ctx);
-                String::new()
-            }
+            LatexNode::Title(t)  => { ctx.doc_title  = Nodes::render(t, ctx); }
+            LatexNode::Author(a) => { ctx.doc_author = Nodes::render(a, ctx); }
+            LatexNode::Date(d)   => { ctx.doc_date   = Nodes::render(d, ctx); }
 
             LatexNode::MakeTitle => {
-                let date_html = if ctx.doc_date.is_empty() {
-                    String::new()
-                } else {
-                    format!("<div class=\"date\">{}</div>", ctx.doc_date)
-                };
-                format!(
-                    "<div class=\"title-block\">\n  <h1>{}</h1>\n  <div class=\"author\">{}</div>\n  {}</div>",
-                    ctx.doc_title, ctx.doc_author, date_html
-                )
+                let _ = write!(
+                    buf,
+                    "<div class=\"title-block\">\n  <h1>{}</h1>\n  <div class=\"author\">{}</div>\n  ",
+                    ctx.doc_title, ctx.doc_author
+                );
+                if !ctx.doc_date.is_empty() {
+                    let _ = write!(buf, "<div class=\"date\">{}</div>", ctx.doc_date);
+                }
+                buf.push_str("</div>");
             }
 
             // ----------------------------------------------------------------
@@ -822,7 +755,6 @@ impl LatexNode {
                         _ => {}
                     }
                 }
-                String::new()
             }
 
             LatexNode::FancyFooter { pos, nodes } => {
@@ -836,7 +768,6 @@ impl LatexNode {
                         _ => {}
                     }
                 }
-                String::new()
             }
 
             LatexNode::FancyClear => {
@@ -846,28 +777,29 @@ impl LatexNode {
                 ctx.footer_left   = String::new();
                 ctx.footer_center = String::new();
                 ctx.footer_right  = String::new();
-                String::new()
             }
 
             LatexNode::ThePage =>
-                "<span class=\"thepage\" aria-label=\"page number\"></span>".to_string(),
+                buf.push_str("<span class=\"thepage\" aria-hidden=\"true\"></span>"),
 
             // ----------------------------------------------------------------
             // Font declarations  \itshape \bfseries \ttfamily …
             // ----------------------------------------------------------------
             LatexNode::FontDecl { style, nodes } => {
-                let inner = Nodes::render(nodes, ctx);
-                match style.as_str() {
-                    "itshape" | "slshape"  => format!("<em>{}</em>", inner),
-                    "bfseries"             => format!("<strong>{}</strong>", inner),
-                    "ttfamily"             => format!("<code>{}</code>", inner),
-                    "sffamily"             => format!("<span style=\"font-family:sans-serif\">{}</span>", inner),
-                    "rmfamily"             => format!("<span style=\"font-family:serif\">{}</span>", inner),
-                    "upshape"              => format!("<span style=\"font-style:normal\">{}</span>", inner),
-                    "scshape"              => format!("<span style=\"font-variant:small-caps\">{}</span>", inner),
-                    "normalfont"           => format!("<span style=\"font-style:normal;font-weight:normal\">{}</span>", inner),
-                    _                     => inner,
-                }
+                let (open, close): (&str, &str) = match style.as_str() {
+                    "itshape" | "slshape"  => ("<em>", "</em>"),
+                    "bfseries"             => ("<strong>", "</strong>"),
+                    "ttfamily"             => ("<code>", "</code>"),
+                    "sffamily"             => ("<span style=\"font-family:sans-serif\">", "</span>"),
+                    "rmfamily"             => ("<span style=\"font-family:serif\">", "</span>"),
+                    "upshape"              => ("<span style=\"font-style:normal\">", "</span>"),
+                    "scshape"              => ("<span style=\"font-variant:small-caps\">", "</span>"),
+                    "normalfont"           => ("<span style=\"font-style:normal;font-weight:normal\">", "</span>"),
+                    _                      => ("", ""),
+                };
+                buf.push_str(open);
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str(close);
             }
 
             // ----------------------------------------------------------------
@@ -875,7 +807,6 @@ impl LatexNode {
             // ----------------------------------------------------------------
             LatexNode::DefineColor { name, css } => {
                 ctx.color_defs.insert(name.clone(), css.clone());
-                String::new()
             }
 
             // ----------------------------------------------------------------
@@ -883,30 +814,27 @@ impl LatexNode {
             // ----------------------------------------------------------------
             LatexNode::ColorDecl { color, nodes } => {
                 let css = ctx.resolve_color(color);
-                let inner = Nodes::render(nodes, ctx);
-                format!("<span style=\"color:{}\">{}</span>", css, inner)
+                let _ = write!(buf, "<span style=\"color:{}\">", css);
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
             }
 
             // ----------------------------------------------------------------
             // \parbox{w}{content}
             // ----------------------------------------------------------------
             LatexNode::Parbox { width, nodes } => {
-                let inner = Nodes::render(nodes, ctx);
-                format!(
-                    "<div style=\"display:inline-block;vertical-align:top;width:{}\">{}</div>",
-                    width, inner
-                )
+                let _ = write!(buf, "<div style=\"display:inline-block;vertical-align:top;width:{}\">", width);
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</div>");
             }
 
             // ----------------------------------------------------------------
             // \raisebox{lift}{content}
             // ----------------------------------------------------------------
             LatexNode::Raisebox { lift, nodes } => {
-                let inner = Nodes::render(nodes, ctx);
-                format!(
-                    "<span style=\"position:relative;bottom:{}\">{}</span>",
-                    lift, inner
-                )
+                let _ = write!(buf, "<span style=\"position:relative;bottom:{}\">", lift);
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
             }
 
             // ----------------------------------------------------------------
@@ -915,73 +843,62 @@ impl LatexNode {
             LatexNode::CounterValue { style, counter } => {
                 let n = ctx.counter_value(counter);
                 match style.as_str() {
-                    "arabic"  => n.to_string(),
-                    "roman"   => Self::to_roman(n),
-                    "Roman"   => Self::to_roman(n).to_uppercase(),
-                    "alph"    => {
-                        let idx = ((n.saturating_sub(1)) % 26) as u8;
-                        (b'a' + idx) as char
-                    }.to_string(),
-                    "Alph"    => {
-                        let idx = ((n.saturating_sub(1)) % 26) as u8;
-                        (b'A' + idx) as char
-                    }.to_string(),
-                    "fnsymbol" => match n {
+                    "arabic"   => { let _ = write!(buf, "{}", n); }
+                    "roman"    => buf.push_str(&Self::to_roman(n)),
+                    "Roman"    => buf.push_str(&Self::to_roman(n).to_uppercase()),
+                    "alph"     => buf.push((b'a' + ((n.saturating_sub(1)) % 26) as u8) as char),
+                    "Alph"     => buf.push((b'A' + ((n.saturating_sub(1)) % 26) as u8) as char),
+                    "fnsymbol" => buf.push_str(match n {
                         1 => "*", 2 => "†", 3 => "‡", 4 => "§",
-                        5 => "¶", 6 => "‖", 7 => "**", 8 => "††",
-                        _ => "?",
-                    }.to_string(),
-                    _ => n.to_string(),
+                        5 => "¶", 6 => "‖", 7 => "**", 8 => "††", _ => "?",
+                    }),
+                    _ => { let _ = write!(buf, "{}", n); }
                 }
             }
 
             // ----------------------------------------------------------------
-            // \nameref{label}
+            // \nameref, \hyperref, \hypertarget, \hyperlink, \phantomsection
             // ----------------------------------------------------------------
             LatexNode::NameRef(label) => {
                 let target = ctx.labels.get(label).cloned().unwrap_or_default();
-                format!("<a href=\"#item-{}\" class=\"nameref\">{}</a>", target, label)
+                let _ = write!(buf, "<a href=\"#item-{}\" class=\"nameref\">{}</a>", target, label);
             }
 
-            // ----------------------------------------------------------------
-            // \hyperref[label]{text}
-            // ----------------------------------------------------------------
             LatexNode::HyperRef { label, text } => {
                 let target = ctx.labels.get(label).cloned().unwrap_or_default();
-                let inner  = Nodes::render(text, ctx);
-                format!("<a href=\"#item-{}\" class=\"hyperref\">{}</a>", target, inner)
+                let _ = write!(buf, "<a href=\"#item-{}\" class=\"hyperref\">", target);
+                Nodes::write(text, ctx, buf);
+                buf.push_str("</a>");
             }
 
-            // ----------------------------------------------------------------
-            // \hypertarget{name}{text}
-            // ----------------------------------------------------------------
             LatexNode::HyperTarget { name, nodes } => {
-                let inner = Nodes::render(nodes, ctx);
-                format!("<span id=\"ht-{}\">{}</span>", name, inner)
+                let _ = write!(buf, "<span id=\"ht-{}\">", name);
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</span>");
             }
 
-            // ----------------------------------------------------------------
-            // \hyperlink{name}{text}
-            // ----------------------------------------------------------------
             LatexNode::HyperLink { name, nodes } => {
-                let inner = Nodes::render(nodes, ctx);
-                format!("<a href=\"#ht-{}\" class=\"hyperlink\">{}</a>", name, inner)
+                let _ = write!(buf, "<a href=\"#ht-{}\" class=\"hyperlink\">", name);
+                Nodes::write(nodes, ctx, buf);
+                buf.push_str("</a>");
             }
 
-            // ----------------------------------------------------------------
-            // \phantomsection
-            // ----------------------------------------------------------------
             LatexNode::PhantomSection => {
                 ctx.phantom_id += 1;
-                format!("<span id=\"phantom-{}\" aria-hidden=\"true\"></span>", ctx.phantom_id)
+                let _ = write!(buf, "<span id=\"phantom-{}\" aria-hidden=\"true\"></span>", ctx.phantom_id);
             }
 
             // ----------------------------------------------------------------
             // \linespread / \onehalfspacing / \doublespacing
             // ----------------------------------------------------------------
-            LatexNode::LineSpread(factor) =>
-                format!("<style>:root {{ --latex-baselineskip: {}; }} .document-container p, .document-container li {{ line-height: {}; }}</style>",
-                    factor, factor),
+            LatexNode::LineSpread(factor) => {
+                let _ = write!(
+                    buf,
+                    "<style>:root {{ --latex-baselineskip: {}; }} \
+                     .document-container p, .document-container li {{ line-height: {}; }}</style>",
+                    factor, factor
+                );
+            }
         }
     }
 
