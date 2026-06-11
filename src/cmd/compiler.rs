@@ -1,7 +1,7 @@
 use is_url::is_url;
 
 use std::{
-    fs,
+    fs::write,
     error::Error,
 };
 
@@ -58,7 +58,7 @@ impl Compiler {
         let html = LaTex.render(&content).await;
         let pdf_contents = Render.connect_to_browser(&html).await?;
 
-        fs::write(&output_name, pdf_contents)?;
+        write(&output_name, pdf_contents)?;
         SuccessAlerts::generated_pdf(&output_name);
 
         Ok(())
