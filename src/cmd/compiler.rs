@@ -8,7 +8,11 @@ use std::{
 use crate::{
     system::latex::LaTex,
     render::render::Render,
-    ui::success_alerts::SuccessAlerts,
+
+    ui::{
+        ui_base::UI,
+        success_alerts::SuccessAlerts,
+    },
 
     utils::{
         remote::Remote,
@@ -32,6 +36,9 @@ impl Compiler {
     }
 
     pub async fn latex(&self) -> Result<(), Box<dyn Error>> {
+        UI::header();
+        UI::section_header("LaTex Compiler", "info");
+
         let content = if is_url(&self.file) {
             Remote.content(&self.file).await?
         } else {
