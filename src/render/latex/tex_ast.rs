@@ -896,14 +896,6 @@ impl LatexNode {
         }
     }
 
-    fn register_inner_labels(nodes: &[LatexNode], value: &str, ctx: &mut RenderContext) {
-        for node in nodes {
-            if let LatexNode::Label(name) = node {
-                ctx.labels.insert(name.clone(), value.to_string());
-            }
-        }
-    }
-
     fn to_roman(n: usize) -> String {
         const VALS: &[(usize, &str)] = &[
             (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
