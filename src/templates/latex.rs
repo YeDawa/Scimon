@@ -18,21 +18,20 @@ impl TemplateLaTex {
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
                 <script>
-                window.MathJax = {{
-                    tex: {{
-                        inlineMath: [['\\(', '\\)'], ['$', '$']],
-                        displayMath: [['\\[', '\\]'], ['$$', '$$']],
-                        processEscapes: true
-                    }},
-                    options: {{
-                        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
-                    }}
-                }};
+                    window.MathJax = {{
+                        tex: {{
+                            inlineMath: [['\\(', '\\)'], ['$', '$']],
+                            displayMath: [['\\[', '\\]'], ['$$', '$$']],
+                            processEscapes: true
+                        }},
+                        options: {{
+                            skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+                        }}
+                    }};
                 </script>
+
                 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
-                
                 <style>{2}</style>
-                
                 <script type="module">
                     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
                     mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
@@ -40,7 +39,6 @@ impl TemplateLaTex {
             </head>
             <body>
                 <div class="document-container">{1}{0}</div>
-                
                 <script>{3}</script>
             </body>
             </html>"##, content, header_footer, css_style, js_script
