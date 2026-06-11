@@ -535,25 +535,37 @@ impl Parser {
     /// Collect everything inside the next `{…}`, respecting nesting.
     pub fn parse_braces_content(&mut self) -> String {
         self.skip_whitespace();
-        if self.peek() == Some('{') {
-            self.next_char(); // consume '{'
-            let mut content = String::new();
-            let mut depth = 1usize;
-            while depth > 0 {
-                match self.next_char() {
-                    Some('{') => { depth += 1; content.push('{'); }
-                    Some('}') => {
-                        depth -= 1;
-                        if depth > 0 { content.push('}'); }
-                    }
-                    Some(c) => content.push(c),
-                    None => break,
-                }
-            }
-            content
-        } else {
-            String::new()
+        if self.peek() != Some('{') {
+            return String::new();
         }
+        self.next_char(); // consume opening '{'
+        let mut content = String::new();
+        let mut depth = 1usize;
+        while depth > 0 {
+            let c = match self.next_char() {
+                Some(c) => c,
+                None => break,
+            };
+            if c == '\\' {
+                content.push('\\');
+                // \{ and \} are literal braces — do not affect depth
+                if matches!(self.peek(), Some('{') | Some('}')) {
+                    let escaped = self.next_char().unwrap();
+                    content.push(escaped);
+                }
+            } else if c == '{' {
+                depth += 1;
+                content.push('{');
+            } else if c == '}' {
+                depth -= 1;
+                if depth > 0 {
+                    content.push('}');
+                }
+            } else {
+                content.push(c);
+            }
+        }
+        content
     }
 
     /// Parse the next argument: `{…}` (multiple chars) or a single char.

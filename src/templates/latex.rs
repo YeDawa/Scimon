@@ -32,6 +32,9 @@ impl TemplateLaTex {
                 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
                 
                 <style>{2}</style>
+                <style>
+                    a.gsr-annotation-link {{ display: none !important; }}
+                </style>
                 
                 <script type="module">
                     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';

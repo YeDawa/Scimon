@@ -592,7 +592,8 @@ impl LatexNode {
                 let _ = write!(buf, "<a href=\"{}\">{}</a>", url, url);
             }
             LatexNode::Href { url, text } => {
-                let _ = write!(buf, "<a href=\"{}\">", url);
+                let safe_url = url.replace('&', "&amp;").replace('"', "&quot;").replace('<', "&lt;").replace('>', "&gt;");
+                let _ = write!(buf, "<a href=\"{}\" style=\"display:inline\">", safe_url);
                 Nodes::write(text, ctx, buf);
                 buf.push_str("</a>");
             }
