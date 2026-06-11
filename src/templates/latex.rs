@@ -22,8 +22,7 @@ impl TemplateLaTex {
                     tex: {{
                         inlineMath: [['\\(', '\\)'], ['$', '$']],
                         displayMath: [['\\[', '\\]'], ['$$', '$$']],
-                        processEscapes: true,
-                        tags: 'ams'
+                        processEscapes: true
                     }},
                     options: {{
                         skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
