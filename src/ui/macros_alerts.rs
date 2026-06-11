@@ -26,9 +26,8 @@ impl MacrosAlerts {
         let current_datetime = General.date_time();
 
         UI::section_header("readme", "info");
-
         println!(
-            "{} README file rendered with successfully ({})", 
+            "{} README file rendered with successfully in {}", 
             current_datetime.blue().bold(), 
             file.cyan()
         );
