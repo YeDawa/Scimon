@@ -429,56 +429,23 @@ impl LatexNode {
             }
 
             LatexNode::EquationBlock(nodes) => {
-                ctx.eq_num += 1;
-                let num = ctx.eq_num;
-                Self::register_inner_labels(nodes, &num.to_string(), ctx);
-                let _ = write!(buf, "<div class=\"math-block\" id=\"item-{}\">" , num);
+                buf.push_str("<div class=\"math-block\">");
                 if let Some(LatexNode::RawMathDisplay(raw)) = nodes.first() {
                     let _ = write!(buf, "\\[{}\\]", raw);
                 } else {
                     Nodes::write(nodes, ctx, buf);
                 }
-                let _ = write!(buf, " <span class=\"eq-number\">({})</span></div>", num);
+                buf.push_str("</div>");
             }
 
             LatexNode::AlignBlock(nodes) => {
-                // For multi-line align/gather/eqnarray, inject \tag{n} on each
-                // \\ line so MathJax renders the right number without relying on
-                // `tags:'ams'` (which conflicts with our HTML-level numbering).
+                buf.push_str("<div class=\"math-block math-align\">");
                 if let Some(LatexNode::RawMathDisplay(raw)) = nodes.first() {
-                    // raw = \begin{align}body\end{align}
-                    let begin_end = raw.find('}').map(|i| i + 1).unwrap_or(0);
-                    let close_start = raw.rfind("\\end").unwrap_or(raw.len());
-                    let env_open  = &raw[..begin_end];
-                    let body      = &raw[begin_end..close_start];
-                    let env_close = &raw[close_start..];
-
-                    // Split on \\ (the line separator in LaTeX align bodies)
-                    let lines: Vec<&str> = body.split("\\\\").collect();
-                    let first_num = ctx.eq_num + 1;
-                    ctx.eq_num += lines.len();
-
-                    let _ = write!(buf, "<div class=\"math-block math-align\" id=\"item-{}\">", first_num);
-                    buf.push_str(env_open);
-                    for (i, line) in lines.iter().enumerate() {
-                        let eq = first_num + i;
-                        buf.push_str(line);
-                        if i + 1 < lines.len() {
-                            let _ = write!(buf, " \\tag{{{}}} \\\\", eq);
-                        } else {
-                            let _ = write!(buf, " \\tag{{{}}}", eq);
-                        }
-                    }
-                    buf.push_str(env_close);
-                    buf.push_str("</div>");
+                    buf.push_str(raw);
                 } else {
-                    ctx.eq_num += 1;
-                    let num = ctx.eq_num;
-                    Self::register_inner_labels(nodes, &num.to_string(), ctx);
-                    let _ = write!(buf, "<div class=\"math-block math-align\" id=\"item-{}\">", num);
                     Nodes::write(nodes, ctx, buf);
-                    buf.push_str("</div>");
                 }
+                buf.push_str("</div>");
             }
 
             // ----------------------------------------------------------------
