@@ -391,18 +391,18 @@ impl Parser {
         let mut s = String::new();
         // optional sign
         if matches!(self.peek(), Some('+') | Some('-')) {
-            s.push(self.next_char().unwrap());
+            if let Some(c) = self.next_char() { s.push(c); }
         }
         self.skip_whitespace();
         // digits and decimal point
         while matches!(self.peek(), Some('0'..='9') | Some('.')) {
-            s.push(self.next_char().unwrap());
+            if let Some(c) = self.next_char() { s.push(c); }
         }
         self.skip_whitespace();
         // unit (up to 2 letters)
         let mut unit = String::new();
         while unit.len() < 4 && matches!(self.peek(), Some('a'..='z') | Some('A'..='Z')) {
-            unit.push(self.next_char().unwrap());
+            if let Some(c) = self.next_char() { unit.push(c); }
         }
         if !unit.is_empty() { s.push_str(&unit); }
         s
@@ -727,8 +727,7 @@ impl Parser {
                             let base = if self.peek() == Some('{') {
                                 self.parse_braces_content()
                             } else if self.peek().map_or(false, |c| c.is_alphabetic()) {
-                                let c = self.next_char().unwrap();
-                                c.to_string()
+                                self.next_char().map(|c| c.to_string()).unwrap_or_default()
                             } else {
                                 // Accent without a following letter — emit the accent itself
                                 match nc {
@@ -952,513 +951,10 @@ impl Parser {
                     // --------------------------------------------------------
                     "begin" => {
                         let env = self.parse_braces_content();
-
-                        // Consume optional placement [htbp] etc.
-                        self.parse_optional_arg();
-
-                        if env == "document" {
-                            self.in_document = true;
-
-                        } else if env == "abstract" && self.in_document {
-                            let raw = self.read_until_end("abstract");
-                            nodes.push(LatexNode::Abstract(
-                                Parser::new(raw.trim()).parse(true, labels)
-                            ));
-
-                        } else if (env == "IEEEkeywords" || env == "keywords") && self.in_document {
-                            let raw = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(
-                                "<div class=\"latex-keywords\"><strong>Keywords:</strong> ".to_string()
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if env == "tabbing" && self.in_document {
-                            let raw = self.read_until_end("tabbing");
-                            let html = Self::render_tabbing(&raw);
-                            nodes.push(LatexNode::Text(html));
-
-                        } else if env == "verse" && self.in_document {
-                            let raw = self.read_until_end("verse");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text("<div class=\"latex-verse\">".to_string()));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if env == "titlepage" && self.in_document {
-                            let raw = self.read_until_end("titlepage");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text("<div class=\"latex-titlepage\">".to_string()));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if (env == "landscape" || env == "pdflscape") && self.in_document {
-                            let raw = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text("<div class=\"latex-landscape\">".to_string()));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if env == "spacing" && self.in_document {
-                            let factor: f64 = self.parse_braces_content()
-                                .trim().parse().unwrap_or(1.2);
-                            let raw   = self.read_until_end("spacing");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(
-                                format!("<div style=\"line-height:{}\">", factor)
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if matches!(env.as_str(), "samepage" | "sloppypar" | "comment")
-                               && self.in_document
-                        {
-                            // samepage / sloppypar — no visual change in HTML
-                            // comment — suppress content
-                            let raw = self.read_until_end(&env);
-                            if env != "comment" {
-                                let inner = Parser::new(raw.trim()).parse(true, labels);
-                                nodes.extend(inner);
-                            }
-
-                        } else if env == "thebibliography" && self.in_document {
-                            self.parse_braces_content(); // {widest-label} — ignored
-                            let raw = self.read_until_end("thebibliography");
-                            nodes.push(LatexNode::TheBibliography(
-                                Self::parse_thebibliography(&raw, labels)
-                            ));
-
-                        } else if (env == "lstlisting" || env == "verbatim" || env == "Verbatim") && self.in_document {
-                            self.parse_optional_arg(); // lstlisting options
-                            let raw = self.read_until_end(&env);
-                            nodes.push(LatexNode::CodeBlock(raw.trim_matches('\n').to_string()));
-
-                        } else if env == "minted" && self.in_document {
-                            self.parse_braces_content(); // language arg
-                            let raw = self.read_until_end("minted");
-                            nodes.push(LatexNode::CodeBlock(raw.trim_matches('\n').to_string()));
-
-                        } else if env == "itemize" && self.in_document {
-                            let block = self.read_until_end("itemize");
-                            let items = Self::split_items(&block, labels);
-                            nodes.push(LatexNode::Itemize(items));
-
-                        } else if env == "enumerate" && self.in_document {
-                            let opt = self.parse_optional_arg(); // [label=\alph*, ...] (enumitem)
-                            let block = self.read_until_end("enumerate");
-                            let items = Self::split_items(&block, labels);
-                            if let Some(opt_str) = opt {
-                                let style = Self::enumitem_label_style(&opt_str);
-                                if !style.is_empty() {
-                                    nodes.push(LatexNode::EnumerateLabeled { style, items });
-                                } else {
-                                    nodes.push(LatexNode::Enumerate(items));
-                                }
-                            } else {
-                                nodes.push(LatexNode::Enumerate(items));
-                            }
-
-                        } else if env == "description" && self.in_document {
-                            let block = self.read_until_end("description");
-                            let items = Self::split_description_items(&block, labels);
-                            nodes.push(LatexNode::Description(items));
-
-                        } else if env == "mermaid" && self.in_document {
-                            let raw = self.read_until_end("mermaid");
-                            nodes.push(LatexNode::Mermaid(raw));
-
-                        } else if (env == "tabular" || env == "tabular*") && self.in_document {
-                            if env == "tabular*" {
-                                self.parse_braces_content(); // overall width (ignore)
-                            }
-                            let colspec     = self.parse_braces_content();
-                            let table_block = self.read_until_end(&env);
-                            let rows        = Self::parse_tabular(&table_block, &colspec, labels);
-                            nodes.push(LatexNode::Table(rows));
-
-                        } else if (env == "tabularx" || env == "tabulary") && self.in_document {
-                            self.parse_braces_content(); // overall width
-                            let colspec     = self.parse_braces_content();
-                            let table_block = self.read_until_end(&env);
-                            let rows        = Self::parse_tabular(&table_block, &colspec, labels);
-                            nodes.push(LatexNode::Table(rows));
-
-                        } else if env == "table" && self.in_document {
-                            let raw = self.read_until_end("table");
-                            self.current_table += 1;
-                            // Pre-register \label{tab:…} with the current table number
-                            Self::extract_and_register_labels(&raw, &self.current_table.to_string(), "tab:", labels);
-                            let mut sub = Parser::new(raw.trim());
-                            sub.current_table      = self.current_table;
-                            sub.current_section    = self.current_section;
-                            sub.current_chapter    = self.current_chapter;
-                            sub.current_subsection = self.current_subsection;
-                            sub.current_equation   = self.current_equation;
-                            let children = sub.parse(true, labels);
-                            nodes.push(LatexNode::TableFloat(children));
-
-                        } else if env == "figure" && self.in_document {
-                            let raw = self.read_until_end("figure");
-                            Self::extract_and_register_labels(&raw, &self.current_section.to_string(), "fig:", labels);
-                            let mut sub = Parser::new(raw.trim());
-                            sub.current_section    = self.current_section;
-                            sub.current_chapter    = self.current_chapter;
-                            sub.current_equation   = self.current_equation;
-                            sub.current_table      = self.current_table;
-                            sub.current_subsection = self.current_subsection;
-                            let children = sub.parse(true, labels);
-                            nodes.push(LatexNode::FigureFloat(children));
-
-                        } else if (env == "equation" || env == "equation*") && self.in_document {
-                            let raw = self.read_until_end(&env);
-                            self.current_equation += 1;
-                            Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
-                            nodes.push(LatexNode::EquationBlock(
-                                vec![LatexNode::RawMathDisplay(raw.trim().to_string())]
-                            ));
-
-                        // \begin{array}{spec}...\end{array}
-                        // \begin{cases}...\end{cases}
-                        // \begin{split}...\end{split}
-                        // These are math-mode environments — wrap in $$ and pass raw
-                        } else if matches!(env.as_str(),
-                            "array" | "cases" | "dcases" | "rcases" |
-                            "split" | "aligned" | "alignedat" | "gathered"
-                        ) && self.in_document {
-                            if env == "array" || env == "alignedat" {
-                                self.parse_braces_content(); // {colspec} or {n}
-                            }
-                            let raw   = self.read_until_end(&env);
-                            let latex = format!("\\begin{{{}}}{}\\end{{{}}}", env, raw.trim(), env);
-                            nodes.push(LatexNode::RawMathDisplay(latex));
-
-                        // \begin{subequations}...\end{subequations}
-                        } else if env == "subequations" && self.in_document {
-                            let raw = self.read_until_end("subequations");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.extend(inner);
-
-                        } else if (env == "align"  || env == "align*"
-                                || env == "eqnarray" || env == "eqnarray*"
-                                || env == "multline" || env == "multline*"
-                                || env == "gather"   || env == "gather*"
-                                || env == "flalign"  || env == "flalign*") && self.in_document
-                        {
-                            let raw = self.read_until_end(&env);
-                            self.current_equation += 1;
-                            Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
-                            let latex = format!("\\begin{{{}}}{}\\end{{{}}}", env, raw.trim(), env);
-                            nodes.push(LatexNode::AlignBlock(
-                                vec![LatexNode::RawMathDisplay(latex)]
-                            ));
-
-                        } else if matches!(env.as_str(),
-                            "pmatrix" | "bmatrix" | "Bmatrix" |
-                            "vmatrix" | "Vmatrix" | "matrix"  |
-                            "smallmatrix"
-                        ) && self.in_document {
-                            let raw = self.read_until_end(&env);
-                            let (open, close) = match env.as_str() {
-                                "pmatrix"            => ("(", ")"),
-                                "bmatrix"            => ("[", "]"),
-                                "Bmatrix"            => ("{", "}"),
-                                "vmatrix"            => ("|", "|"),
-                                "Vmatrix"            => ("‖", "‖"),
-                                _                    => ("", ""),
-                            };
-                            let inner = Self::parse_matrix_body(&raw, labels);
-                            nodes.push(LatexNode::Matrix { open, close, rows: inner });
-
-                        } else if env == "center" && self.in_document {
-                            let raw = self.read_until_end("center");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            // Wrap in a centred div
-                            nodes.push(LatexNode::Text("<div style=\"text-align:center;\">".to_string()));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if env == "quote" || env == "quotation" {
-                            let raw = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text("<blockquote class=\"latex-quote\">".to_string()));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</blockquote>".to_string()));
-
-                        } else if env == "theorem" || env == "lemma" || env == "corollary"
-                                || env == "proposition" || env == "proof"
-                                || env == "definition" || env == "remark" || env == "example"
-                                || env == "conjecture" || env == "claim" || env == "exercise"
-                                || env == "solution" || env == "question" || env == "answer"
-                                || env == "notation" || env == "observation" || env == "assumption"
-                                || env == "fact" || env == "problem" || env == "note"
-                        {
-                            let raw = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            let label = {
-                                let mut s = env.clone();
-                                if let Some(r) = s.get_mut(0..1) {
-                                    r.make_ascii_uppercase();
-                                }
-                                s
-                            };
-                            nodes.push(LatexNode::Text(
-                                format!("<div class=\"latex-theorem latex-{}\"><strong>{}.</strong> ", env, label)
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        // ------------------------------------------------
-                        // minipage
-                        // ------------------------------------------------
-                        } else if env == "minipage" && self.in_document {
-                            self.parse_optional_arg(); // [pos]
-                            let width = Self::conv_width(&self.parse_braces_content());
-                            let raw   = self.read_until_end("minipage");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(format!(
-                                "<div class=\"latex-minipage\" style=\"width: {};\">", width
-                            )));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        // ------------------------------------------------
-                        // multicols
-                        // ------------------------------------------------
-                        } else if (env == "multicols" || env == "multicols*") && self.in_document {
-                            let ncols: u32 = self.parse_braces_content()
-                                .trim().parse().unwrap_or(2);
-                            let raw   = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(format!(
-                                "<div class=\"latex-multicols\" style=\"column-count: {};\">",
-                                ncols
-                            )));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        // ------------------------------------------------
-                        // tcolorbox
-                        // ------------------------------------------------
-                        } else if env == "tcolorbox" && self.in_document {
-                            let opts = self.parse_optional_arg().unwrap_or_default();
-                            let raw  = self.read_until_end("tcolorbox");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-
-                            let (title, colback, colframe) = Self::parse_tcolorbox(&opts);
-                            nodes.push(LatexNode::Text(format!(
-                                "<div class=\"latex-tcolorbox\" \
-                                 style=\"--tcb-back:{colback}; --tcb-frame:{colframe};\">",
-                                colback  = colback,
-                                colframe = colframe,
-                            )));
-                            if let Some(t) = title {
-                                nodes.push(LatexNode::Text(format!(
-                                    "<div class=\"tcolorbox-title\" \
-                                     style=\"background:{};\">{}</div>",
-                                    colframe, t
-                                )));
-                            }
-                            nodes.push(LatexNode::Text(
-                                "<div class=\"tcolorbox-body\">".to_string()
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div></div>".to_string()));
-
-                        // ------------------------------------------------
-                        // framed / shaded / mdframed
-                        // ------------------------------------------------
-                        } else if matches!(env.as_str(),
-                            "framed" | "shaded" | "shaded*" | "oframed" | "mdframed"
-                        ) && self.in_document {
-                            self.parse_optional_arg(); // mdframed options
-                            let raw   = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            let cls = if env.starts_with("shaded") {
-                                "latex-shaded"
-                            } else {
-                                "latex-framed"
-                            };
-                            nodes.push(LatexNode::Text(
-                                format!("<div class=\"{}\">", cls)
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        // ------------------------------------------------
-                        // wrapfigure / wraptable
-                        // ------------------------------------------------
-                        } else if (env == "wrapfigure" || env == "wraptable")
-                                && self.in_document
-                        {
-                            let _lines = self.parse_optional_arg();
-                            let pos_raw   = self.parse_braces_content();
-                            let width_raw = self.parse_braces_content();
-                            let width  = Self::conv_width(&width_raw);
-                            let float_dir = match pos_raw.trim() {
-                                "l" | "i" | "L" | "I" => "left",
-                                _                      => "right",
-                            };
-                            let margin = if float_dir == "left" {
-                                "0 1.5em 1em 0"
-                            } else {
-                                "0 0 1em 1.5em"
-                            };
-                            let raw   = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(format!(
-                                "<div class=\"latex-wrapfigure\" \
-                                 style=\"float:{float}; width:{width}; margin:{margin};\">",
-                                float  = float_dir,
-                                width  = width,
-                                margin = margin,
-                            )));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text(
-                                "<div style=\"clear:both;\"></div></div>".to_string()
-                            ));
-
-                        // ------------------------------------------------
-                        // subfigure / subcaption subfigure
-                        // ------------------------------------------------
-                        } else if (env == "subfigure" || env == "subfloat")
-                                && self.in_document
-                        {
-                            let _pos    = self.parse_optional_arg();
-                            let width   = Self::conv_width(&self.parse_braces_content());
-                            let raw     = self.read_until_end(&env);
-                            let inner   = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(format!(
-                                "<figure class=\"latex-subfigure\" style=\"width:{width};\">",
-                                width = width,
-                            )));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</figure>".to_string()));
-
-                        // ------------------------------------------------
-                        // longtable  (render like tabular)
-                        // ------------------------------------------------
-                        } else if (env == "longtable" || env == "longtabu"
-                                || env == "xltabular") && self.in_document
-                        {
-                            self.parse_optional_arg(); // [pos]
-                            if env == "xltabular" { self.parse_braces_content(); } // {width}
-                            let colspec = self.parse_braces_content(); // {cols}
-                            let raw  = self.read_until_end(&env);
-                            let rows = Self::parse_tabular(&raw, &colspec, labels);
-                            nodes.push(LatexNode::Table(rows));
-
-                        // ------------------------------------------------
-                        // flushright / flushleft
-                        // ------------------------------------------------
-                        } else if env == "flushright" && self.in_document {
-                            let raw   = self.read_until_end("flushright");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(
-                                "<div style=\"text-align:right;\">".to_string()
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if env == "flushleft" && self.in_document {
-                            let raw   = self.read_until_end("flushleft");
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(
-                                "<div style=\"text-align:left;\">".to_string()
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        // ------------------------------------------------
-                        // TikZ / PGF / drawing environments — placeholder
-                        // ------------------------------------------------
-                        } else if matches!(env.as_str(),
-                            "tikzpicture" | "pgfpicture" | "circuitikz"
-                            | "forest" | "tikzcd" | "scope"
-                        ) && self.in_document {
-                            self.read_until_end(&env);
-                            nodes.push(LatexNode::Text(
-                                format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
-                            ));
-
-                        // ------------------------------------------------
-                        // algorithm / algorithmic pseudo-code environments
-                        // ------------------------------------------------
-                        } else if matches!(env.as_str(),
-                            "algorithm" | "algorithm2e" | "algorithm*"
-                        ) && self.in_document {
-                            self.parse_optional_arg(); // [H] placement
-                            let raw   = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(
-                                "<div class=\"latex-algorithm\">".to_string()
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if matches!(env.as_str(),
-                            "algorithmic" | "algorithmicx" | "algpseudocode"
-                        ) && self.in_document {
-                            let raw   = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(
-                                "<ol class=\"latex-algorithmic\">".to_string()
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</ol>".to_string()));
-
-                        // ------------------------------------------------
-                        // appendices / subappendices / filecontents
-                        // ------------------------------------------------
-                        } else if matches!(env.as_str(),
-                            "appendices" | "subappendices"
-                        ) && self.in_document {
-                            let raw   = self.read_until_end(&env);
-                            let inner = Parser::new(raw.trim()).parse(true, labels);
-                            nodes.push(LatexNode::Text(
-                                "<div class=\"latex-appendices\">".to_string()
-                            ));
-                            nodes.extend(inner);
-                            nodes.push(LatexNode::Text("</div>".to_string()));
-
-                        } else if env == "filecontents" || env == "filecontents*" {
-                            self.parse_braces_content(); // filename — ignore
-                            self.read_until_end(&env);   // content — ignore
-
-                        // ------------------------------------------------
-                        // adjustbox / varwidth — pass content through
-                        // ------------------------------------------------
-                        } else if matches!(env.as_str(), "adjustbox" | "varwidth")
-                               && self.in_document
-                        {
-                            self.parse_optional_arg();
-                            if env == "varwidth" { self.parse_braces_content(); } // {width}
-                            let raw   = self.read_until_end(&env);
-                            nodes.extend(Parser::new(raw.trim()).parse(true, labels));
-
-                        // ------------------------------------------------
-                        // User-defined environments via \newenvironment
-                        // ------------------------------------------------
-                        } else if self.in_document
-                            && self.macros.contains_key(&format!("env@begin@{}", env))
-                        {
-                            let begin_code = self.macros
-                                .get(&format!("env@begin@{}", env))
-                                .map(|(_, s)| s.clone())
-                                .unwrap_or_default();
-                            let end_code = self.macros
-                                .get(&format!("env@end@{}", env))
-                                .map(|(_, s)| s.clone())
-                                .unwrap_or_default();
-                            let body = self.read_until_end(&env);
-                            let full = format!("{}{}{}", begin_code, body, end_code);
-                            nodes.extend(Parser::new(full.trim()).parse(true, labels));
-
-                        } else {
-                            // Unknown environment – skip \end{env}
-                            self.read_until_end(&env);
-                        }
+                        self.parse_optional_arg(); // [htbp] placement etc.
+                        nodes.extend(self.parse_environment(&env, labels));
                     }
+
 
                     "end" => {
                         let env = self.parse_braces_content();
@@ -2299,7 +1795,7 @@ impl Parser {
                             .filter(|s| !s.is_empty())
                             .collect();
                         if keys.len() == 1 {
-                            nodes.push(LatexNode::Cite(keys.into_iter().next().unwrap()));
+                            nodes.push(LatexNode::Cite(keys.into_iter().next().unwrap_or_default()));
                         } else {
                             nodes.push(LatexNode::CiteMultiple(keys));
                         }
@@ -3431,6 +2927,374 @@ impl Parser {
             } else if self.in_document {
                 nodes.push(LatexNode::Text(" ".to_string()));
             }
+        }
+
+        nodes
+    }
+
+    fn parse_environment(&mut self, env: &str, labels: &mut HashMap<String, String>) -> Vec<LatexNode> {
+        let mut nodes: Vec<LatexNode> = Vec::new();
+
+        if env == "document" {
+            self.in_document = true;
+
+        } else if env == "abstract" && self.in_document {
+            let raw = self.read_until_end("abstract");
+            nodes.push(LatexNode::Abstract(
+                Parser::new(raw.trim()).parse(true, labels)
+            ));
+
+        } else if (env == "IEEEkeywords" || env == "keywords") && self.in_document {
+            let raw = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text(
+                "<div class=\"latex-keywords\"><strong>Keywords:</strong> ".to_string()
+            ));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if env == "tabbing" && self.in_document {
+            let raw = self.read_until_end("tabbing");
+            nodes.push(LatexNode::Text(Self::render_tabbing(&raw)));
+
+        } else if env == "verse" && self.in_document {
+            let raw = self.read_until_end("verse");
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<div class=\"latex-verse\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if env == "titlepage" && self.in_document {
+            let raw = self.read_until_end("titlepage");
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<div class=\"latex-titlepage\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if (env == "landscape" || env == "pdflscape") && self.in_document {
+            let raw = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<div class=\"latex-landscape\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if env == "spacing" && self.in_document {
+            let factor: f64 = self.parse_braces_content().trim().parse().unwrap_or(1.2);
+            let raw   = self.read_until_end("spacing");
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text(format!("<div style=\"line-height:{}\">", factor)));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if matches!(env, "samepage" | "sloppypar" | "comment") && self.in_document {
+            let raw = self.read_until_end(env);
+            if env != "comment" {
+                nodes.extend(Parser::new(raw.trim()).parse(true, labels));
+            }
+
+        } else if env == "thebibliography" && self.in_document {
+            self.parse_braces_content(); // {widest-label} — ignored
+            let raw = self.read_until_end("thebibliography");
+            nodes.push(LatexNode::TheBibliography(
+                Self::parse_thebibliography(&raw, labels)
+            ));
+
+        } else if matches!(env, "lstlisting" | "verbatim" | "Verbatim") && self.in_document {
+            self.parse_optional_arg();
+            let raw = self.read_until_end(env);
+            nodes.push(LatexNode::CodeBlock(raw.trim_matches('\n').to_string()));
+
+        } else if env == "minted" && self.in_document {
+            self.parse_braces_content(); // language arg
+            let raw = self.read_until_end("minted");
+            nodes.push(LatexNode::CodeBlock(raw.trim_matches('\n').to_string()));
+
+        } else if env == "itemize" && self.in_document {
+            let block = self.read_until_end("itemize");
+            nodes.push(LatexNode::Itemize(Self::split_items(&block, labels)));
+
+        } else if env == "enumerate" && self.in_document {
+            let opt   = self.parse_optional_arg();
+            let block = self.read_until_end("enumerate");
+            let items = Self::split_items(&block, labels);
+            if let Some(opt_str) = opt {
+                let style = Self::enumitem_label_style(&opt_str);
+                if !style.is_empty() {
+                    nodes.push(LatexNode::EnumerateLabeled { style, items });
+                } else {
+                    nodes.push(LatexNode::Enumerate(items));
+                }
+            } else {
+                nodes.push(LatexNode::Enumerate(items));
+            }
+
+        } else if env == "description" && self.in_document {
+            let block = self.read_until_end("description");
+            nodes.push(LatexNode::Description(Self::split_description_items(&block, labels)));
+
+        } else if env == "mermaid" && self.in_document {
+            let raw = self.read_until_end("mermaid");
+            nodes.push(LatexNode::Mermaid(raw));
+
+        } else if (env == "tabular" || env == "tabular*") && self.in_document {
+            if env == "tabular*" { self.parse_braces_content(); } // overall width
+            let colspec     = self.parse_braces_content();
+            let table_block = self.read_until_end(env);
+            nodes.push(LatexNode::Table(Self::parse_tabular(&table_block, &colspec, labels)));
+
+        } else if (env == "tabularx" || env == "tabulary") && self.in_document {
+            self.parse_braces_content(); // overall width
+            let colspec     = self.parse_braces_content();
+            let table_block = self.read_until_end(env);
+            nodes.push(LatexNode::Table(Self::parse_tabular(&table_block, &colspec, labels)));
+
+        } else if env == "table" && self.in_document {
+            let raw = self.read_until_end("table");
+            self.current_table += 1;
+            Self::extract_and_register_labels(&raw, &self.current_table.to_string(), "tab:", labels);
+            let mut sub = Parser::new(raw.trim());
+            sub.current_table      = self.current_table;
+            sub.current_section    = self.current_section;
+            sub.current_chapter    = self.current_chapter;
+            sub.current_subsection = self.current_subsection;
+            sub.current_equation   = self.current_equation;
+            nodes.push(LatexNode::TableFloat(sub.parse(true, labels)));
+
+        } else if env == "figure" && self.in_document {
+            let raw = self.read_until_end("figure");
+            Self::extract_and_register_labels(&raw, &self.current_section.to_string(), "fig:", labels);
+            let mut sub = Parser::new(raw.trim());
+            sub.current_section    = self.current_section;
+            sub.current_chapter    = self.current_chapter;
+            sub.current_equation   = self.current_equation;
+            sub.current_table      = self.current_table;
+            sub.current_subsection = self.current_subsection;
+            nodes.push(LatexNode::FigureFloat(sub.parse(true, labels)));
+
+        } else if (env == "equation" || env == "equation*") && self.in_document {
+            let raw = self.read_until_end(env);
+            self.current_equation += 1;
+            Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
+            nodes.push(LatexNode::EquationBlock(
+                vec![LatexNode::RawMathDisplay(raw.trim().to_string())]
+            ));
+
+        } else if matches!(env,
+            "array" | "cases" | "dcases" | "rcases" |
+            "split" | "aligned" | "alignedat" | "gathered"
+        ) && self.in_document {
+            if env == "array" || env == "alignedat" { self.parse_braces_content(); }
+            let raw   = self.read_until_end(env);
+            let latex = format!("\\begin{{{}}}{}\\end{{{}}}", env, raw.trim(), env);
+            nodes.push(LatexNode::RawMathDisplay(latex));
+
+        } else if env == "subequations" && self.in_document {
+            let raw = self.read_until_end("subequations");
+            nodes.extend(Parser::new(raw.trim()).parse(true, labels));
+
+        } else if matches!(env,
+            "align"  | "align*" | "eqnarray" | "eqnarray*" |
+            "multline" | "multline*" | "gather" | "gather*" |
+            "flalign" | "flalign*"
+        ) && self.in_document {
+            let raw = self.read_until_end(env);
+            self.current_equation += 1;
+            Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
+            let latex = format!("\\begin{{{}}}{}\\end{{{}}}", env, raw.trim(), env);
+            nodes.push(LatexNode::AlignBlock(vec![LatexNode::RawMathDisplay(latex)]));
+
+        } else if matches!(env,
+            "pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix" | "matrix" | "smallmatrix"
+        ) && self.in_document {
+            let raw = self.read_until_end(env);
+            let (open, close) = match env {
+                "pmatrix" => ("(", ")"),
+                "bmatrix" => ("[", "]"),
+                "Bmatrix" => ("{", "}"),
+                "vmatrix" => ("|", "|"),
+                "Vmatrix" => ("‖", "‖"),
+                _         => ("", ""),
+            };
+            nodes.push(LatexNode::Matrix { open, close, rows: Self::parse_matrix_body(&raw, labels) });
+
+        } else if env == "center" && self.in_document {
+            let raw   = self.read_until_end("center");
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<div style=\"text-align:center;\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if env == "quote" || env == "quotation" {
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<blockquote class=\"latex-quote\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</blockquote>".to_string()));
+
+        } else if matches!(env,
+            "theorem" | "lemma" | "corollary" | "proposition" | "proof" |
+            "definition" | "remark" | "example" | "conjecture" | "claim" |
+            "exercise" | "solution" | "question" | "answer" | "notation" |
+            "observation" | "assumption" | "fact" | "problem" | "note"
+        ) {
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            let label = Self::capitalise(env);
+            nodes.push(LatexNode::Text(
+                format!("<div class=\"latex-theorem latex-{}\"><strong>{}.</strong> ", env, label)
+            ));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if env == "minipage" && self.in_document {
+            self.parse_optional_arg();
+            let width = Self::conv_width(&self.parse_braces_content());
+            let raw   = self.read_until_end("minipage");
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text(format!(
+                "<div class=\"latex-minipage\" style=\"width: {};\">", width
+            )));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if (env == "multicols" || env == "multicols*") && self.in_document {
+            let ncols: u32 = self.parse_braces_content().trim().parse().unwrap_or(2);
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text(format!(
+                "<div class=\"latex-multicols\" style=\"column-count: {};\">", ncols
+            )));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if env == "tcolorbox" && self.in_document {
+            let opts  = self.parse_optional_arg().unwrap_or_default();
+            let raw   = self.read_until_end("tcolorbox");
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            let (title, colback, colframe) = Self::parse_tcolorbox(&opts);
+            nodes.push(LatexNode::Text(format!(
+                "<div class=\"latex-tcolorbox\" style=\"--tcb-back:{colback}; --tcb-frame:{colframe};\">",
+                colback = colback, colframe = colframe,
+            )));
+            if let Some(t) = title {
+                nodes.push(LatexNode::Text(format!(
+                    "<div class=\"tcolorbox-title\" style=\"background:{};\">{}</div>", colframe, t
+                )));
+            }
+            nodes.push(LatexNode::Text("<div class=\"tcolorbox-body\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div></div>".to_string()));
+
+        } else if matches!(env, "framed" | "shaded" | "shaded*" | "oframed" | "mdframed")
+               && self.in_document
+        {
+            self.parse_optional_arg();
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            let cls   = if env.starts_with("shaded") { "latex-shaded" } else { "latex-framed" };
+            nodes.push(LatexNode::Text(format!("<div class=\"{}\">", cls)));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if (env == "wrapfigure" || env == "wraptable") && self.in_document {
+            self.parse_optional_arg();
+            let pos_raw   = self.parse_braces_content();
+            let width_raw = self.parse_braces_content();
+            let width     = Self::conv_width(&width_raw);
+            let float_dir = match pos_raw.trim() { "l" | "i" | "L" | "I" => "left", _ => "right" };
+            let margin    = if float_dir == "left" { "0 1.5em 1em 0" } else { "0 0 1em 1.5em" };
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text(format!(
+                "<div class=\"latex-wrapfigure\" style=\"float:{float}; width:{width}; margin:{margin};\">",
+                float = float_dir, width = width, margin = margin,
+            )));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("<div style=\"clear:both;\"></div></div>".to_string()));
+
+        } else if (env == "subfigure" || env == "subfloat") && self.in_document {
+            self.parse_optional_arg();
+            let width = Self::conv_width(&self.parse_braces_content());
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text(format!(
+                "<figure class=\"latex-subfigure\" style=\"width:{width};\">", width = width,
+            )));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</figure>".to_string()));
+
+        } else if matches!(env, "longtable" | "longtabu" | "xltabular") && self.in_document {
+            self.parse_optional_arg();
+            if env == "xltabular" { self.parse_braces_content(); }
+            let colspec = self.parse_braces_content();
+            let raw     = self.read_until_end(env);
+            nodes.push(LatexNode::Table(Self::parse_tabular(&raw, &colspec, labels)));
+
+        } else if env == "flushright" && self.in_document {
+            let raw   = self.read_until_end("flushright");
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<div style=\"text-align:right;\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if env == "flushleft" && self.in_document {
+            let raw   = self.read_until_end("flushleft");
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<div style=\"text-align:left;\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if matches!(env, "tikzpicture" | "pgfpicture" | "circuitikz" | "forest" | "tikzcd" | "scope")
+               && self.in_document
+        {
+            self.read_until_end(env);
+            nodes.push(LatexNode::Text(
+                format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
+            ));
+
+        } else if matches!(env, "algorithm" | "algorithm2e" | "algorithm*") && self.in_document {
+            self.parse_optional_arg();
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<div class=\"latex-algorithm\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if matches!(env, "algorithmic" | "algorithmicx" | "algpseudocode") && self.in_document {
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<ol class=\"latex-algorithmic\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</ol>".to_string()));
+
+        } else if matches!(env, "appendices" | "subappendices") && self.in_document {
+            let raw   = self.read_until_end(env);
+            let inner = Parser::new(raw.trim()).parse(true, labels);
+            nodes.push(LatexNode::Text("<div class=\"latex-appendices\">".to_string()));
+            nodes.extend(inner);
+            nodes.push(LatexNode::Text("</div>".to_string()));
+
+        } else if env == "filecontents" || env == "filecontents*" {
+            self.parse_braces_content();
+            self.read_until_end(env);
+
+        } else if matches!(env, "adjustbox" | "varwidth") && self.in_document {
+            self.parse_optional_arg();
+            if env == "varwidth" { self.parse_braces_content(); }
+            let raw = self.read_until_end(env);
+            nodes.extend(Parser::new(raw.trim()).parse(true, labels));
+
+        } else if self.in_document && self.macros.contains_key(&format!("env@begin@{}", env)) {
+            let begin_code = self.macros.get(&format!("env@begin@{}", env))
+                .map(|(_, s)| s.clone()).unwrap_or_default();
+            let end_code = self.macros.get(&format!("env@end@{}", env))
+                .map(|(_, s)| s.clone()).unwrap_or_default();
+            let body = self.read_until_end(env);
+            let full = format!("{}{}{}", begin_code, body, end_code);
+            nodes.extend(Parser::new(full.trim()).parse(true, labels));
+
+        } else {
+            self.read_until_end(env);
         }
 
         nodes
