@@ -123,7 +123,7 @@ impl Scimon {
                 },
 
                 Commands::Compile { file, output } => {
-                    if let Err(err) = Compiler::new(&file, output).latex().await {
+                    if let Err(err) = Compiler::new(&file, output).compile().await {
                         ErrorsAlerts::generic(&err.to_string());
                     }
                 },

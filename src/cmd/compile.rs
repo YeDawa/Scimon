@@ -15,6 +15,7 @@ use crate::{
 
     ui::{
         ui_base::UI,
+        errors_alerts::ErrorsAlerts,
         success_alerts::SuccessAlerts,
     },
 
@@ -64,6 +65,21 @@ impl Compiler {
 
         write(&output_name, pdf_contents)?;
         SuccessAlerts::generated_pdf(&output_name);
+
+        Ok(())
+    }
+
+    pub async fn compile(&self) -> Result<(), Box<dyn Error>> {
+        match self.file.split('.').last().unwrap_or_default() {
+            "tex" => {
+                if let Err(err) = &self.latex().await {
+                    ErrorsAlerts::generic(&err.to_string());
+                }
+            },
+
+            "md" => ErrorsAlerts::generic("Markdown compilation is not implemented yet."),
+            _ => ErrorsAlerts::unsupported_file_type(),
+        };
 
         Ok(())
     }

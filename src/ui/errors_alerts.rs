@@ -58,4 +58,13 @@ impl ErrorsAlerts {
         );
     }
 
+    pub fn unsupported_file_type() {
+        let current_datetime = General.date_time();
+
+        eprintln!(
+            "{} Unsupported file type for compilation.", 
+            current_datetime.red().bold()
+        );
+    }
+
 }
