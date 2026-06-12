@@ -1,6 +1,29 @@
 use minify::html::minify;
 
-use std::{error::Error, ffi::OsStr};
+use std::{
+    error::Error,
+    ffi::OsStr,
+    thread::JoinHandle,
+
+    io::{
+        Read,
+        Write,
+    },
+
+    net::{
+        TcpListener,
+        TcpStream,
+    },
+
+    sync::{
+        Arc,
+
+        atomic::{
+            AtomicBool,
+            Ordering,
+        },
+    },
+};
 
 use headless_chrome::{
     Browser,
@@ -57,18 +80,13 @@ impl Render {
 
         let tab = browser.new_tab()?;
 
-        // Navigate via a temp file instead of a data: URL — fragment hrefs
-        // ("#label-x") do not resolve against data: URLs, which makes Chrome
-        // drop every internal link annotation from the printed PDF.
-        let temp_path = std::env::temp_dir()
-            .join(format!("scimon-render-{}.html", std::process::id()));
-        std::fs::write(&temp_path, content)?;
-        let url = format!(
-            "file:///{}",
-            temp_path.display().to_string().replace('\\', "/")
-        );
+        // Serve the document from an ephemeral loopback socket instead of a
+        // data: URL — fragment hrefs ("#label-x") do not resolve against
+        // data: URLs, which makes Chrome drop every internal link annotation
+        // from the printed PDF.
+        let (port, stop, server) = Self::serve_content(content.to_string())?;
 
-        tab.navigate_to(&url)?
+        tab.navigate_to(&format!("http://127.0.0.1:{}/document.html", port))?
             .wait_until_navigated()?;
 
         // Wait for MathJax to finish typesetting (if present)
@@ -147,8 +165,50 @@ impl Render {
         });
 
         let contents = tab.print_to_pdf(pdf_options)?;
-        let _ = std::fs::remove_file(&temp_path);
+
+        // release the accept loop and let the server thread finish
+        stop.store(true, Ordering::SeqCst);
+        let _ = TcpStream::connect(("127.0.0.1", port));
+        let _ = server.join();
+
         Ok(contents)
+    }
+
+    /// Serve `content` over HTTP on an ephemeral loopback port, answering
+    /// every request with the same document until the stop flag is set.
+    fn serve_content(
+        content: String,
+    ) -> Result<(u16, Arc<AtomicBool>, JoinHandle<()>), Box<dyn Error>> {
+        let listener = TcpListener::bind("127.0.0.1:0")?;
+        let port = listener.local_addr()?.port();
+
+        let stop = Arc::new(AtomicBool::new(false));
+        let flag = stop.clone();
+
+        let handle = std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                if flag.load(Ordering::SeqCst) {
+                    break;
+                }
+                let Ok(mut stream) = stream else { continue };
+
+                // request line and headers are irrelevant — drain best-effort
+                let mut request = [0u8; 2048];
+                let _ = stream.read(&mut request);
+
+                let header = format!(
+                    "HTTP/1.1 200 OK\r\n\
+                     Content-Type: text/html; charset=utf-8\r\n\
+                     Content-Length: {}\r\n\
+                     Connection: close\r\n\r\n",
+                    content.len()
+                );
+                let _ = stream.write_all(header.as_bytes());
+                let _ = stream.write_all(content.as_bytes());
+            }
+        });
+
+        Ok((port, stop, handle))
     }
 
 }
