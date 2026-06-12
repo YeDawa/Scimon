@@ -839,10 +839,35 @@ impl Parser {
                     // --------------------------------------------------------
                     // Preamble / metadata (allowed outside \begin{document})
                     // --------------------------------------------------------
-                    "documentclass" | "pagestyle"
-                    | "geometry" | "hypersetup" => {
+                    "pagestyle" | "geometry" | "hypersetup" => {
                         self.parse_optional_arg();
                         self.parse_braces_content();
+                    }
+
+                    // \documentclass[twocolumn]{article} — class options
+                    "documentclass" => {
+                        let options = self.parse_optional_arg().unwrap_or_default();
+                        self.parse_braces_content();
+                        if options.split(',').any(|option| option.trim() == "twocolumn") {
+                            nodes.push(LatexNode::DocumentColumns(2));
+                        }
+                    }
+
+                    // \twocolumn[preface] / \onecolumn — switch the document
+                    "twocolumn" => {
+                        nodes.push(LatexNode::NewPage);
+                        nodes.push(LatexNode::DocumentColumns(2));
+                        if let Some(preface) = self.parse_optional_arg() {
+                            nodes.push(LatexNode::Text(
+                                "<div style=\"column-span: all; margin-bottom: 8px;\">".to_string()
+                            ));
+                            nodes.extend(Parser::new(preface.trim()).parse(true, labels));
+                            nodes.push(LatexNode::Text("</div>".to_string()));
+                        }
+                    }
+                    "onecolumn" => {
+                        nodes.push(LatexNode::NewPage);
+                        nodes.push(LatexNode::DocumentColumns(1));
                     }
 
                     // \usepackage[style=...]{biblatex} selects the citation style
@@ -962,14 +987,13 @@ impl Parser {
                         self.parse_optional_arg();
                     }
 
-                    // \setlength{\param}{value} — emit a CSS custom-property block
+                    // \setlength{\param}{value} — emit a CSS custom-property
+                    // block; preamble values matter too (\columnsep et al.)
                     "setlength" | "addtolength" => {
                         let param = self.parse_braces_content(); // e.g. \parskip
                         let raw   = self.parse_braces_content(); // e.g. 6pt or \fill
                         let value = Self::length_to_css(&raw);
-                        if self.in_document {
-                            nodes.push(LatexNode::SetLength { param, value });
-                        }
+                        nodes.push(LatexNode::SetLength { param, value });
                     }
 
                     "newcommand" | "providecommand" | "renewcommand" => {
@@ -3229,8 +3253,8 @@ impl Parser {
             let table_block = self.read_until_end(env);
             nodes.push(LatexNode::Table(Self::parse_tabular(&table_block, &colspec, labels)));
 
-        } else if env == "table" && self.in_document {
-            let raw = self.read_until_end("table");
+        } else if (env == "table" || env == "table*") && self.in_document {
+            let raw = self.read_until_end(env);
             self.current_table += 1;
             Self::extract_and_register_labels(&raw, &self.current_table.to_string(), "tab:", labels);
             let mut sub = Parser::new(raw.trim());
@@ -3239,10 +3263,18 @@ impl Parser {
             sub.current_chapter    = self.current_chapter;
             sub.current_subsection = self.current_subsection;
             sub.current_equation   = self.current_equation;
-            nodes.push(LatexNode::TableFloat(sub.parse(true, labels)));
 
-        } else if env == "figure" && self.in_document {
-            let raw = self.read_until_end("figure");
+            // table* spans every column in two-column layouts
+            if env == "table*" {
+                nodes.push(LatexNode::Text("<div style=\"column-span: all;\">".to_string()));
+                nodes.push(LatexNode::TableFloat(sub.parse(true, labels)));
+                nodes.push(LatexNode::Text("</div>".to_string()));
+            } else {
+                nodes.push(LatexNode::TableFloat(sub.parse(true, labels)));
+            }
+
+        } else if (env == "figure" || env == "figure*") && self.in_document {
+            let raw = self.read_until_end(env);
             Self::extract_and_register_labels(&raw, &self.current_section.to_string(), "fig:", labels);
             let mut sub = Parser::new(raw.trim());
             sub.current_section    = self.current_section;
@@ -3250,7 +3282,15 @@ impl Parser {
             sub.current_equation   = self.current_equation;
             sub.current_table      = self.current_table;
             sub.current_subsection = self.current_subsection;
-            nodes.push(LatexNode::FigureFloat(sub.parse(true, labels)));
+
+            // figure* spans every column in two-column layouts
+            if env == "figure*" {
+                nodes.push(LatexNode::Text("<div style=\"column-span: all;\">".to_string()));
+                nodes.push(LatexNode::FigureFloat(sub.parse(true, labels)));
+                nodes.push(LatexNode::Text("</div>".to_string()));
+            } else {
+                nodes.push(LatexNode::FigureFloat(sub.parse(true, labels)));
+            }
 
         } else if (env == "equation" || env == "equation*") && self.in_document {
             let raw = self.read_until_end(env);
@@ -3350,14 +3390,23 @@ impl Parser {
             nodes.push(LatexNode::Text("</div>".to_string()));
 
         } else if (env == "multicols" || env == "multicols*") && self.in_document {
-            let ncols: u32 = self.parse_braces_content().trim().parse().unwrap_or(2);
-            let raw   = self.read_until_end(env);
-            let inner = Parser::new(raw.trim()).parse(true, labels);
-            nodes.push(LatexNode::Text(format!(
-                "<div class=\"latex-multicols\" style=\"column-count: {};\">", ncols
-            )));
-            nodes.extend(inner);
-            nodes.push(LatexNode::Text("</div>".to_string()));
+            let count: u32 = self.parse_braces_content().trim().parse().unwrap_or(2);
+
+            // \begin{multicols}{2}[preface][skip] — preface spans the columns
+            let preface = self.parse_optional_arg()
+                .map(|raw| Parser::new(raw.trim()).parse(true, labels))
+                .unwrap_or_default();
+            self.parse_optional_arg(); // optional vertical skip — ignored
+
+            let raw  = self.read_until_end(env);
+            let body = Parser::new(raw.trim()).parse(true, labels);
+
+            nodes.push(LatexNode::MultiCols {
+                count,
+                preface,
+                body,
+                balanced: env == "multicols",
+            });
 
         } else if env == "tcolorbox" && self.in_document {
             let opts  = self.parse_optional_arg().unwrap_or_default();

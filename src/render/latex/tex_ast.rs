@@ -238,6 +238,19 @@ pub enum LatexNode {
     /// Plain tikzpicture drawing (\draw, \node, ...), rendered as inline SVG
     Tikz(TikzPicture),
 
+    // --- multi-column layout ---
+    /// \begin{multicols}{n}[preface] — preface spans all columns;
+    /// multicols* sets balanced = false (columns fill sequentially)
+    MultiCols {
+        count:    u32,
+        preface:  Vec<LatexNode>,
+        body:     Vec<LatexNode>,
+        balanced: bool,
+    },
+    /// \twocolumn / \onecolumn / \documentclass[twocolumn] — switches the
+    /// whole document container to n columns (1 disables)
+    DocumentColumns(u32),
+
     // --- Links ---
     Url(String),
     Href { url: String, text: Vec<LatexNode> },
@@ -358,6 +371,7 @@ impl LatexNode {
                     "\\textheight"   => "--latex-textheight",
                     "\\columnwidth"  => "--latex-columnwidth",
                     "\\columnsep"    => "--latex-columnsep",
+                    "\\columnseprule" => "--latex-columnseprule",
                     "\\topmargin"    => "--latex-topmargin",
                     "\\oddsidemargin"| "\\evensidemargin" => "--latex-sidemargin",
                     _ => return,
@@ -884,6 +898,53 @@ impl LatexNode {
                 buf.push_str("<div class=\"latex-tikz\" style=\"text-align: center; margin: 14px 0;\">");
                 buf.push_str(&Tikz::render_svg(picture, ctx));
                 buf.push_str("</div>");
+            }
+
+            // ----------------------------------------------------------------
+            // Multi-column layout
+            // ----------------------------------------------------------------
+            LatexNode::MultiCols { count, preface, body, balanced } => {
+                let _ = write!(
+                    buf,
+                    "<div class=\"latex-multicols\" style=\"\
+                     column-count: {}; \
+                     column-gap: var(--latex-columnsep, 14px); \
+                     column-rule: var(--latex-columnseprule, 0px) solid currentColor; \
+                     column-fill: {}; \
+                     text-align: justify; hyphens: auto; \
+                     orphans: 2; widows: 2; margin: 10px 0;\">",
+                    count,
+                    if *balanced { "balance" } else { "auto" },
+                );
+                if !preface.is_empty() {
+                    buf.push_str("<div style=\"column-span: all; text-align: initial; margin-bottom: 8px;\">");
+                    Nodes::write(preface, ctx, buf);
+                    buf.push_str("</div>");
+                }
+                Nodes::write(body, ctx, buf);
+                buf.push_str("</div>");
+            }
+
+            LatexNode::DocumentColumns(count) => {
+                if *count <= 1 {
+                    buf.push_str(
+                        "<style>.document-container { column-count: auto; }</style>"
+                    );
+                } else {
+                    let _ = write!(
+                        buf,
+                        "<style>.document-container {{ \
+                         column-count: {}; \
+                         column-gap: var(--latex-columnsep, 14px); \
+                         column-rule: var(--latex-columnseprule, 0px) solid currentColor; \
+                         text-align: justify; hyphens: auto; \
+                         orphans: 2; widows: 2; }} \
+                         .document-container .title-block, \
+                         .document-container .latex-abstract, \
+                         .document-container .toc {{ column-span: all; }}</style>",
+                        count,
+                    );
+                }
             }
 
             // ----------------------------------------------------------------
