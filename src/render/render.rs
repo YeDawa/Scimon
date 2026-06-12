@@ -17,10 +17,7 @@ use crate::{
         render_inject::RenderInject,
     },
 
-    utils::{
-        base64::Base64,
-        remote::Remote,
-    },
+    utils::remote::Remote,
 };
 
 pub struct Render;
@@ -60,7 +57,18 @@ impl Render {
 
         let tab = browser.new_tab()?;
 
-        tab.navigate_to(&Base64::encode_html(content))?
+        // Navigate via a temp file instead of a data: URL — fragment hrefs
+        // ("#label-x") do not resolve against data: URLs, which makes Chrome
+        // drop every internal link annotation from the printed PDF.
+        let temp_path = std::env::temp_dir()
+            .join(format!("scimon-render-{}.html", std::process::id()));
+        std::fs::write(&temp_path, content)?;
+        let url = format!(
+            "file:///{}",
+            temp_path.display().to_string().replace('\\', "/")
+        );
+
+        tab.navigate_to(&url)?
             .wait_until_navigated()?;
 
         // Wait for MathJax to finish typesetting (if present)
@@ -139,6 +147,7 @@ impl Render {
         });
 
         let contents = tab.print_to_pdf(pdf_options)?;
+        let _ = std::fs::remove_file(&temp_path);
         Ok(contents)
     }
 
