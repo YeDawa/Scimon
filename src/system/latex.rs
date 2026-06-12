@@ -39,17 +39,17 @@ impl LaTex {
         let document_ast = parser.parse(force_active, &mut labels);
 
         let mut context = RenderContext::new(labels);
-        Self::prescan_bibliography(&document_ast, &mut context);
+        self.prescan_bibliography(&document_ast, &mut context);
         let mut html_body = Nodes::render(&document_ast, &mut context);
 
-        let toc_html = Self::build_toc(&context);
+        let toc_html = self.build_toc(&context);
         html_body = html_body.replace("__TOC_PLACEHOLDER__", &toc_html);
 
         let footnotes = context.flush_footnotes();
         if !footnotes.is_empty() { html_body.push_str(&footnotes); }
 
         let header_html = if context.has_fancy {
-            Self::build_header_footer(&context)
+            self.build_header_footer(&context)
         } else {
             String::new()
         };
@@ -59,10 +59,7 @@ impl LaTex {
         TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
     }
 
-    /// Load bibliography databases and the citation style before the body
-    /// renders, so author-year citations resolve even when \bibliography
-    /// appears after the \cite commands.
-    fn prescan_bibliography(ast: &[LatexNode], ctx: &mut RenderContext) {
+    fn prescan_bibliography(&self, ast: &[LatexNode], ctx: &mut RenderContext) {
         for node in ast {
             match node {
                 LatexNode::BibStyleSet(style) => ctx.bib_style = *style,
@@ -78,7 +75,7 @@ impl LaTex {
         }
     }
 
-    fn build_toc(ctx: &RenderContext) -> String {
+    fn build_toc(&self, ctx: &RenderContext) -> String {
         if ctx.toc.is_empty() {
             return String::new();
         }
@@ -110,7 +107,7 @@ impl LaTex {
         html
     }
 
-    fn build_header_footer(ctx: &RenderContext) -> String {
+    fn build_header_footer(&self, ctx: &RenderContext) -> String {
         let any_header = !ctx.header_left.is_empty()
             || !ctx.header_center.is_empty()
             || !ctx.header_right.is_empty();
