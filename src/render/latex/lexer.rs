@@ -145,6 +145,29 @@ impl Lexer {
         Some(content)
     }
 
+    /// Read one undelimited macro argument, TeX-style: a `{…}` group, a
+    /// single control sequence (`\frac`, `\%`), or a single character.
+    pub fn macro_argument(&mut self) -> String {
+        self.skip_whitespace();
+        match self.peek() {
+            Some('{') => self.brace_group(),
+            Some('\\') => {
+                self.next_char();
+                let word = self.command_word();
+                if word.is_empty() {
+                    match self.next_char() {
+                        Some(c) => format!("\\{}", c),
+                        None => String::from("\\"),
+                    }
+                } else {
+                    format!("\\{}", word)
+                }
+            }
+            Some(_) => self.next_char().map(|c| c.to_string()).unwrap_or_default(),
+            None => String::new(),
+        }
+    }
+
     /// Read everything up to the matching `\end{env}`, consuming the tag.
     /// Nested `\begin{env}` blocks of the same name are counted, so
     /// environments like center-inside-center survive intact.

@@ -6,6 +6,7 @@ use crate::render::latex::{
     tikz::Tikz,
     lexer::Lexer,
     bibtex::BibStyle,
+    macros::MacroDef,
     pgfplots::Pgfplots,
 
     tex_ast::{
@@ -355,9 +356,12 @@ pub struct Parser {
     pub current_table: usize,
     pub current_equation: usize,
 
-    /// User-defined macros: name → (num_args, body_template)
-    /// `#1` .. `#9` in body are replaced by positional arguments.
-    pub macros: HashMap<String, (usize, String)>,
+    /// User-defined macros, compiled at definition time into structural
+    /// pieces (see `macros::MacroDef`); expansion is a single splice.
+    pub macros: HashMap<String, MacroDef>,
+
+    /// Guards against runaway recursion (\def\x{\x})
+    expansion_depth: usize,
 
     /// Current \theoremstyle, applied to subsequent \newtheorem definitions
     theorem_style: String,
@@ -375,6 +379,7 @@ impl Parser {
             current_table: 0,
             current_equation: 0,
             macros: HashMap::new(),
+            expansion_depth: 0,
             theorem_style: String::from("plain"),
         }
     }
@@ -843,8 +848,9 @@ impl Parser {
                         let display  = self.parse_braces_content();
                         let op_name  = raw_name.trim_start_matches('\\').to_string();
                         if !op_name.is_empty() {
-                            self.macros.insert(op_name, (0,
-                                format!("\\operatorname{{{}}}", display)));
+                            self.macros.insert(op_name, MacroDef::compile(
+                                0, None, &format!("\\operatorname{{{}}}", display),
+                            ));
                         }
                     }
 
@@ -881,24 +887,23 @@ impl Parser {
                         );
                     }
 
-                    // \newenvironment{name}[n]{begin-code}{end-code}
-                    // \renewenvironment{name}[n]{begin-code}{end-code}
+                    // \newenvironment{name}[n][default]{begin-code}{end-code}
                     "newenvironment" | "renewenvironment" => {
                         let env_name  = self.parse_braces_content();
                         let n_args    = self.parse_optional_arg()
                             .and_then(|s| s.trim().parse::<usize>().ok())
                             .unwrap_or(0);
-                        let _default  = if n_args > 0 { self.parse_optional_arg() } else { None };
+                        let default   = if n_args > 0 { self.parse_optional_arg() } else { None };
                         let begin_code = self.parse_braces_content();
                         let end_code   = self.parse_braces_content();
                         // Store as two macros: env@begin@name and env@end@name
                         self.macros.insert(
                             format!("env@begin@{}", env_name),
-                            (n_args, begin_code)
+                            MacroDef::compile(n_args, default, &begin_code),
                         );
                         self.macros.insert(
                             format!("env@end@{}", env_name),
-                            (0, end_code)
+                            MacroDef::compile(0, None, &end_code),
                         );
                     }
 
@@ -925,34 +930,54 @@ impl Parser {
                         nodes.push(LatexNode::SetLength { param, value });
                     }
 
+                    // \newcommand{\name}[n][default]{body} — with [default],
+                    // #1 becomes optional
                     "newcommand" | "providecommand" | "renewcommand" => {
-                        // \newcommand{\name}[n]{body}
                         let raw_name = self.parse_braces_content(); // e.g. \myCmd
                         let name     = raw_name.trim_start_matches('\\').to_string();
-                        let nargs: usize = self.parse_optional_arg()
+                        let params: usize = self.parse_optional_arg()
                             .and_then(|s| s.trim().parse().ok())
                             .unwrap_or(0);
+                        let default = if params > 0 { self.parse_optional_arg() } else { None };
                         let body = self.parse_braces_content();
-                        if !name.is_empty() {
-                            self.macros.insert(name, (nargs, body));
+
+                        // \providecommand only defines when not yet defined
+                        let keep_existing = command == "providecommand"
+                            && self.macros.contains_key(&name);
+                        if !name.is_empty() && !keep_existing {
+                            self.macros.insert(name, MacroDef::compile(params, default, &body));
                         }
                     }
 
+                    // \def\name#1#2{body} — parameter text scanned for slots;
+                    // delimiter characters between them are ignored
                     "def" => {
-                        // \def\name{body}  — no argument count syntax
                         self.skip_whitespace();
                         if self.peek() == Some('\\') {
                             self.lexer.pos += 1;
                             let name = self.read_command_word();
+
+                            let mut params = 0usize;
+                            while let Some(c) = self.peek() {
+                                if c == '{' { break; }
+                                self.lexer.pos += c.len_utf8();
+                                if c == '#' {
+                                    if let Some(digit) = self.peek().and_then(|d| d.to_digit(10)) {
+                                        self.lexer.pos += 1;
+                                        params = params.max(digit as usize);
+                                    }
+                                }
+                            }
+
                             let body = self.parse_braces_content();
                             if !name.is_empty() {
-                                self.macros.insert(name, (0, body));
+                                self.macros.insert(name, MacroDef::compile(params, None, &body));
                             }
                         }
                     }
 
                     "let" => {
-                        // \let\new=\existing  — record as 0-arg alias
+                        // \let\new=\existing — snapshot the current meaning
                         self.skip_whitespace();
                         if self.peek() == Some('\\') {
                             self.lexer.pos += 1;
@@ -963,9 +988,11 @@ impl Parser {
                             if self.peek() == Some('\\') {
                                 self.lexer.pos += 1;
                                 let existing = self.read_command_word();
-                                // Store as alias expansion
-                                let body = format!("\\{}", existing);
-                                self.macros.insert(new_name, (0, body));
+                                let def = self.macros.get(&existing).cloned()
+                                    .unwrap_or_else(|| MacroDef::compile(
+                                        0, None, &format!("\\{}", existing),
+                                    ));
+                                self.macros.insert(new_name, def);
                             }
                         }
                     }
@@ -2866,23 +2893,38 @@ impl Parser {
                     // User-defined macro expansion  (\newcommand / \def / \let)
                     // --------------------------------------------------------
                     _ if self.macros.contains_key(command.as_str()) => {
-                        let (nargs, body) = self.macros[command.as_str()].clone();
-                        let mut expanded = body.clone();
-                        for i in 1..=nargs {
-                            let arg = self.parse_braces_content();
-                            expanded = expanded.replace(&format!("#{}", i), &arg);
+                        let def = self.macros[command.as_str()].clone();
+
+                        // \def\x{\x} must not hang or blow the stack — each
+                        // nesting level is a full parse() frame, so the cap
+                        // stays low (real documents rarely nest beyond ~5)
+                        if self.expansion_depth < 16 {
+                            let mut args: Vec<String> = Vec::new();
+                            if let Some(default) = &def.default {
+                                args.push(self.parse_optional_arg()
+                                    .unwrap_or_else(|| default.clone()));
+                            }
+                            while args.len() < def.params {
+                                args.push(self.lexer.macro_argument());
+                            }
+
+                            // Re-parse the spliced body
+                            let expanded = def.expand(&args);
+                            let mut sub = Parser::new(&expanded);
+                            sub.in_document     = self.in_document;
+                            sub.macros          = self.macros.clone();
+                            sub.expansion_depth = self.expansion_depth + 1;
+                            sub.current_chapter   = self.current_chapter;
+                            sub.current_section   = self.current_section;
+                            sub.current_subsection= self.current_subsection;
+                            sub.current_equation  = self.current_equation;
+                            sub.current_table     = self.current_table;
+                            let expanded_nodes = sub.parse(true, labels);
+
+                            // definitions made inside the expansion persist
+                            self.macros = sub.macros;
+                            nodes.extend(expanded_nodes);
                         }
-                        // Re-parse the expanded body and splice nodes
-                        let mut sub = Parser::new(&expanded);
-                        sub.in_document     = self.in_document;
-                        sub.macros          = self.macros.clone();
-                        sub.current_chapter   = self.current_chapter;
-                        sub.current_section   = self.current_section;
-                        sub.current_subsection= self.current_subsection;
-                        sub.current_equation  = self.current_equation;
-                        sub.current_table     = self.current_table;
-                        let expanded_nodes = sub.parse(true, labels);
-                        nodes.extend(expanded_nodes);
                     }
 
                     // --------------------------------------------------------
@@ -3473,13 +3515,28 @@ impl Parser {
             nodes.extend(Parser::new(raw.trim()).parse(true, labels));
 
         } else if self.in_document && self.macros.contains_key(&format!("env@begin@{}", env)) {
-            let begin_code = self.macros.get(&format!("env@begin@{}", env))
-                .map(|(_, s)| s.clone()).unwrap_or_default();
+            let begin_def = self.macros[&format!("env@begin@{}", env)].clone();
             let end_code = self.macros.get(&format!("env@end@{}", env))
-                .map(|(_, s)| s.clone()).unwrap_or_default();
+                .map(|def| def.expand(&[]))
+                .unwrap_or_default();
+
+            // \begin{env}[opt]{a}{b} — the begin handler already consumed
+            // the [opt] group; remaining mandatory arguments follow
+            let mut args: Vec<String> = Vec::new();
+            if let Some(default) = &begin_def.default {
+                args.push(opt.clone().unwrap_or_else(|| default.clone()));
+            }
+            while args.len() < begin_def.params {
+                args.push(self.lexer.macro_argument());
+            }
+
             let body = self.read_until_end(env);
-            let full = format!("{}{}{}", begin_code, body, end_code);
-            nodes.extend(Parser::new(full.trim()).parse(true, labels));
+            let full = format!("{}{}{}", begin_def.expand(&args), body, end_code);
+
+            let mut sub = Parser::new(full.trim());
+            sub.in_document = true;
+            sub.macros = self.macros.clone();
+            nodes.extend(sub.parse(true, labels));
 
         } else {
             self.read_until_end(env);

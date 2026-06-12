@@ -1,6 +1,7 @@
 pub mod bibtex;
 pub mod context;
 pub mod lexer;
+pub mod macros;
 pub mod packages;
 pub mod pgfplots;
 pub mod tikz;

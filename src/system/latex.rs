@@ -36,11 +36,23 @@ pub struct LaTex;
 impl LaTex {
 
     pub async fn render(&self, content: &str) -> String {
-        let mut parser = Parser::new(content);
-        let mut labels = HashMap::new();
-
         let force_active = !content.contains("\\begin{document}");
-        let document_ast = parser.parse(force_active, &mut labels);
+
+        // Parsing recurses one full parse() frame per nesting level (macros,
+        // environments, arguments), which overflows the default 1 MB stack
+        // on deep documents — give it a dedicated thread with room to spare.
+        let source = content.to_string();
+        let (document_ast, labels) = std::thread::Builder::new()
+            .name(String::from("latex-parse"))
+            .stack_size(64 * 1024 * 1024)
+            .spawn(move || {
+                let mut labels = HashMap::new();
+                let ast = Parser::new(&source).parse(force_active, &mut labels);
+                (ast, labels)
+            })
+            .ok()
+            .and_then(|handle| handle.join().ok())
+            .unwrap_or_default();
 
         let mut context = RenderContext::new(labels);
         self.prescan(&document_ast, &mut context);
