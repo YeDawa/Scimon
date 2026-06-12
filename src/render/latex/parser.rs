@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use crate::render::latex::{
     bibtex::BibStyle,
+    pgfplots::Pgfplots,
 
     tex_ast::{
         CiteKind,
@@ -3296,10 +3297,19 @@ impl Parser {
         } else if matches!(env, "tikzpicture" | "pgfpicture" | "circuitikz" | "forest" | "tikzcd" | "scope")
                && self.in_document
         {
-            self.read_until_end(env);
-            nodes.push(LatexNode::Text(
-                format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
-            ));
+            let raw = self.read_until_end(env);
+
+            // pgfplots: every axis environment becomes an inline SVG chart
+            let axes = Pgfplots::parse(&raw);
+            if axes.is_empty() {
+                nodes.push(LatexNode::Text(
+                    format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
+                ));
+            } else {
+                for axis in axes {
+                    nodes.push(LatexNode::PgfPlot(axis));
+                }
+            }
 
         } else if matches!(env, "algorithm" | "algorithm2e" | "algorithm*") && self.in_document {
             self.parse_optional_arg();

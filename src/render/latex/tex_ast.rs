@@ -6,6 +6,11 @@ use crate::render::latex::{
         BibStyle,
         BibTextRender,
     },
+
+    pgfplots::{
+        PgfAxis,
+        Pgfplots,
+    },
 };
 
 // ---------------------------------------------------------------------------
@@ -156,6 +161,10 @@ pub enum LatexNode {
     // --- Verbatim / Code ---
     CodeBlock(String),
     Mermaid(String),
+
+    // --- pgfplots ---
+    /// \begin{axis}...\end{axis} inside a tikzpicture, rendered as inline SVG
+    PgfPlot(PgfAxis),
 
     // --- Links ---
     Url(String),
@@ -710,6 +719,15 @@ impl LatexNode {
             }
             LatexNode::Mermaid(raw_code) => {
                 let _ = write!(buf, "<div class=\"mermaid\">\n{}\n</div>", raw_code);
+            }
+
+            // ----------------------------------------------------------------
+            // pgfplots
+            // ----------------------------------------------------------------
+            LatexNode::PgfPlot(axis) => {
+                buf.push_str("<div class=\"latex-pgfplot\" style=\"text-align: center; margin: 14px 0;\">");
+                buf.push_str(&Pgfplots::render_svg(axis, ctx));
+                buf.push_str("</div>");
             }
 
             // ----------------------------------------------------------------
