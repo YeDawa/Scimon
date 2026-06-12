@@ -13,7 +13,7 @@ use crate::{
 
     cmd::{
         monset::Monset,
-        compiler::Compiler,
+        compile::Compiler,
     },
     
     monlib::{
