@@ -43,8 +43,8 @@ impl LatexPackage for Tcolorbox {
 
 }
 
-/// Parse tcolorbox key=value options, return (title, colback, colframe).
-/// Commas inside {braced} values do not split, and outer braces are removed.
+// Parse tcolorbox key=value options, return (title, colback, colframe).
+// Commas inside {braced} values do not split, and outer braces are removed.
 fn parse_options(opts: &str) -> (Option<String>, String, String) {
     let mut title:    Option<String> = None;
     let mut colback  = "#eaf4fb".to_string();

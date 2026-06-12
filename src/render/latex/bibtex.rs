@@ -6,24 +6,24 @@ use std::{
 // ---------------------------------------------------------------------------
 // Built-in bibliography styles
 // ---------------------------------------------------------------------------
-/// Citation/bibliography style selected via \usepackage[style=...]{biblatex}
-/// or \bibliographystyle{...}. Unknown styles fall back to Numeric.
+// Citation/bibliography style selected via \usepackage[style=...]{biblatex}
+// or \bibliographystyle{...}. Unknown styles fall back to Numeric.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BibStyle {
-    /// [1] citations, reference list in citation order
+    // [1] citations, reference list in citation order
     Numeric,
-    /// (Silva & Santos, 2020) citations, alphabetical reference list (APA-like)
+    // (Silva & Santos, 2020) citations, alphabetical reference list (APA-like)
     AuthorYear,
-    /// [Sil20] citations, alphabetical reference list
+    // [Sil20] citations, alphabetical reference list
     Alphabetic,
-    /// (SILVA; SANTOS, 2020) citations, ABNT NBR 6023-like reference list
+    // (SILVA; SANTOS, 2020) citations, ABNT NBR 6023-like reference list
     Abnt,
 }
 
 impl BibStyle {
 
-    /// Map a biblatex style option or a \bibliographystyle name to a
-    /// built-in style. Returns None for unrecognized names.
+    // Map a biblatex style option or a \bibliographystyle name to a
+    // built-in style. Returns None for unrecognized names.
     pub fn from_name(name: &str) -> Option<Self> {
         let name = name.trim().to_lowercase();
         match name.as_str() {
@@ -50,7 +50,7 @@ impl BibStyle {
 // ---------------------------------------------------------------------------
 #[derive(Debug, Clone, Default)]
 pub struct BibEntry {
-    /// All fields, keyed by lowercase field name, values cleaned for HTML
+    // All fields, keyed by lowercase field name, values cleaned for HTML
     pub fields: HashMap<String, String>,
 }
 
@@ -69,8 +69,8 @@ impl BibEntry {
         self.field("date").chars().take(4).collect()
     }
 
-    /// Authors as (surname, given-names) pairs. Falls back to editor,
-    /// then organization, when no author field exists.
+    // Authors as (surname, given-names) pairs. Falls back to editor,
+    // then organization, when no author field exists.
     pub fn authors(&self) -> Vec<(String, String)> {
         let raw = if !self.field("author").is_empty() {
             self.field("author")
@@ -86,7 +86,7 @@ impl BibEntry {
             .collect()
     }
 
-    /// "Silva, Maria" -> ("Silva", "Maria"); "Donald Knuth" -> ("Knuth", "Donald")
+    // "Silva, Maria" -> ("Silva", "Maria"); "Donald Knuth" -> ("Knuth", "Donald")
     fn split_name(name: &str) -> (String, String) {
         if let Some((surname, given)) = name.split_once(',') {
             (surname.trim().to_string(), given.trim().to_string())
@@ -106,9 +106,9 @@ impl BibEntry {
             .join(" ")
     }
 
-    /// In-text author label: "Silva", "Silva & Santos", "Silva et al."
-    /// `textual` selects the \textcite form (spelled-out connective);
-    /// ABNT parenthetical citations use uppercase surnames.
+    // In-text author label: "Silva", "Silva & Santos", "Silva et al."
+    // `textual` selects the \textcite form (spelled-out connective);
+    // ABNT parenthetical citations use uppercase surnames.
     pub fn cite_authors(&self, style: BibStyle, textual: bool) -> String {
         let authors = self.authors();
         if authors.is_empty() {
@@ -137,7 +137,7 @@ impl BibEntry {
         }
     }
 
-    /// Alphabetic-style label: "Sil20" (one author) or "SK20" (multiple)
+    // Alphabetic-style label: "Sil20" (one author) or "SK20" (multiple)
     pub fn alpha_label(&self) -> String {
         let authors = self.authors();
         let year = self.year();
@@ -155,7 +155,7 @@ impl BibEntry {
         format!("{}{}", prefix, yy)
     }
 
-    /// Key used to sort alphabetical reference lists
+    // Key used to sort alphabetical reference lists
     pub fn sort_key(&self) -> String {
         let authors = self.authors()
             .iter()
@@ -197,7 +197,7 @@ impl BibEntry {
         }
     }
 
-    /// Where the work appeared: journal, "In: proceedings", or publisher
+    // Where the work appeared: journal, "In: proceedings", or publisher
     fn venue(&self) -> String {
         let journal = if !self.field("journal").is_empty() {
             self.field("journal")
@@ -258,7 +258,7 @@ impl BibEntry {
         String::new()
     }
 
-    /// Full reference-list entry, formatted according to the active style.
+    // Full reference-list entry, formatted according to the active style.
     pub fn full_reference(&self, style: BibStyle) -> String {
         let title = self.field("title");
         let is_container = !self.field("journal").is_empty()
@@ -327,8 +327,8 @@ impl BibTextRender {
         }
     }
 
-    /// Resolve a \bibliography/\addbibresource argument (file stem, .bib path
-    /// or URL), fetch it and parse it. Returns an empty map on failure.
+    // Resolve a \bibliography/\addbibresource argument (file stem, .bib path
+    // or URL), fetch it and parse it. Returns an empty map on failure.
     pub fn load(source: &str) -> HashMap<String, BibEntry> {
         let path = if source.starts_with("http://")
             || source.starts_with("https://")
@@ -417,7 +417,7 @@ impl BibTextRender {
         }
     }
 
-    /// Consume up to and including the '}' that closes an already-open brace.
+    // Consume up to and including the '}' that closes an already-open brace.
     fn skip_balanced(chars: &[char], pos: &mut usize) {
         let mut depth = 1usize;
         while *pos < chars.len() && depth > 0 {
@@ -430,7 +430,7 @@ impl BibTextRender {
         }
     }
 
-    /// Field value: {braced, possibly nested}, "quoted", or a bare word.
+    // Field value: {braced, possibly nested}, "quoted", or a bare word.
     fn read_value(chars: &[char], pos: &mut usize) -> String {
         if *pos >= chars.len() {
             return String::new();
@@ -470,7 +470,7 @@ impl BibTextRender {
         }
     }
 
-    /// Strip protective braces and TeX escapes, normalize for HTML output.
+    // Strip protective braces and TeX escapes, normalize for HTML output.
     fn clean_value(value: &str) -> String {
         let mut out = String::with_capacity(value.len());
         let mut chars = value.chars().peekable();

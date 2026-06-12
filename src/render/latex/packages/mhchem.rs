@@ -14,9 +14,9 @@ impl LatexPackage for Mhchem {
         &["ce", "pu"]
     }
 
-    /// \ce{H2O} / \pu{123 kJ.mol-1} in body text — inside math mode the raw
-    /// content already reaches MathJax, whose mhchem extension typesets it;
-    /// here the command just needs to be wrapped into inline math.
+    // \ce{H2O} / \pu{123 kJ.mol-1} in body text — inside math mode the raw
+    // content already reaches MathJax, whose mhchem extension typesets it;
+    // here the command just needs to be wrapped into inline math.
     fn command(
         &self,
         command: &str,

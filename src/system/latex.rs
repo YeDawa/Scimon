@@ -89,10 +89,10 @@ impl LaTex {
         TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
     }
 
-    /// Print-pagination rules layered on top of the remote stylesheet:
-    /// headings keep their following content, blocks that must not split
-    /// stay whole, and paragraphs avoid widows/orphans — approximating
-    /// LaTeX's page-breaking decisions.
+    // Print-pagination rules layered on top of the remote stylesheet:
+    // headings keep their following content, blocks that must not split
+    // stay whole, and paragraphs avoid widows/orphans — approximating
+    // LaTeX's page-breaking decisions.
     const PAGINATION_CSS: &'static str = "\
         .document-container p { orphans: 3; widows: 3; }\n\
         h1, h2, h3, h4, .title-block, .bib-title, .acronym-title {\n\
@@ -103,8 +103,8 @@ impl LaTex {
             break-inside: avoid; page-break-inside: avoid;\n\
         }\n";
 
-    /// Hidden math block re-declaring every user macro for MathJax.
-    /// Environment bodies (env@...) are parser-internal and skipped.
+    // Hidden math block re-declaring every user macro for MathJax.
+    // Environment bodies (env@...) are parser-internal and skipped.
     fn mathjax_preamble(user_macros: &HashMap<String, MacroDef>) -> String {
         let mut definitions: Vec<String> = user_macros.iter()
             .filter(|(name, _)| !name.contains('@'))
@@ -126,9 +126,9 @@ impl LaTex {
         )
     }
 
-    /// Load bibliography databases, the citation style and acronym
-    /// definitions before the body renders, so references resolve even when
-    /// they are declared after their first use.
+    // Load bibliography databases, the citation style and acronym
+    // definitions before the body renders, so references resolve even when
+    // they are declared after their first use.
     fn prescan(&self, ast: &[LatexNode], ctx: &mut RenderContext) {
         for node in ast {
             match node {

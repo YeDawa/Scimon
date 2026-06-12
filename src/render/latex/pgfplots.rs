@@ -7,12 +7,12 @@ use crate::render::latex::context::RenderContext;
 // ---------------------------------------------------------------------------
 #[derive(Debug, Clone)]
 pub struct PgfAxis {
-    /// axis options: title, xlabel, xmin, grid, legend pos, ...
+    // axis options: title, xlabel, xmin, grid, legend pos, ...
     pub options: HashMap<String, String>,
-    /// bare axis flags without a value (e.g. "grid")
+    // bare axis flags without a value (e.g. "grid")
     pub flags:   Vec<String>,
     pub plots:   Vec<PgfPlot>,
-    /// legend entries from \legend{...} or \addlegendentry, in plot order
+    // legend entries from \legend{...} or \addlegendentry, in plot order
     pub legend:  Vec<String>,
     pub x_log:   bool,
     pub y_log:   bool,
@@ -22,16 +22,16 @@ pub struct PgfAxis {
 pub struct PgfPlot {
     pub options: HashMap<String, String>,
     pub flags:   Vec<String>,
-    /// true for bare \addplot (no [options]) — uses the default cycle marks
+    // true for bare \addplot (no [options]) — uses the default cycle marks
     pub from_cycle: bool,
     pub data:    PlotData,
 }
 
 #[derive(Debug, Clone)]
 pub enum PlotData {
-    /// \addplot {expression} — sampled over the domain at render time
+    // \addplot {expression} — sampled over the domain at render time
     Expression(String),
-    /// \addplot coordinates {...} or table {...}, already resolved
+    // \addplot coordinates {...} or table {...}, already resolved
     Points(Vec<(f64, f64)>),
 }
 
@@ -54,7 +54,7 @@ pub struct Pgfplots;
 
 impl Pgfplots {
 
-    /// pgfplots default cycle list: (color, mark) per plot index
+    // pgfplots default cycle list: (color, mark) per plot index
     const CYCLE: &'static [(&'static str, &'static str)] = &[
         ("#0000ff", "*"),
         ("#ff0000", "square*"),
@@ -68,8 +68,8 @@ impl Pgfplots {
     // Parsing
     // -----------------------------------------------------------------------
 
-    /// Extract every axis environment from a tikzpicture body.
-    /// Returns an empty Vec when the picture contains no pgfplots axis.
+    // Extract every axis environment from a tikzpicture body.
+    // Returns an empty Vec when the picture contains no pgfplots axis.
     pub fn parse(raw: &str) -> Vec<PgfAxis> {
         let mut axes = Vec::new();
 
@@ -115,7 +115,7 @@ impl Pgfplots {
         axes
     }
 
-    /// Leading [options] group, if present. Returns (options, remainder).
+    // Leading [options] group, if present. Returns (options, remainder).
     fn take_bracket_group(body: &str) -> (String, &str) {
         let trimmed = body.trim_start();
         if !trimmed.starts_with('[') {
@@ -138,7 +138,7 @@ impl Pgfplots {
         (String::new(), body)
     }
 
-    /// Leading {balanced} group, if present. Returns (content, remainder).
+    // Leading {balanced} group, if present. Returns (content, remainder).
     fn take_brace_group(body: &str) -> Option<(String, &str)> {
         let trimmed = body.trim_start();
         if !trimmed.starts_with('{') {
@@ -161,7 +161,7 @@ impl Pgfplots {
         None
     }
 
-    /// Split on top-level commas, ignoring commas inside {} or [].
+    // Split on top-level commas, ignoring commas inside {} or [].
     fn split_commas(s: &str) -> Vec<String> {
         let mut parts = Vec::new();
         let mut depth = 0usize;
@@ -186,7 +186,7 @@ impl Pgfplots {
         s.trim().trim_start_matches('{').trim_end_matches('}').trim().to_string()
     }
 
-    /// key=value pairs and bare flags from an option list
+    // key=value pairs and bare flags from an option list
     fn parse_options(raw: &str) -> (HashMap<String, String>, Vec<String>) {
         let mut options = HashMap::new();
         let mut flags = Vec::new();
@@ -217,7 +217,7 @@ impl Pgfplots {
         (options, flags)
     }
 
-    /// Walk the axis body collecting \addplot, \legend and \addlegendentry.
+    // Walk the axis body collecting \addplot, \legend and \addlegendentry.
     fn parse_axis_body(body: &str, axis: &mut PgfAxis) {
         let mut rest = body;
 
@@ -250,8 +250,8 @@ impl Pgfplots {
         }
     }
 
-    /// Parse one \addplot statement starting after the command name.
-    /// Returns the remainder after the closing ';'.
+    // Parse one \addplot statement starting after the command name.
+    // Returns the remainder after the closing ';'.
     fn parse_addplot<'a>(input: &'a str, axis: &mut PgfAxis) -> &'a str {
         let has_options = input.trim_start().starts_with('[');
         let (options_raw, rest) = Self::take_bracket_group(input);
@@ -287,7 +287,7 @@ impl Pgfplots {
         }
     }
 
-    /// "(0, 1) (1, 2.5) (2, 4)" -> points
+    // "(0, 1) (1, 2.5) (2, 4)" -> points
     fn parse_coordinates(raw: &str) -> PlotData {
         let mut points = Vec::new();
         let mut rest = raw;
@@ -307,8 +307,8 @@ impl Pgfplots {
         PlotData::Points(points)
     }
 
-    /// Whitespace-separated columns; optional header row referenced by
-    /// table[x=name, y=name]. Defaults to the first two columns.
+    // Whitespace-separated columns; optional header row referenced by
+    // table[x=name, y=name]. Defaults to the first two columns.
     fn parse_table(raw: &str, options: &HashMap<String, String>) -> PlotData {
         let rows: Vec<Vec<&str>> = raw.lines()
             .map(|line| line.split('%').next().unwrap_or("").trim())
@@ -510,7 +510,7 @@ impl Pgfplots {
         svg
     }
 
-    /// Resolve a plot to data points, sampling expressions over the domain.
+    // Resolve a plot to data points, sampling expressions over the domain.
     fn sample(plot: &PgfPlot, axis: &PgfAxis) -> Vec<(f64, f64)> {
         match &plot.data {
             PlotData::Points(points) => points.clone(),
@@ -545,7 +545,7 @@ impl Pgfplots {
         }
     }
 
-    /// Data extent with 5% padding, honoring explicit min/max overrides.
+    // Data extent with 5% padding, honoring explicit min/max overrides.
     fn bounds(values: impl Iterator<Item = f64>, min: Option<f64>, max: Option<f64>, log: bool) -> (f64, f64) {
         let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
         for value in values.filter(|v| v.is_finite()) {
@@ -564,7 +564,7 @@ impl Pgfplots {
         (min.unwrap_or(lo - pad), max.unwrap_or(hi + pad))
     }
 
-    /// Tick positions with display labels, in transformed space.
+    // Tick positions with display labels, in transformed space.
     fn ticks(min: f64, max: f64, log: bool, target: f64) -> Vec<(f64, String)> {
         if log {
             let mut ticks = Vec::new();
@@ -604,7 +604,7 @@ impl Pgfplots {
         ticks
     }
 
-    /// Visual style resolved from plot options + the default cycle list
+    // Visual style resolved from plot options + the default cycle list
     fn plot_style(plot: &PgfPlot, index: usize, ctx: &RenderContext) -> SeriesStyle {
         let (cycle_color, cycle_mark) = Self::CYCLE[index % Self::CYCLE.len()];
 
@@ -660,7 +660,7 @@ impl Pgfplots {
         }
     }
 
-    /// "blue", "blue!50!black", "color=red" → CSS color via the document palette
+    // "blue", "blue!50!black", "color=red" → CSS color via the document palette
     fn resolve_color(name: &str, ctx: &RenderContext) -> String {
         let base = name.split('!').next().unwrap_or(name).trim();
         ctx.resolve_color(base)
@@ -791,7 +791,7 @@ impl Pgfplots {
         }
     }
 
-    /// LaTeX dimension to CSS pixels (96 dpi)
+    // LaTeX dimension to CSS pixels (96 dpi)
     fn parse_dimen(value: &str) -> Option<f64> {
         let value = value.trim();
         let split = value.find(|c: char| c.is_alphabetic()).unwrap_or(value.len());
@@ -810,8 +810,8 @@ impl Pgfplots {
         Some(number * scale)
     }
 
-    /// Axis label / legend text: drop math delimiters and TeX control noise,
-    /// escape for SVG.
+    // Axis label / legend text: drop math delimiters and TeX control noise,
+    // escape for SVG.
     fn label_text(raw: &str) -> String {
         let mut out = String::with_capacity(raw.len());
         let mut chars = raw.chars().peekable();
@@ -851,8 +851,8 @@ struct SeriesStyle {
 // ---------------------------------------------------------------------------
 // pgfmath expression evaluator
 // ---------------------------------------------------------------------------
-/// Evaluates pgfmath expressions like "x^2 + 3*sin(deg(x))".
-/// Trigonometric functions take degrees, matching pgfplots defaults.
+// Evaluates pgfmath expressions like "x^2 + 3*sin(deg(x))".
+// Trigonometric functions take degrees, matching pgfplots defaults.
 struct PgfMath<'a> {
     input: &'a [u8],
     pos:   usize,

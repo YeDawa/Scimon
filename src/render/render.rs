@@ -225,8 +225,8 @@ impl Render {
         Ok(contents)
     }
 
-    /// Map every named destination ("label-x") in the printed PDF to its
-    /// 1-based page number — the ground truth for \pageref resolution.
+    // Map every named destination ("label-x") in the printed PDF to its
+    // 1-based page number — the ground truth for \pageref resolution.
     fn destination_pages(pdf: &[u8]) -> HashMap<String, u32> {
         let mut map = HashMap::new();
 
@@ -268,8 +268,8 @@ impl Render {
         map
     }
 
-    /// Serve `content` over HTTP on an ephemeral loopback port, answering
-    /// every request with the same document until the stop flag is set.
+    // Serve `content` over HTTP on an ephemeral loopback port, answering
+    // every request with the same document until the stop flag is set.
     fn serve_content(
         content: String,
     ) -> Result<(u16, Arc<AtomicBool>, JoinHandle<()>), Box<dyn Error>> {

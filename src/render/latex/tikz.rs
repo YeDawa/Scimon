@@ -7,11 +7,11 @@ use crate::render::latex::{
 
 type Point = (f64, f64);
 
-/// Named coordinate: position + node half-extents in px (0 for \coordinate).
-/// Extents let edges between named nodes stop at the node boundary.
+// Named coordinate: position + node half-extents in px (0 for \coordinate).
+// Extents let edges between named nodes stop at the node boundary.
 type NamedPoint = (Point, (f64, f64));
 
-/// Pixels per TikZ unit (1cm at 96 dpi)
+// Pixels per TikZ unit (1cm at 96 dpi)
 const PPU: f64 = 37.8;
 
 // ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ pub struct TikzPath {
     pub stroke:   bool,
     pub fill:     bool,
     pub options:  TikzOptions,
-    /// inline edge labels: `-- node[above] {text}`
+    // inline edge labels: `-- node[above] {text}`
     pub labels:   Vec<TikzNode>,
 }
 
@@ -48,7 +48,7 @@ pub struct TikzOptions {
     pub arrow_start: bool,
     pub arrow_end:   bool,
     pub step:        f64,
-    /// corner radius in px from `rounded corners`
+    // corner radius in px from `rounded corners`
     pub rounding:    f64,
 }
 
@@ -60,10 +60,10 @@ pub enum PathSeg {
     Circle { center: Point, radius: f64 },
     Ellipse { center: Point, rx: f64, ry: f64 },
     Rect { from: Point, to: Point },
-    /// circular arc from `from`, sweeping start° → end° at `radius`
+    // circular arc from `from`, sweeping start° → end° at `radius`
     Arc { from: Point, start: f64, end: f64, radius: f64 },
     Grid { from: Point, to: Point, step: f64 },
-    /// circuitikz `to[R=...]` two-terminal component
+    // circuitikz `to[R=...]` two-terminal component
     Component { from: Point, to: Point, kind: String, label: String },
     Close,
 }
@@ -72,23 +72,23 @@ pub enum PathSeg {
 pub struct TikzNode {
     pub at:        Point,
     pub text:      String,
-    /// "above", "below left", ... — "" means centered on the point
+    // "above", "below left", ... — "" means centered on the point
     pub placement: String,
-    /// circle | rectangle, drawn when the node has the draw option
+    // circle | rectangle, drawn when the node has the draw option
     pub shape:     Option<String>,
     pub fill:      Option<String>,
     pub color:     Option<String>,
-    /// automata library: \node[state, initial] / [state, accepting]
+    // automata library: \node[state, initial] / [state, accepting]
     pub initial:   bool,
     pub accepting: bool,
 }
 
-/// Per-picture parsing state: unit scale, named styles, spacing defaults
+// Per-picture parsing state: unit scale, named styles, spacing defaults
 struct Scope {
     ppu:           f64,
     node_distance: f64,
     styles:        HashMap<String, String>,
-    /// picture-level options applied to every path (e.g. [->, thick])
+    // picture-level options applied to every path (e.g. [->, thick])
     global:        String,
 }
 
@@ -103,10 +103,10 @@ impl Tikz {
     // Parsing
     // -----------------------------------------------------------------------
 
-    /// Parse a tikzpicture body. `env_options` is the [scale=...] group from
-    /// \begin{tikzpicture}[...]; `doc_styles` are \tikzstyle/\tikzset
-    /// definitions collected from the whole document.
-    /// Returns None when nothing drawable is found.
+    // Parse a tikzpicture body. `env_options` is the [scale=...] group from
+    // \begin{tikzpicture}[...]; `doc_styles` are \tikzstyle/\tikzset
+    // definitions collected from the whole document.
+    // Returns None when nothing drawable is found.
     pub fn parse(
         raw: &str,
         env_options: Option<&str>,
@@ -203,7 +203,7 @@ impl Tikz {
         }
     }
 
-    /// Styles the automata library would otherwise provide
+    // Styles the automata library would otherwise provide
     fn builtin_styles() -> HashMap<String, String> {
         let mut styles = HashMap::new();
         styles.insert("state".to_string(), "circle, draw".to_string());
@@ -211,8 +211,8 @@ impl Tikz {
         styles
     }
 
-    /// Replace style names with their definitions, recursively.
-    /// "state" additionally pulls in the user's "every state" style.
+    // Replace style names with their definitions, recursively.
+    // "state" additionally pulls in the user's "every state" style.
     fn expand_options(scope: &Scope, raw: &str, depth: usize) -> String {
         if depth == 0 {
             return raw.to_string();
@@ -243,8 +243,8 @@ impl Tikz {
     // \foreach expansion
     // -----------------------------------------------------------------------
 
-    /// Textually expand \foreach \x in {...} {body} (and the single-statement
-    /// form ending at ';'). Handles "..." ranges and \x/\y value pairs.
+    // Textually expand \foreach \x in {...} {body} (and the single-statement
+    // form ending at ';'). Handles "..." ranges and \x/\y value pairs.
     fn expand_foreach(input: &str) -> String {
         let mut text = input.to_string();
 
@@ -290,7 +290,7 @@ impl Tikz {
         text
     }
 
-    /// "1,2,3" / "0,...,4" / "0,0.5,...,2" / "1/a, 2/b"
+    // "1,2,3" / "0,...,4" / "0,0.5,...,2" / "1/a, 2/b"
     fn foreach_values(list: &str) -> Vec<String> {
         let items = Self::split_commas(list);
 
@@ -325,7 +325,7 @@ impl Tikz {
         }
     }
 
-    /// Replace \x with `value` wherever it is not a prefix of a longer word
+    // Replace \x with `value` wherever it is not a prefix of a longer word
     fn substitute_var(body: &str, var: &str, value: &str) -> String {
         let mut out = String::with_capacity(body.len());
         let mut rest = body;
@@ -348,7 +348,7 @@ impl Tikz {
     // Low-level text helpers
     // -----------------------------------------------------------------------
 
-    /// Remove % comments (but keep escaped \%)
+    // Remove % comments (but keep escaped \%)
     fn strip_comments(raw: &str) -> String {
         let mut out = String::with_capacity(raw.len());
         let mut chars = raw.chars().peekable();
@@ -373,7 +373,7 @@ impl Tikz {
         out
     }
 
-    /// Split on top-level ';' (braces and brackets protect their content)
+    // Split on top-level ';' (braces and brackets protect their content)
     fn split_statements(raw: &str) -> Vec<String> {
         let mut statements = Vec::new();
         let mut current = String::new();
@@ -390,7 +390,7 @@ impl Tikz {
         statements
     }
 
-    /// Split on top-level ',' (braces, brackets and parens protect content)
+    // Split on top-level ',' (braces, brackets and parens protect content)
     fn split_commas(raw: &str) -> Vec<String> {
         let mut parts = Vec::new();
         let mut current = String::new();
@@ -415,7 +415,7 @@ impl Tikz {
         s.trim().trim_start_matches('{').trim_end_matches('}').trim().to_string()
     }
 
-    /// Leading [options] group; returns (content, remainder)
+    // Leading [options] group; returns (content, remainder)
     fn take_brackets(s: &str) -> (String, &str) {
         let trimmed = s.trim_start();
         if !trimmed.starts_with('[') {
@@ -437,7 +437,7 @@ impl Tikz {
         (String::new(), s)
     }
 
-    /// Leading {balanced} group; returns (content, remainder)
+    // Leading {balanced} group; returns (content, remainder)
     fn take_braces(s: &str) -> Option<(String, &str)> {
         let trimmed = s.trim_start();
         if !trimmed.starts_with('{') {
@@ -459,7 +459,7 @@ impl Tikz {
         None
     }
 
-    /// Leading (group); returns (content, remainder)
+    // Leading (group); returns (content, remainder)
     fn take_parens(s: &str) -> Option<(String, &str)> {
         let trimmed = s.trim_start();
         if !trimmed.starts_with('(') {
@@ -469,7 +469,7 @@ impl Tikz {
         Some((trimmed[1..close].to_string(), &trimmed[close + 1..]))
     }
 
-    /// True when `s` continues with a non-word character (token boundary)
+    // True when `s` continues with a non-word character (token boundary)
     fn token_boundary(s: &str) -> bool {
         s.chars().next().map_or(true, |c| !c.is_alphanumeric())
     }
@@ -478,9 +478,9 @@ impl Tikz {
     // Coordinates
     // -----------------------------------------------------------------------
 
-    /// "1.5cm" / "30:2" (polar) / "name" / "name.anchor" → point in TikZ
-    /// units plus the half-extents of the referenced node (0 for literals
-    /// and anchored references, which already sit on the boundary)
+    // "1.5cm" / "30:2" (polar) / "name" / "name.anchor" → point in TikZ
+    // units plus the half-extents of the referenced node (0 for literals
+    // and anchored references, which already sit on the boundary)
     fn resolve_coordinate(
         raw: &str,
         coords: &HashMap<String, NamedPoint>,
@@ -539,7 +539,7 @@ impl Tikz {
         Some(number * factor)
     }
 
-    /// Next coordinate in the path stream, handling ++(relative) and (named).
+    // Next coordinate in the path stream, handling ++(relative) and (named).
     fn next_coordinate<'a>(
         s: &'a str,
         current: Point,
@@ -563,8 +563,8 @@ impl Tikz {
         Some(((point, extents), rest))
     }
 
-    /// Half-extents (px) of a node's visual footprint, used to draw its
-    /// shape and to stop incoming edges at its boundary
+    // Half-extents (px) of a node's visual footprint, used to draw its
+    // shape and to stop incoming edges at its boundary
     fn node_extents(text_len: usize, shape: Option<&str>) -> (f64, f64) {
         let half_w = text_len as f64 * 4.2 + 6.0;
         match shape {
@@ -577,13 +577,13 @@ impl Tikz {
         }
     }
 
-    /// Distance from a node's center to its boundary along direction `u`
-    /// (approximating rectangles by their inscribed ellipse)
+    // Distance from a node's center to its boundary along direction `u`
+    // (approximating rectangles by their inscribed ellipse)
     fn boundary_shrink(extents: (f64, f64), u: Point) -> f64 {
         ((extents.0 * u.0).powi(2) + (extents.1 * u.1).powi(2)).sqrt()
     }
 
-    /// Pull a segment's endpoints back to the node boundaries on both ends
+    // Pull a segment's endpoints back to the node boundaries on both ends
     fn shrink_segment(
         from: Point, from_ext: (f64, f64),
         to: Point, to_ext: (f64, f64),
@@ -905,7 +905,7 @@ impl Tikz {
         out.extend(edges);
     }
 
-    /// Component kind + label from `to[...]` options (R=, C=, L=, l=, ...)
+    // Component kind + label from `to[...]` options (R=, C=, L=, l=, ...)
     fn component_spec(options: &str) -> (String, String) {
         const KINDS: [&str; 8] = ["R", "C", "L", "battery", "V", "I", "D", "short"];
         let mut kind = String::new();
@@ -935,8 +935,8 @@ impl Tikz {
         (kind, label)
     }
 
-    /// `edge [bend left] node {a} (target)` — emitted as a separate path so
-    /// the pen position of the main path is unaffected
+    // `edge [bend left] node {a} (target)` — emitted as a separate path so
+    // the pen position of the main path is unaffected
     fn parse_edge<'a>(
         scope: &Scope,
         input: &'a str,
@@ -993,8 +993,8 @@ impl Tikz {
         rest
     }
 
-    /// Geometry for an edge: straight, bent or a self-loop.
-    /// Returns the segments plus the label anchor point.
+    // Geometry for an edge: straight, bent or a self-loop.
+    // Returns the segments plus the label anchor point.
     fn edge_geometry(
         scope: &Scope,
         from: Point,
@@ -1064,8 +1064,8 @@ impl Tikz {
         (vec![PathSeg::Move(a), PathSeg::Curve { c1, c2, to: b }], apex)
     }
 
-    /// \node[options] (name) at (x,y) {text};
-    /// also supports the positioning library: \node[right=of A] {text}
+    // \node[options] (name) at (x,y) {text};
+    // also supports the positioning library: \node[right=of A] {text}
     fn parse_node_statement(
         scope: &Scope,
         input: &str,
@@ -1108,8 +1108,8 @@ impl Tikz {
         Some(node)
     }
 
-    /// Resolve `right=of A` (border to border) and `right of=A` (center to
-    /// center) into an absolute position
+    // Resolve `right=of A` (border to border) and `right of=A` (center to
+    // center) into an absolute position
     fn positioned_at(
         scope: &Scope,
         options: &str,
@@ -1159,7 +1159,7 @@ impl Tikz {
         }
     }
 
-    /// \coordinate (name) at (x,y);
+    // \coordinate (name) at (x,y);
     fn parse_coordinate_statement(
         scope: &Scope,
         input: &str,
@@ -1294,8 +1294,8 @@ impl Tikz {
         options
     }
 
-    /// Node/label text: strip math delimiters, map \commands to symbols,
-    /// turn _1/^2 into Unicode sub/superscripts
+    // Node/label text: strip math delimiters, map \commands to symbols,
+    // turn _1/^2 into Unicode sub/superscripts
     fn label_text(raw: &str) -> String {
         const SUB: [char; 10] = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
         const SUP: [char; 10] = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
@@ -1446,7 +1446,7 @@ impl Tikz {
         (min, max)
     }
 
-    /// "blue!30" → 30% blue + 70% white; "red!50!black" → mix with black
+    // "blue!30" → 30% blue + 70% white; "red!50!black" → mix with black
     fn resolve_color(name: &str, ctx: &RenderContext) -> String {
         let mut parts = name.split('!');
         let base = ctx.resolve_color(parts.next().unwrap_or(name).trim());
@@ -1478,8 +1478,8 @@ impl Tikz {
         ))
     }
 
-    /// Polyline with rounded corners: cut each corner and bridge it with a
-    /// quadratic curve
+    // Polyline with rounded corners: cut each corner and bridge it with a
+    // quadratic curve
     fn rounded_polyline_d(points: &[Point], closed: bool, radius: f64) -> String {
         use std::fmt::Write as _;
 
@@ -1703,7 +1703,7 @@ impl Tikz {
         }
     }
 
-    /// Two-terminal circuit component: wire — glyph — wire, with a label
+    // Two-terminal circuit component: wire — glyph — wire, with a label
     fn write_component(
         svg: &mut String,
         from: Point,

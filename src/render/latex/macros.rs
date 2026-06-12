@@ -1,27 +1,27 @@
 #[derive(Debug, Clone)]
 pub enum MacroPiece {
-    /// Literal body text (`##` already collapsed to `#`)
+    // Literal body text (`##` already collapsed to `#`)
     Text(String),
-    /// Parameter slot `#n` (1-based)
+    // Parameter slot `#n` (1-based)
     Param(usize),
 }
 
-/// A macro compiled at definition time. The body is split into structural
-/// pieces once, so call-time expansion is a single splice — parameter-like
-/// text inside arguments (`\cmd{a#2b}`) is never re-substituted, unlike
-/// sequential string replacement.
+// A macro compiled at definition time. The body is split into structural
+// pieces once, so call-time expansion is a single splice — parameter-like
+// text inside arguments (`\cmd{a#2b}`) is never re-substituted, unlike
+// sequential string replacement.
 #[derive(Debug, Clone)]
 pub struct MacroDef {
     pub params: usize,
-    /// When present, `#1` is optional with this default value
+    // When present, `#1` is optional with this default value
     pub default: Option<String>,
     pub pieces: Vec<MacroPiece>,
 }
 
 impl MacroDef {
 
-    /// Compile a macro body: `#1`..`#9` become parameter slots, `##` a
-    /// literal `#`, everything else literal text.
+    // Compile a macro body: `#1`..`#9` become parameter slots, `##` a
+    // literal `#`, everything else literal text.
     pub fn compile(params: usize, default: Option<String>, body: &str) -> Self {
         let mut pieces = Vec::new();
         let mut text = String::new();
@@ -54,8 +54,8 @@ impl MacroDef {
         MacroDef { params, default, pieces }
     }
 
-    /// Reconstruct the \newcommand definition in TeX syntax, so the macro
-    /// can also be taught to MathJax for use inside math mode.
+    // Reconstruct the \newcommand definition in TeX syntax, so the macro
+    // can also be taught to MathJax for use inside math mode.
     pub fn to_tex(&self, name: &str) -> String {
         let mut body = String::new();
         for piece in &self.pieces {
@@ -76,8 +76,8 @@ impl MacroDef {
         def
     }
 
-    /// Splice the arguments into the compiled body in one pass.
-    /// Missing arguments expand to nothing.
+    // Splice the arguments into the compiled body in one pass.
+    // Missing arguments expand to nothing.
     pub fn expand(&self, args: &[String]) -> String {
         let mut out = String::new();
         for piece in &self.pieces {

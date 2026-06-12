@@ -27,19 +27,19 @@ use crate::render::latex::{
 // ---------------------------------------------------------------------------
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CiteKind {
-    /// \cite, \citep, \parencite, \autocite — parenthetical/bracketed
+    // \cite, \citep, \parencite, \autocite — parenthetical/bracketed
     Paren,
-    /// \citet, \textcite — author as part of the sentence
+    // \citet, \textcite — author as part of the sentence
     Text,
-    /// \citeauthor — author names only
+    // \citeauthor — author names only
     Author,
-    /// \citeyear, \citedate — year only
+    // \citeyear, \citedate — year only
     Year,
-    /// \citetitle — title only
+    // \citetitle — title only
     Title,
-    /// \fullcite — full reference inline
+    // \fullcite — full reference inline
     Full,
-    /// \footcite, \footcitetext — citation in a footnote
+    // \footcite, \footcitetext — citation in a footnote
     Foot,
 }
 
@@ -48,22 +48,22 @@ pub enum CiteKind {
 // ---------------------------------------------------------------------------
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AcrForm {
-    /// \ac, \gls — full form on first use, short form afterwards
+    // \ac, \gls — full form on first use, short form afterwards
     Auto,
-    /// \acs, \acrshort — short form always
+    // \acs, \acrshort — short form always
     Short,
-    /// \acl, \acrlong — long form always
+    // \acl, \acrlong — long form always
     Long,
-    /// \acf, \acrfull — "long (short)" always
+    // \acf, \acrfull — "long (short)" always
     Full,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AcrCaps {
     No,
-    /// \Ac, \Gls — capitalize the first letter
+    // \Ac, \Gls — capitalize the first letter
     First,
-    /// \GLS — uppercase everything
+    // \GLS — uppercase everything
     All,
 }
 
@@ -99,13 +99,13 @@ pub enum LatexNode {
     // --- Spacing ---
     VSpace(String),
     HSpace(String),
-    /// Apply a \setlength to a document-scoped CSS variable
+    // Apply a \setlength to a document-scoped CSS variable
     SetLength { param: String, value: String },
-    /// Invisible box with same dimensions as content (all axes)
+    // Invisible box with same dimensions as content (all axes)
     Phantom(Vec<LatexNode>),
-    /// Invisible box with same width as content (zero height)
+    // Invisible box with same width as content (zero height)
     HPhantom(Vec<LatexNode>),
-    /// Invisible box with same height as content (zero width)
+    // Invisible box with same height as content (zero width)
     VPhantom(Vec<LatexNode>),
     LineBreak,
     NewPage,
@@ -119,20 +119,20 @@ pub enum LatexNode {
     Subsubsection(String),
     Paragraph(String),
 
-    /// Manual TOC entry: (toc-level name, display title)
+    // Manual TOC entry: (toc-level name, display title)
     AddContentsLine(String, String),
 
     // --- Lists ---
     Itemize(Vec<Vec<LatexNode>>),
     Enumerate(Vec<Vec<LatexNode>>),
-    /// enumitem \begin{enumerate}[label=...] — carries CSS list-style-type
+    // enumitem \begin{enumerate}[label=...] — carries CSS list-style-type
     EnumerateLabeled { style: String, items: Vec<Vec<LatexNode>> },
     Description(Vec<(String, Vec<LatexNode>)>),
 
     // --- Math (raw LaTeX delegated to MathJax) ---
-    /// $...$ and \(...\)
+    // $...$ and \(...\)
     RawMathInline(String),
-    /// $$...$$ and \[...\]
+    // $$...$$ and \[...\]
     RawMathDisplay(String),
     Superscript(Vec<LatexNode>),
     Subscript(Vec<LatexNode>),
@@ -146,17 +146,17 @@ pub enum LatexNode {
         prenote:  Option<String>,
         postnote: Option<String>,
     },
-    /// \nocite{*} or \nocite{key,key2} — include in bibliography without inline cite
+    // \nocite{*} or \nocite{key,key2} — include in bibliography without inline cite
     NoCite(Vec<String>),
-    /// \addbibresource{file.bib} — loads the database, renders nothing
+    // \addbibresource{file.bib} — loads the database, renders nothing
     BibResource(String),
-    /// Style selected by \usepackage[style=...]{biblatex} or \bibliographystyle
+    // Style selected by \usepackage[style=...]{biblatex} or \bibliographystyle
     BibStyleSet(BibStyle),
-    /// \printbibliography[title=...] (empty file) or \bibliography{file}
+    // \printbibliography[title=...] (empty file) or \bibliography{file}
     Bibliography { file: String, title: Option<String> },
 
     // --- Acronyms & glossaries ---
-    /// \newacronym, \DeclareAcronym, \acro — registers, renders nothing
+    // \newacronym, \DeclareAcronym, \acro — registers, renders nothing
     AcronymDef {
         label:        String,
         short:        String,
@@ -164,23 +164,23 @@ pub enum LatexNode {
         short_plural: Option<String>,
         long_plural:  Option<String>,
     },
-    /// \ac, \acs, \acl, \acf, \gls and friends
+    // \ac, \acs, \acl, \acf, \gls and friends
     Acronym {
         label:  String,
         form:   AcrForm,
         plural: bool,
         caps:   AcrCaps,
     },
-    /// \acresetall, \glsresetall — every acronym becomes "unused" again
+    // \acresetall, \glsresetall — every acronym becomes "unused" again
     AcronymReset,
-    /// \printacronyms[name=...] / \printglossary[title=...] / \printglossaries
+    // \printacronyms[name=...] / \printglossary[title=...] / \printglossaries
     PrintAcronyms { title: Option<String> },
 
     // --- amsthm ---
-    /// Theorem-like block (built-in or declared with \newtheorem).
-    /// `counter` names the shared counter ("" = unnumbered), `parent` the
-    /// counter it resets within ("section"/"chapter", "" = global), and
-    /// `style` one of plain | definition | remark | proof.
+    // Theorem-like block (built-in or declared with \newtheorem).
+    // `counter` names the shared counter ("" = unnumbered), `parent` the
+    // counter it resets within ("section"/"chapter", "" = global), and
+    // `style` one of plain | definition | remark | proof.
     Theorem {
         title:   String,
         counter: String,
@@ -189,7 +189,7 @@ pub enum LatexNode {
         note:    Option<String>,
         body:    Vec<LatexNode>,
     },
-    /// \begin{thebibliography}{widest-label}...\end{thebibliography} inline bib
+    // \begin{thebibliography}{widest-label}...\end{thebibliography} inline bib
     TheBibliography(Vec<(String, Vec<LatexNode>)>),
     Label(String),
     Ref(String),
@@ -197,23 +197,23 @@ pub enum LatexNode {
 
     // --- Cross-document ---
     Footnote(Vec<LatexNode>),
-    /// \footnotemark[n] — places the superscript mark only
+    // \footnotemark[n] — places the superscript mark only
     FootnoteMark(Option<usize>),
-    /// \footnotetext[n]{text} — places the footnote text only
+    // \footnotetext[n]{text} — places the footnote text only
     FootnoteText { num: Option<usize>, content: Vec<LatexNode> },
 
     // --- Floats ---
     Image(String),
     Caption(Vec<LatexNode>),
-    /// \caption*{text} — unnumbered caption
+    // \caption*{text} — unnumbered caption
     CaptionStar(Vec<LatexNode>),
     Table(Vec<Vec<TableCell>>),
 
-    /// Wrapper for \begin{table}...\end{table} — increments tab_num first,
-    /// then renders children so \caption sees the correct counter.
+    // Wrapper for \begin{table}...\end{table} — increments tab_num first,
+    // then renders children so \caption sees the correct counter.
     TableFloat(Vec<LatexNode>),
 
-    /// Wrapper for \begin{figure}...\end{figure}
+    // Wrapper for \begin{figure}...\end{figure}
     FigureFloat(Vec<LatexNode>),
 
     // --- Verbatim / Code ---
@@ -221,24 +221,24 @@ pub enum LatexNode {
     Mermaid(String),
 
     // --- pgfplots ---
-    /// \begin{axis}...\end{axis} inside a tikzpicture, rendered as inline SVG
+    // \begin{axis}...\end{axis} inside a tikzpicture, rendered as inline SVG
     PgfPlot(PgfAxis),
 
     // --- TikZ ---
-    /// Plain tikzpicture drawing (\draw, \node, ...), rendered as inline SVG
+    // Plain tikzpicture drawing (\draw, \node, ...), rendered as inline SVG
     Tikz(TikzPicture),
 
     // --- multi-column layout ---
-    /// \begin{multicols}{n}[preface] — preface spans all columns;
-    /// multicols* sets balanced = false (columns fill sequentially)
+    // \begin{multicols}{n}[preface] — preface spans all columns;
+    // multicols* sets balanced = false (columns fill sequentially)
     MultiCols {
         count:    u32,
         preface:  Vec<LatexNode>,
         body:     Vec<LatexNode>,
         balanced: bool,
     },
-    /// \twocolumn / \onecolumn / \documentclass[twocolumn] — switches the
-    /// whole document container to n columns (1 disables)
+    // \twocolumn / \onecolumn / \documentclass[twocolumn] — switches the
+    // whole document container to n columns (1 disables)
     DocumentColumns(u32),
 
     // --- Links ---
@@ -263,43 +263,43 @@ pub enum LatexNode {
     FontDecl { style: String, nodes: Vec<LatexNode> },
 
     // --- color ---
-    /// \definecolor{name}{model}{spec}
+    // \definecolor{name}{model}{spec}
     DefineColor { name: String, css: String },
-    /// \color{x} scoped to a group
+    // \color{x} scoped to a group
     ColorDecl { color: String, nodes: Vec<LatexNode> },
 
     // --- boxes ---
-    /// \parbox[pos]{width}{content}
+    // \parbox[pos]{width}{content}
     Parbox { width: String, nodes: Vec<LatexNode> },
-    /// \raisebox{lift}[h][d]{content}
+    // \raisebox{lift}[h][d]{content}
     Raisebox { lift: String, nodes: Vec<LatexNode> },
 
     // --- counter display ---
-    /// \arabic{c}, \roman{c}, \Roman{c}, \alph{c}, \Alph{c}
+    // \arabic{c}, \roman{c}, \Roman{c}, \alph{c}, \Alph{c}
     CounterValue { style: String, counter: String },
 
     // --- cross-reference ---
-    /// \nameref{label}
+    // \nameref{label}
     NameRef(String),
-    /// \hyperref[label]{text}
+    // \hyperref[label]{text}
     HyperRef { label: String, text: Vec<LatexNode> },
-    /// \hypertarget{name}{text} — named anchor
+    // \hypertarget{name}{text} — named anchor
     HyperTarget { name: String, nodes: Vec<LatexNode> },
-    /// \hyperlink{name}{text} — link to \hypertarget
+    // \hyperlink{name}{text} — link to \hypertarget
     HyperLink { name: String, nodes: Vec<LatexNode> },
-    /// \phantomsection — invisible anchor for hyperref
+    // \phantomsection — invisible anchor for hyperref
     PhantomSection,
 
     // --- line / page spacing ---
-    /// \linespread or setspace commands — emits a <style> block
+    // \linespread or setspace commands — emits a <style> block
     LineSpread(f64),
 }
 
 impl LatexNode {
 
-    /// Render this node to HTML, appending into `buf`.
-    /// This is the primary rendering path — a single buffer is reused across
-    /// the whole document, avoiding thousands of intermediate `String` allocations.
+    // Render this node to HTML, appending into `buf`.
+    // This is the primary rendering path — a single buffer is reused across
+    // the whole document, avoiding thousands of intermediate `String` allocations.
     pub fn write_html(&self, ctx: &mut RenderContext, buf: &mut String) {
         use std::fmt::Write as _;
         match self {
@@ -1113,7 +1113,7 @@ impl LatexNode {
         }
     }
 
-    /// (author label, year) pair for in-text author-year citations
+    // (author label, year) pair for in-text author-year citations
     fn author_year_label(key: &str, ctx: &RenderContext, textual: bool) -> (String, String) {
         match ctx.bib_database.get(key) {
             Some(entry) => (entry.cite_authors(ctx.bib_style, textual), entry.year()),

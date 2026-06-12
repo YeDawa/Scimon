@@ -1,5 +1,5 @@
 pub struct Lexer {
-    /// Source text; `pos` is a **byte** offset into this string.
+    // Source text; `pos` is a **byte** offset into this string.
     pub(crate) input: String,
     pub(crate) pos: usize,
 }
@@ -21,7 +21,7 @@ impl Lexer {
         self.input[self.pos..].chars().next()
     }
 
-    /// Look `n` chars ahead from the current position (0 = same as peek).
+    // Look `n` chars ahead from the current position (0 = same as peek).
     pub fn peek_ahead(&self, n: usize) -> Option<char> {
         self.input[self.pos..].chars().nth(n)
     }
@@ -42,7 +42,7 @@ impl Lexer {
     // Token-level reads
     // -----------------------------------------------------------------------
 
-    /// Read an alphabetic command word (letters only) from current position.
+    // Read an alphabetic command word (letters only) from current position.
     pub fn command_word(&mut self) -> String {
         let mut word = String::new();
         while let Some(c) = self.peek() {
@@ -56,7 +56,7 @@ impl Lexer {
         word
     }
 
-    /// Collect plain text until a special character.
+    // Collect plain text until a special character.
     pub fn text_run(&mut self) -> String {
         let mut text = String::new();
         while let Some(c) = self.peek() {
@@ -69,8 +69,8 @@ impl Lexer {
         text
     }
 
-    /// Collect everything inside the next `{…}`, respecting nesting.
-    /// `\{` and `\}` are literal braces and do not affect the depth.
+    // Collect everything inside the next `{…}`, respecting nesting.
+    // `\{` and `\}` are literal braces and do not affect the depth.
     pub fn brace_group(&mut self) -> String {
         self.skip_whitespace();
         if self.peek() != Some('{') {
@@ -106,9 +106,9 @@ impl Lexer {
         content
     }
 
-    /// Consume an optional `[…]` argument, returning its contents.
-    /// Nested `[…]` pairs, `{…}` groups and escaped characters are kept
-    /// whole — `[title={a]b}]` returns `title={a]b}`.
+    // Consume an optional `[…]` argument, returning its contents.
+    // Nested `[…]` pairs, `{…}` groups and escaped characters are kept
+    // whole — `[title={a]b}]` returns `title={a]b}`.
     pub fn optional_group(&mut self) -> Option<String> {
         self.skip_whitespace();
         if self.peek() != Some('[') {
@@ -145,8 +145,8 @@ impl Lexer {
         Some(content)
     }
 
-    /// Read one undelimited macro argument, TeX-style: a `{…}` group, a
-    /// single control sequence (`\frac`, `\%`), or a single character.
+    // Read one undelimited macro argument, TeX-style: a `{…}` group, a
+    // single control sequence (`\frac`, `\%`), or a single character.
     pub fn macro_argument(&mut self) -> String {
         self.skip_whitespace();
         match self.peek() {
@@ -168,9 +168,9 @@ impl Lexer {
         }
     }
 
-    /// Read everything up to the matching `\end{env}`, consuming the tag.
-    /// Nested `\begin{env}` blocks of the same name are counted, so
-    /// environments like center-inside-center survive intact.
+    // Read everything up to the matching `\end{env}`, consuming the tag.
+    // Nested `\begin{env}` blocks of the same name are counted, so
+    // environments like center-inside-center survive intact.
     pub fn until_env_end(&mut self, env: &str) -> String {
         let begin_tag = format!("\\begin{{{}}}", env);
         let end_tag = format!("\\end{{{}}}", env);

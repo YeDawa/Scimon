@@ -10,21 +10,21 @@ pub mod physics;
 pub mod siunitx;
 pub mod tcolorbox;
 
-/// A LaTeX package handled outside the core parser.
+// A LaTeX package handled outside the core parser.
 pub trait LatexPackage: Sync {
 
-    /// Command words this package owns (without the backslash)
+    // Command words this package owns (without the backslash)
     fn commands(&self) -> &'static [&'static str] {
         &[]
     }
 
-    /// Environment names this package owns
+    // Environment names this package owns
     fn environments(&self) -> &'static [&'static str] {
         &[]
     }
 
-    /// Translate one of the declared commands into nodes. The command word
-    /// arrives without the backslash; `starred` covers \cmd* variants.
+    // Translate one of the declared commands into nodes. The command word
+    // arrives without the backslash; `starred` covers \cmd* variants.
     fn command(
         &self,
         _command: &str,
@@ -35,8 +35,8 @@ pub trait LatexPackage: Sync {
         Vec::new()
     }
 
-    /// Translate one of the declared environments into nodes. `options` is
-    /// the [...] group that followed \begin{env}, when present.
+    // Translate one of the declared environments into nodes. `options` is
+    // the [...] group that followed \begin{env}, when present.
     fn environment(
         &self,
         _env: &str,
@@ -49,8 +49,8 @@ pub trait LatexPackage: Sync {
 
 }
 
-/// Every registered package module, in lookup order — siunitx comes before
-/// physics so \qty keeps its number-and-unit meaning.
+// Every registered package module, in lookup order — siunitx comes before
+// physics so \qty keeps its number-and-unit meaning.
 static REGISTRY: &[&dyn LatexPackage] = &[
     &siunitx::Siunitx,
     &tcolorbox::Tcolorbox,

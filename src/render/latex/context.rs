@@ -8,12 +8,12 @@ use crate::render::latex::bibtex::{
     BibStyle,
 };
 
-/// Acronym registered by \newacronym, \DeclareAcronym or \acro
+// Acronym registered by \newacronym, \DeclareAcronym or \acro
 #[derive(Debug, Clone)]
 pub struct AcronymInfo {
     pub short:        String,
     pub long:         String,
-    /// explicit plural forms; defaults to short/long + "s"
+    // explicit plural forms; defaults to short/long + "s"
     pub short_plural: Option<String>,
     pub long_plural:  Option<String>,
 }
@@ -39,33 +39,33 @@ pub struct RenderContext {
     pub citation_order: Vec<String>,
     pub citation_map:   HashMap<String, usize>,
     pub bib_database:   HashMap<String, BibEntry>,
-    /// Active citation/bibliography style (biblatex style option,
-    /// \bibliographystyle, or numeric by default)
+    // Active citation/bibliography style (biblatex style option,
+    // \bibliographystyle, or numeric by default)
     pub bib_style:      BibStyle,
-    /// true when \nocite{*} was seen — include every .bib entry at render time
+    // true when \nocite{*} was seen — include every .bib entry at render time
     pub nocite_all:     bool,
-    /// User-defined colors from \definecolor
+    // User-defined colors from \definecolor
     pub color_defs:     HashMap<String, String>,
 
-    /// Acronyms keyed by label, plus first-use tracking for \ac and \gls
+    // Acronyms keyed by label, plus first-use tracking for \ac and \gls
     pub acronyms:      HashMap<String, AcronymInfo>,
     pub acronyms_used: HashSet<String>,
 
-    /// amsthm counters: counter name → (count, parent counter's last value)
+    // amsthm counters: counter name → (count, parent counter's last value)
     pub theorem_counters: HashMap<String, (usize, usize)>,
 
     pub footnote_num:      usize,
     pub pending_footnotes: Vec<(usize, String)>,
-    /// \footnotemark numbers not yet claimed by a \footnotetext (FIFO)
+    // \footnotemark numbers not yet claimed by a \footnotetext (FIFO)
     pub unresolved_marks:  Vec<usize>,
-    /// label anchors already written — keeps ids unique when a float's
-    /// anchor is hoisted to its top and \label also appears inside
+    // label anchors already written — keeps ids unique when a float's
+    // anchor is hoisted to its top and \label also appears inside
     pub emitted_labels:    HashSet<String>,
     pub phantom_id:        usize,
 
     pub in_float: bool,
-    /// "Table" or "Figure" while rendering inside the matching float,
-    /// so captions can label themselves correctly
+    // "Table" or "Figure" while rendering inside the matching float,
+    // so captions can label themselves correctly
     pub float_kind: String,
 
     // fancyhdr — header/footer slots (rendered HTML strings)
@@ -130,8 +130,8 @@ impl RenderContext {
         }
     }
 
-    /// Resolve a LaTeX color name to a CSS value.
-    /// Checks user-defined colors first, then standard named colors.
+    // Resolve a LaTeX color name to a CSS value.
+    // Checks user-defined colors first, then standard named colors.
     pub fn resolve_color(&self, name: &str) -> String {
         if let Some(css) = self.color_defs.get(name) {
             return css.clone();
@@ -160,7 +160,7 @@ impl RenderContext {
         }.to_string()
     }
 
-    /// Return the current value of a named counter.
+    // Return the current value of a named counter.
     pub fn counter_value(&self, name: &str) -> usize {
         match name {
             "section"      | "section*"      => self.sec_num,

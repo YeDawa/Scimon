@@ -345,8 +345,8 @@ fn accent_char(accent: char, base: char) -> String {
 }
 
 pub struct Parser {
-    /// Lexical layer — owns the source text and cursor; every low-level
-    /// read goes through it so escapes and nesting are handled in one place
+    // Lexical layer — owns the source text and cursor; every low-level
+    // read goes through it so escapes and nesting are handled in one place
     pub lexer: Lexer,
     pub in_document: bool,
 
@@ -356,14 +356,14 @@ pub struct Parser {
     pub current_table: usize,
     pub current_equation: usize,
 
-    /// User-defined macros, compiled at definition time into structural
-    /// pieces (see `macros::MacroDef`); expansion is a single splice.
+    // User-defined macros, compiled at definition time into structural
+    // pieces (see `macros::MacroDef`); expansion is a single splice.
     pub macros: HashMap<String, MacroDef>,
 
-    /// Guards against runaway recursion (\def\x{\x})
+    // Guards against runaway recursion (\def\x{\x})
     expansion_depth: usize,
 
-    /// Current \theoremstyle, applied to subsequent \newtheorem definitions
+    // Current \theoremstyle, applied to subsequent \newtheorem definitions
     theorem_style: String,
 }
 
@@ -396,13 +396,13 @@ impl Parser {
         self.lexer.peek()
     }
 
-    /// Look `n` chars ahead from the current position (0 = same as peek).
+    // Look `n` chars ahead from the current position (0 = same as peek).
     pub fn peek_ahead(&self, n: usize) -> Option<char> {
         self.lexer.peek_ahead(n)
     }
 
-    /// Read a TeX dimension token (number + optional unit) from current position.
-    /// Returns the raw string, e.g. "1.5em", "-2pt", "0".
+    // Read a TeX dimension token (number + optional unit) from current position.
+    // Returns the raw string, e.g. "1.5em", "-2pt", "0".
     fn read_dimension(&mut self) -> String {
         self.skip_whitespace();
         let mut s = String::new();
@@ -425,7 +425,7 @@ impl Parser {
         s
     }
 
-    /// Capitalise first character of a string.
+    // Capitalise first character of a string.
     fn capitalise(s: &str) -> String {
         let mut c = s.chars();
         match c.next() {
@@ -434,8 +434,8 @@ impl Parser {
         }
     }
 
-    /// Parse enumitem `[label=\alph*, label=(\roman*), ...]` option string
-    /// and return the equivalent CSS `list-style-type` value.
+    // Parse enumitem `[label=\alph*, label=(\roman*), ...]` option string
+    // and return the equivalent CSS `list-style-type` value.
     fn enumitem_label_style(opt: &str) -> String {
         // Extract `label=<value>` from option string
         let lower = opt.to_lowercase();
@@ -464,8 +464,8 @@ impl Parser {
         }
     }
 
-    /// Render a LaTeX tabbing environment body to HTML.
-    /// \= sets tab stops, \> advances, \kill discards a line, \\ ends line.
+    // Render a LaTeX tabbing environment body to HTML.
+    // \= sets tab stops, \> advances, \kill discards a line, \\ ends line.
     fn render_tabbing(body: &str) -> String {
         let mut html = String::from("<div class=\"latex-tabbing\">");
         let mut tab_stops: Vec<usize> = Vec::new();
@@ -511,12 +511,12 @@ impl Parser {
         html
     }
 
-    /// Read an alphabetic command word (letters only) from current position.
+    // Read an alphabetic command word (letters only) from current position.
     fn read_command_word(&mut self) -> String {
         self.lexer.command_word()
     }
 
-    /// Skip whitespace characters without consuming them permanently.
+    // Skip whitespace characters without consuming them permanently.
     fn skip_whitespace(&mut self) {
         self.lexer.skip_whitespace()
     }
@@ -525,17 +525,17 @@ impl Parser {
     // Text / content helpers
     // -----------------------------------------------------------------------
 
-    /// Collect plain text until a special character.
+    // Collect plain text until a special character.
     pub fn parse_text(&mut self) -> String {
         self.lexer.text_run()
     }
 
-    /// Collect everything inside the next `{…}`, respecting nesting.
+    // Collect everything inside the next `{…}`, respecting nesting.
     pub fn parse_braces_content(&mut self) -> String {
         self.lexer.brace_group()
     }
 
-    /// Parse the next argument: `{…}` (multiple chars) or a single char.
+    // Parse the next argument: `{…}` (multiple chars) or a single char.
     pub fn parse_argument(&mut self) -> Vec<LatexNode> {
         self.skip_whitespace();
         if self.peek() == Some('{') {
@@ -548,15 +548,15 @@ impl Parser {
         }
     }
 
-    /// Consume an optional `[…]` argument, returning its contents.
-    /// Nested brackets and braced groups are kept whole by the lexer.
+    // Consume an optional `[…]` argument, returning its contents.
+    // Nested brackets and braced groups are kept whole by the lexer.
     pub(crate) fn parse_optional_arg(&mut self) -> Option<String> {
         self.lexer.optional_group()
     }
 
-    /// "key=value, key={braced, value}, flag" option lists used by
-    /// \newacronym, \DeclareAcronym, \printacronyms and friends.
-    /// Flags without '=' are ignored; commas inside braces are preserved.
+    // "key=value, key={braced, value}, flag" option lists used by
+    // \newacronym, \DeclareAcronym, \printacronyms and friends.
+    // Flags without '=' are ignored; commas inside braces are preserved.
     fn key_value_list(raw: &str) -> HashMap<String, String> {
         let mut parts = Vec::new();
         let mut current = String::new();
@@ -585,14 +585,14 @@ impl Parser {
         map
     }
 
-    /// Read everything up to the matching `\end{env_name}`, consuming the
-    /// tag. Nested same-name environments are counted by the lexer.
+    // Read everything up to the matching `\end{env_name}`, consuming the
+    // tag. Nested same-name environments are counted by the lexer.
     pub(crate) fn read_until_end(&mut self, env_name: &str) -> String {
         self.lexer.until_env_end(env_name)
     }
 
-    /// Consume `\OPEN ... \CLOSE` math delimiters and return the raw inner LaTeX.
-    /// Expects `pos` to be positioned BEFORE the leading `\`; advances past `\CLOSE`.
+    // Consume `\OPEN ... \CLOSE` math delimiters and return the raw inner LaTeX.
+    // Expects `pos` to be positioned BEFORE the leading `\`; advances past `\CLOSE`.
     fn consume_math_block(&mut self, open: char, close: char) -> String {
         self.lexer.pos += 2; // skip `\` + open char
         let mut content = String::new();
@@ -607,7 +607,7 @@ impl Parser {
         content
     }
 
-    /// Consume `$...$` (inline) or `$$...$$` (display) and return the appropriate node.
+    // Consume `$...$` (inline) or `$$...$$` (display) and return the appropriate node.
     fn consume_dollar_math(&mut self) -> LatexNode {
         self.lexer.pos += 1; // skip first `$`
         let display = self.peek() == Some('$');
@@ -3586,8 +3586,8 @@ impl Parser {
     // Inline bibliography parser
     // -----------------------------------------------------------------------
 
-    /// Parse the body of \begin{thebibliography}...\end{thebibliography}.
-    /// Returns Vec<(key, content_nodes)>.
+    // Parse the body of \begin{thebibliography}...\end{thebibliography}.
+    // Returns Vec<(key, content_nodes)>.
     fn parse_thebibliography(
         body: &str,
         labels: &mut HashMap<String, String>,
@@ -3630,7 +3630,7 @@ impl Parser {
     // Brace / colspec / cell-meta helpers
     // -----------------------------------------------------------------------
 
-    /// Extract the content of the first `{...}` from `s`, return (inner, rest).
+    // Extract the content of the first `{...}` from `s`, return (inner, rest).
     fn take_brace(s: &str) -> Option<(String, String)> {
         let s = s.trim_start();
         if !s.starts_with('{') { return None; }
@@ -3651,7 +3651,7 @@ impl Parser {
         Some((inner[..end].to_string(), inner[end + 1..].to_string()))
     }
 
-    /// Parse a LaTeX column-spec string into `Vec<(text-align, width)>`.
+    // Parse a LaTeX column-spec string into `Vec<(text-align, width)>`.
     fn parse_colspec(spec: &str) -> Vec<(String, Option<String>)> {
         let mut cols: Vec<(String, Option<String>)> = Vec::new();
         let bytes = spec.as_bytes();
@@ -3711,8 +3711,8 @@ impl Parser {
         cols
     }
 
-    /// Try to extract `\multicolumn{N}{spec}{content}` from the start of `cell`.
-    /// Returns `(colspan, align_css, content_str)` if it matches.
+    // Try to extract `\multicolumn{N}{spec}{content}` from the start of `cell`.
+    // Returns `(colspan, align_css, content_str)` if it matches.
     fn extract_multicolumn(cell: &str) -> Option<(usize, String, String)> {
         let s = cell.trim();
         if !s.starts_with("\\multicolumn") { return None; }
@@ -3727,8 +3727,8 @@ impl Parser {
         Some((n, align, content))
     }
 
-    /// Try to extract `\multirow{N}[vpos]{width}[fixup]{content}` from `cell`.
-    /// Returns `(rowspan, content_str)` if it matches.
+    // Try to extract `\multirow{N}[vpos]{width}[fixup]{content}` from `cell`.
+    // Returns `(rowspan, content_str)` if it matches.
     fn extract_multirow(cell: &str) -> Option<(usize, String)> {
         let s = cell.trim();
         if !s.starts_with("\\multirow") { return None; }
@@ -3752,7 +3752,7 @@ impl Parser {
         Some((n, content))
     }
 
-    /// Map a single-column spec char/string to a CSS text-align value.
+    // Map a single-column spec char/string to a CSS text-align value.
     fn colspec_align(spec: &str) -> String {
         for c in spec.trim().chars() {
             match c {
@@ -3765,7 +3765,7 @@ impl Parser {
         String::new()
     }
 
-    /// Strip `\cline{...}` and `\cmidrule[...]{...}` patterns from a row string.
+    // Strip `\cline{...}` and `\cmidrule[...]{...}` patterns from a row string.
     fn strip_partial_rules(s: &str) -> (String, bool) {
         let mut result = String::new();
         let mut has_hline = false;
@@ -3900,8 +3900,8 @@ impl Parser {
     // Width / color helpers used by the new environments
     // -----------------------------------------------------------------------
 
-    /// Convert a LaTeX length (possibly \fill, \stretch, calc-style) to a CSS value.
-    /// Used by \setlength — produces a value suitable for a CSS custom property.
+    // Convert a LaTeX length (possibly \fill, \stretch, calc-style) to a CSS value.
+    // Used by \setlength — produces a value suitable for a CSS custom property.
     fn length_to_css(raw: &str) -> String {
         let s = raw.trim();
         match s {
@@ -3911,7 +3911,7 @@ impl Parser {
         }
     }
 
-    /// Convert a LaTeX width expression to a CSS value.
+    // Convert a LaTeX width expression to a CSS value.
     fn conv_width(raw: &str) -> String {
         let s = raw.trim();
 
@@ -3948,7 +3948,7 @@ impl Parser {
         if s.is_empty() { "100%".to_string() } else { s.to_string() }
     }
 
-    /// Convert a LaTeX color expression (name or `color!pct!base`) to CSS hex.
+    // Convert a LaTeX color expression (name or `color!pct!base`) to CSS hex.
     pub(crate) fn latex_color(raw: &str) -> String {
         let parts: Vec<&str> = raw.split('!').collect();
         let name = parts[0].trim().to_lowercase();
@@ -3997,9 +3997,9 @@ impl Parser {
         format!("#{:02x}{:02x}{:02x}", r, g, b)
     }
 
-    /// Collect everything from the current position until the matching `}` that
-    /// closes the enclosing group (depth-0 close brace), without consuming it.
-    /// Used by font-declaration commands like `\itshape`.
+    // Collect everything from the current position until the matching `}` that
+    // closes the enclosing group (depth-0 close brace), without consuming it.
+    // Used by font-declaration commands like `\itshape`.
     fn collect_until_close_brace(&mut self) -> String {
         let mut result = String::new();
         let mut depth  = 0usize;
@@ -4021,7 +4021,7 @@ impl Parser {
         result
     }
 
-    /// Convert a \definecolor model + spec to a CSS color value.
+    // Convert a \definecolor model + spec to a CSS color value.
     fn latex_color_model(model: &str, spec: &str) -> String {
         match model.trim().to_lowercase().as_str() {
             "rgb" => {
@@ -4069,8 +4069,8 @@ impl Parser {
         }
     }
 
-    /// Normalise a fancyhdr position argument like "LE,RO" → "L,R".
-    /// Strips the even/odd suffix (E/O) so only the base slot (L/C/R) remains.
+    // Normalise a fancyhdr position argument like "LE,RO" → "L,R".
+    // Strips the even/odd suffix (E/O) so only the base slot (L/C/R) remains.
     fn normalize_fancy_pos(raw: &str) -> String {
         raw.split(',')
             .map(|part| {
@@ -4087,8 +4087,8 @@ impl Parser {
             .join(",")
     }
 
-    /// Returns the registered label names so callers can emit anchors for
-    /// content whose body never reaches the HTML DOM (e.g. MathJax blocks).
+    // Returns the registered label names so callers can emit anchors for
+    // content whose body never reaches the HTML DOM (e.g. MathJax blocks).
     fn extract_and_register_labels(
         raw: &str,
         value: &str,

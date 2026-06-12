@@ -8,9 +8,9 @@ use crate::render::latex::{
 
 pub struct Physics;
 
-/// Maximum number of braced arguments and whether an [optional] argument is
-/// accepted, per command. Arguments are captured greedily up to the maximum
-/// while a `{` follows, matching how these commands are written in practice.
+// Maximum number of braced arguments and whether an [optional] argument is
+// accepted, per command. Arguments are captured greedily up to the maximum
+// while a `{` follows, matching how these commands are written in practice.
 fn arity(command: &str) -> (usize, bool) {
     match command {
         // derivatives: \dv[n]{f}{x}, \pdv[n]{f}{x}{y}
@@ -39,9 +39,9 @@ impl LatexPackage for Physics {
         ]
     }
 
-    /// physics-package commands in body text — reconstructed verbatim and
-    /// wrapped into inline math, where MathJax's physics extension typesets
-    /// them. Inside math mode the raw content reaches MathJax untouched.
+    // physics-package commands in body text — reconstructed verbatim and
+    // wrapped into inline math, where MathJax's physics extension typesets
+    // them. Inside math mode the raw content reaches MathJax untouched.
     fn command(
         &self,
         command: &str,

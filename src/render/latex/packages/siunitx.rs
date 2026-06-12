@@ -53,7 +53,7 @@ impl LatexPackage for Siunitx {
 
 }
 
-/// Format a siunitx number: group digits, handle scientific notation.
+// Format a siunitx number: group digits, handle scientific notation.
 fn format_number(raw: &str) -> String {
     let s = raw.trim();
 
@@ -87,7 +87,7 @@ fn format_number(raw: &str) -> String {
     }
 }
 
-/// "45" → 45°; "30;10;5" → 30°10'5″
+// "45" → 45°; "30;10;5" → 30°10'5″
 fn format_angle(raw: &str) -> String {
     if !raw.contains(';') {
         return format!("{}°", raw);
@@ -101,7 +101,7 @@ fn format_angle(raw: &str) -> String {
     s
 }
 
-/// Convert siunitx unit macros to HTML (e.g. \meter\per\second → m s⁻¹).
+// Convert siunitx unit macros to HTML (e.g. \meter\per\second → m s⁻¹).
 fn format_unit(raw: &str) -> String {
     let mut result = String::new();
     let mut per = false;
