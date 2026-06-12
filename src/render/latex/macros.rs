@@ -54,6 +54,28 @@ impl MacroDef {
         MacroDef { params, default, pieces }
     }
 
+    /// Reconstruct the \newcommand definition in TeX syntax, so the macro
+    /// can also be taught to MathJax for use inside math mode.
+    pub fn to_tex(&self, name: &str) -> String {
+        let mut body = String::new();
+        for piece in &self.pieces {
+            match piece {
+                MacroPiece::Text(text) => body.push_str(&text.replace('#', "##")),
+                MacroPiece::Param(slot) => body.push_str(&format!("#{}", slot)),
+            }
+        }
+
+        let mut def = format!("\\newcommand{{\\{}}}", name);
+        if self.params > 0 {
+            def.push_str(&format!("[{}]", self.params));
+            if let Some(default) = &self.default {
+                def.push_str(&format!("[{}]", default));
+            }
+        }
+        def.push_str(&format!("{{{}}}", body));
+        def
+    }
+
     /// Splice the arguments into the compiled body in one pass.
     /// Missing arguments expand to nothing.
     pub fn expand(&self, args: &[String]) -> String {

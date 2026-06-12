@@ -3312,16 +3312,12 @@ impl Parser {
         } else if matches!(env,
             "pmatrix" | "bmatrix" | "Bmatrix" | "vmatrix" | "Vmatrix" | "matrix" | "smallmatrix"
         ) && self.in_document {
+            // delegate to MathJax — contextual cell alignment belongs to the
+            // math engine, not to hand-rolled HTML
             let raw = self.read_until_end(env);
-            let (open, close) = match env {
-                "pmatrix" => ("(", ")"),
-                "bmatrix" => ("[", "]"),
-                "Bmatrix" => ("{", "}"),
-                "vmatrix" => ("|", "|"),
-                "Vmatrix" => ("‖", "‖"),
-                _         => ("", ""),
-            };
-            nodes.push(LatexNode::Matrix { open, close, rows: Self::parse_matrix_body(&raw, labels) });
+            nodes.push(LatexNode::RawMathInline(
+                format!("\\begin{{{}}}{}\\end{{{}}}", env, raw.trim(), env)
+            ));
 
         } else if env == "center" && self.in_document {
             let raw   = self.read_until_end("center");
@@ -3895,27 +3891,6 @@ impl Parser {
                 }
                 rows.push(cells);
             }
-        }
-
-        rows
-    }
-
-    fn parse_matrix_body(
-        raw: &str,
-        labels: &mut HashMap<String, String>,
-    ) -> Vec<Vec<Vec<LatexNode>>> {
-        let mut rows = Vec::new();
-
-        for row_str in raw.split(r"\\") {
-            let trimmed = row_str.trim();
-            if trimmed.is_empty() { continue; }
-
-            let mut cells = Vec::new();
-            for cell in trimmed.split('&') {
-                cells.push(Parser::new(cell.trim()).parse(true, labels));
-            }
-
-            rows.push(cells);
         }
 
         rows

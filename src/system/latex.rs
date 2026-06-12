@@ -20,6 +20,7 @@ use crate::{
         latex::{
             nodes::Nodes,
             parser::Parser,
+            macros::MacroDef,
             tex_ast::LatexNode,
             bibtex::BibTextRender,
 
@@ -42,13 +43,14 @@ impl LaTex {
         // environments, arguments), which overflows the default 1 MB stack
         // on deep documents — give it a dedicated thread with room to spare.
         let source = content.to_string();
-        let (document_ast, labels) = std::thread::Builder::new()
+        let (document_ast, labels, user_macros) = std::thread::Builder::new()
             .name(String::from("latex-parse"))
             .stack_size(64 * 1024 * 1024)
             .spawn(move || {
                 let mut labels = HashMap::new();
-                let ast = Parser::new(&source).parse(force_active, &mut labels);
-                (ast, labels)
+                let mut parser = Parser::new(&source);
+                let ast = parser.parse(force_active, &mut labels);
+                (ast, labels, parser.macros)
             })
             .ok()
             .and_then(|handle| handle.join().ok())
@@ -57,6 +59,14 @@ impl LaTex {
         let mut context = RenderContext::new(labels);
         self.prescan(&document_ast, &mut context);
         let mut html_body = Nodes::render(&document_ast, &mut context);
+
+        // Teach the user's macros to MathJax: raw math reaches the browser
+        // unexpanded, so \newcommand definitions must exist there too. The
+        // hidden block is typeset first and its definitions are document-wide.
+        let preamble = Self::mathjax_preamble(&user_macros);
+        if !preamble.is_empty() {
+            html_body = format!("{}{}", preamble, html_body);
+        }
 
         let toc_html = self.build_toc(&context);
         html_body = html_body.replace("__TOC_PLACEHOLDER__", &toc_html);
@@ -92,6 +102,29 @@ impl LaTex {
         .latex-image, .caption, pre, blockquote, .footnote-list li {\n\
             break-inside: avoid; page-break-inside: avoid;\n\
         }\n";
+
+    /// Hidden math block re-declaring every user macro for MathJax.
+    /// Environment bodies (env@...) are parser-internal and skipped.
+    fn mathjax_preamble(user_macros: &HashMap<String, MacroDef>) -> String {
+        let mut definitions: Vec<String> = user_macros.iter()
+            .filter(|(name, _)| !name.contains('@'))
+            .map(|(name, def)| {
+                def.to_tex(name)
+                    .replace('<', "\\lt ")
+                    .replace('>', "\\gt ")
+            })
+            .collect();
+
+        if definitions.is_empty() {
+            return String::new();
+        }
+        definitions.sort();
+
+        format!(
+            "<div class=\"mathjax-preamble\" style=\"display: none;\">\\({}\\)</div>",
+            definitions.join(" "),
+        )
+    }
 
     /// Load bibliography databases, the citation style and acronym
     /// definitions before the body renders, so references resolve even when

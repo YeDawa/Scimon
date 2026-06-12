@@ -129,16 +129,13 @@ pub enum LatexNode {
     EnumerateLabeled { style: String, items: Vec<Vec<LatexNode>> },
     Description(Vec<(String, Vec<LatexNode>)>),
 
-    // --- Math ---
-    MathInline(Vec<LatexNode>),
-    MathDisplay(Vec<LatexNode>),
-    /// Raw LaTeX passed directly to MathJax — $...$ and \(...\)
+    // --- Math (raw LaTeX delegated to MathJax) ---
+    /// $...$ and \(...\)
     RawMathInline(String),
-    /// Raw LaTeX passed directly to MathJax — $$...$$ and \[...\]
+    /// $$...$$ and \[...\]
     RawMathDisplay(String),
     Superscript(Vec<LatexNode>),
     Subscript(Vec<LatexNode>),
-    Fraction { num: Vec<LatexNode>, den: Vec<LatexNode> },
     EquationBlock(Vec<LatexNode>),
     AlignBlock(Vec<LatexNode>),
 
@@ -218,13 +215,6 @@ pub enum LatexNode {
 
     /// Wrapper for \begin{figure}...\end{figure}
     FigureFloat(Vec<LatexNode>),
-    
-    /// Inline math matrix — open/close delimiters + grid of cells
-    Matrix {
-        open:  &'static str,
-        close: &'static str,
-        rows:  Vec<Vec<Vec<LatexNode>>>,
-    },
 
     // --- Verbatim / Code ---
     CodeBlock(String),
@@ -530,33 +520,11 @@ impl LatexNode {
                 let _ = write!(buf, "<div class=\"math-block\">\\[{}\\]</div>", raw);
             }
 
-            #[allow(dead_code)]
-            LatexNode::MathInline(nodes) => {
-                buf.push_str("<span class=\"math-inline\">");
-                Nodes::write(nodes, ctx, buf);
-                buf.push_str("</span>");
-            }
-
-            #[allow(dead_code)]
-            LatexNode::MathDisplay(nodes) => {
-                buf.push_str("<div class=\"math-display\">");
-                Nodes::write(nodes, ctx, buf);
-                buf.push_str("</div>");
-            }
-
             LatexNode::Superscript(nodes) => {
                 buf.push_str("<sup>"); Nodes::write(nodes, ctx, buf); buf.push_str("</sup>");
             }
             LatexNode::Subscript(nodes) => {
                 buf.push_str("<sub>"); Nodes::write(nodes, ctx, buf); buf.push_str("</sub>");
-            }
-
-            LatexNode::Fraction { num, den } => {
-                buf.push_str("<span class=\"latex-frac\"><span class=\"frac-num\">");
-                Nodes::write(num, ctx, buf);
-                buf.push_str("</span><span class=\"frac-den\">");
-                Nodes::write(den, ctx, buf);
-                buf.push_str("</span></span>");
             }
 
             LatexNode::EquationBlock(nodes) => {
@@ -886,30 +854,6 @@ impl LatexNode {
                     buf.push_str("  </tr>\n");
                 }
                 buf.push_str("</tbody></table>\n");
-            }
-
-            LatexNode::Matrix { open, close, rows } => {
-                if rows.is_empty() {
-                    let _ = write!(buf, "{}{}", open, close);
-                    return;
-                }
-                let col_count = rows.iter().map(|r| r.len()).max().unwrap_or(1);
-                let _ = write!(
-                    buf,
-                    "<span class=\"latex-matrix-wrap\"><span class=\"matrix-delim\">{open}</span>\
-                     <span class=\"latex-matrix\" style=\"grid-template-columns: repeat({col_count}, auto);\">",
-                );
-                for row in rows {
-                    for cell in row {
-                        buf.push_str("<span class=\"matrix-cell\">");
-                        Nodes::write(cell, ctx, buf);
-                        buf.push_str("</span>");
-                    }
-                    for _ in row.len()..col_count {
-                        buf.push_str("<span class=\"matrix-cell\"></span>");
-                    }
-                }
-                let _ = write!(buf, "</span><span class=\"matrix-delim\">{close}</span></span>");
             }
 
             // ----------------------------------------------------------------
