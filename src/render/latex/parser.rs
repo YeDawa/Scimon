@@ -2952,13 +2952,13 @@ impl Parser {
             }
 
             // ----------------------------------------------------------------
-            // Alignment column separator  &
-            // In math (align/eqnarray) emit spacing; tabular handles & itself
-            // in parse_tabular() before this branch is reached.
+            // Stray & in body text — alignment contexts never reach here
+            // (math goes raw to MathJax, tabular consumes & itself), so the
+            // tolerant rendering is a literal ampersand
             // ----------------------------------------------------------------
             if current == '&' && self.in_document {
                 self.lexer.pos += 1;
-                nodes.push(LatexNode::HSpace("0.5em".to_string()));
+                nodes.push(LatexNode::Text("&amp;".to_string()));
                 continue;
             }
 
