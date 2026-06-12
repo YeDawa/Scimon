@@ -1,5 +1,3 @@
-//! siunitx — \SI{3e8}{\meter\per\second}, \qty, \si, \unit, \num, \ang
-
 use std::collections::HashMap;
 
 use crate::render::latex::{

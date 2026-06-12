@@ -1,24 +1,3 @@
-//! Package modules — LaTeX package support decoupled from the core parser.
-//!
-//! Each third-party LaTeX package (siunitx, tcolorbox, ...) lives in its own
-//! module implementing [`LatexPackage`]. The parser consults the registry
-//! when it finds a command or environment it does not own, so adding a
-//! package never touches the core `match` again.
-//!
-//! # Adding a package
-//!
-//! 1. Create `packages/<name>.rs` with a unit struct implementing
-//!    [`LatexPackage`]: declare the commands/environments it owns and
-//!    translate them to [`LatexNode`]s, using the `Parser` argument to
-//!    consume arguments (`parse_braces_content`, `parse_optional_arg`,
-//!    `read_until_end`) and `labels` for cross-references.
-//! 2. Declare the module below and add the struct to [`REGISTRY`].
-//!
-//! Handlers are always active rather than gated on `\usepackage` — like the
-//! rest of the renderer, documents without a full preamble still work, and
-//! a `\newcommand`/`\renewcommand` with the same name takes precedence
-//! (user macros are expanded before the registry is consulted).
-
 use std::collections::HashMap;
 
 use crate::render::latex::{

@@ -1,5 +1,3 @@
-//! tcolorbox — \begin{tcolorbox}[title=..., colback=..., colframe=...]
-
 use std::collections::HashMap;
 
 use crate::render::latex::{
@@ -46,18 +44,35 @@ impl LatexPackage for Tcolorbox {
 }
 
 /// Parse tcolorbox key=value options, return (title, colback, colframe).
+/// Commas inside {braced} values do not split, and outer braces are removed.
 fn parse_options(opts: &str) -> (Option<String>, String, String) {
     let mut title:    Option<String> = None;
     let mut colback  = "#eaf4fb".to_string();
     let mut colframe = "#2980b9".to_string();
 
-    for part in opts.split(',') {
-        let kv: Vec<&str> = part.splitn(2, '=').collect();
-        if kv.len() != 2 { continue; }
-        match kv[0].trim() {
-            "title"    => title    = Some(kv[1].trim().to_string()),
-            "colback"  => colback  = Parser::latex_color(kv[1].trim()),
-            "colframe" => colframe = Parser::latex_color(kv[1].trim()),
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut depth = 0usize;
+    for c in opts.chars() {
+        match c {
+            '{' => { depth += 1; current.push(c); }
+            '}' => { depth = depth.saturating_sub(1); current.push(c); }
+            ',' if depth == 0 => parts.push(std::mem::take(&mut current)),
+            _ => current.push(c),
+        }
+    }
+    parts.push(current);
+
+    for part in parts {
+        let Some((key, value)) = part.split_once('=') else { continue };
+        let value = value.trim()
+            .trim_start_matches('{')
+            .trim_end_matches('}')
+            .trim();
+        match key.trim() {
+            "title"    => title    = Some(value.to_string()),
+            "colback"  => colback  = Parser::latex_color(value),
+            "colframe" => colframe = Parser::latex_color(value),
             _ => {}
         }
     }

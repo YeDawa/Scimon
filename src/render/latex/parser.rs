@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::render::latex::{
     packages,
     tikz::Tikz,
+    lexer::Lexer,
     bibtex::BibStyle,
     pgfplots::Pgfplots,
 
@@ -343,9 +344,9 @@ fn accent_char(accent: char, base: char) -> String {
 }
 
 pub struct Parser {
-    /// Source text; `pos` is a **byte** offset into this string.
-    pub input: String,
-    pub pos: usize,
+    /// Lexical layer — owns the source text and cursor; every low-level
+    /// read goes through it so escapes and nesting are handled in one place
+    pub lexer: Lexer,
     pub in_document: bool,
 
     pub current_chapter: usize,
@@ -366,8 +367,7 @@ impl Parser {
 
     pub fn new(input: &str) -> Self {
         Parser {
-            input: input.to_string(),
-            pos: 0,
+            lexer: Lexer::new(input),
             in_document: false,
             current_chapter: 0,
             current_section: 0,
@@ -380,22 +380,20 @@ impl Parser {
     }
 
     // -----------------------------------------------------------------------
-    // Character-level helpers
+    // Character-level helpers — thin delegations into the lexical layer
     // -----------------------------------------------------------------------
 
     pub fn next_char(&mut self) -> Option<char> {
-        let c = self.input[self.pos..].chars().next()?;
-        self.pos += c.len_utf8();
-        Some(c)
+        self.lexer.next_char()
     }
 
     pub fn peek(&self) -> Option<char> {
-        self.input[self.pos..].chars().next()
+        self.lexer.peek()
     }
 
     /// Look `n` chars ahead from the current position (0 = same as peek).
     pub fn peek_ahead(&self, n: usize) -> Option<char> {
-        self.input[self.pos..].chars().nth(n)
+        self.lexer.peek_ahead(n)
     }
 
     /// Read a TeX dimension token (number + optional unit) from current position.
@@ -510,23 +508,12 @@ impl Parser {
 
     /// Read an alphabetic command word (letters only) from current position.
     fn read_command_word(&mut self) -> String {
-        let mut word = String::new();
-        while let Some(c) = self.peek() {
-            if c.is_alphabetic() {
-                word.push(c);
-                self.pos += c.len_utf8();
-            } else {
-                break;
-            }
-        }
-        word
+        self.lexer.command_word()
     }
 
     /// Skip whitespace characters without consuming them permanently.
     fn skip_whitespace(&mut self) {
-        while self.peek().map_or(false, |c| c.is_whitespace()) {
-            self.next_char();
-        }
+        self.lexer.skip_whitespace()
     }
 
     // -----------------------------------------------------------------------
@@ -535,51 +522,12 @@ impl Parser {
 
     /// Collect plain text until a special character.
     pub fn parse_text(&mut self) -> String {
-        let mut text = String::new();
-        while let Some(c) = self.peek() {
-            if matches!(c, '\\' | '{' | '}' | '^' | '_' | '%' | '$' | '~' | '&' | '`' | '\'' | '-') {
-                break;
-            }
-            text.push(c);
-            self.pos += c.len_utf8();
-        }
-        text
+        self.lexer.text_run()
     }
 
     /// Collect everything inside the next `{…}`, respecting nesting.
     pub fn parse_braces_content(&mut self) -> String {
-        self.skip_whitespace();
-        if self.peek() != Some('{') {
-            return String::new();
-        }
-        self.next_char(); // consume opening '{'
-        let mut content = String::new();
-        let mut depth = 1usize;
-        while depth > 0 {
-            let c = match self.next_char() {
-                Some(c) => c,
-                None => break,
-            };
-            if c == '\\' {
-                content.push('\\');
-                // \{ and \} are literal braces — do not affect depth
-                if matches!(self.peek(), Some('{') | Some('}')) {
-                    let escaped = self.next_char().unwrap();
-                    content.push(escaped);
-                }
-            } else if c == '{' {
-                depth += 1;
-                content.push('{');
-            } else if c == '}' {
-                depth -= 1;
-                if depth > 0 {
-                    content.push('}');
-                }
-            } else {
-                content.push(c);
-            }
-        }
-        content
+        self.lexer.brace_group()
     }
 
     /// Parse the next argument: `{…}` (multiple chars) or a single char.
@@ -596,19 +544,9 @@ impl Parser {
     }
 
     /// Consume an optional `[…]` argument, returning its contents.
+    /// Nested brackets and braced groups are kept whole by the lexer.
     pub(crate) fn parse_optional_arg(&mut self) -> Option<String> {
-        self.skip_whitespace();
-        if self.peek() == Some('[') {
-            self.next_char();
-            let mut content = String::new();
-            while let Some(c) = self.next_char() {
-                if c == ']' { break; }
-                content.push(c);
-            }
-            Some(content)
-        } else {
-            None
-        }
+        self.lexer.optional_group()
     }
 
     /// "key=value, key={braced, value}, flag" option lists used by
@@ -642,30 +580,20 @@ impl Parser {
         map
     }
 
-    /// Read everything up to `\end{env_name}`, consuming the tag.
+    /// Read everything up to the matching `\end{env_name}`, consuming the
+    /// tag. Nested same-name environments are counted by the lexer.
     pub(crate) fn read_until_end(&mut self, env_name: &str) -> String {
-        let end_tag = format!("\\end{{{}}}", env_name);
-        let mut raw = String::new();
-        while self.pos < self.input.len() {
-            if self.input[self.pos..].starts_with(end_tag.as_str()) {
-                self.pos += end_tag.len();
-                break;
-            }
-            if let Some(c) = self.next_char() {
-                raw.push(c);
-            }
-        }
-        raw
+        self.lexer.until_env_end(env_name)
     }
 
     /// Consume `\OPEN ... \CLOSE` math delimiters and return the raw inner LaTeX.
     /// Expects `pos` to be positioned BEFORE the leading `\`; advances past `\CLOSE`.
     fn consume_math_block(&mut self, open: char, close: char) -> String {
-        self.pos += 2; // skip `\` + open char
+        self.lexer.pos += 2; // skip `\` + open char
         let mut content = String::new();
-        while self.pos < self.input.len() {
+        while self.lexer.pos < self.lexer.input.len() {
             if self.peek() == Some('\\') && self.peek_ahead(1) == Some(close) {
-                self.pos += 2;
+                self.lexer.pos += 2;
                 break;
             }
             if let Some(c) = self.next_char() { content.push(c); }
@@ -676,19 +604,19 @@ impl Parser {
 
     /// Consume `$...$` (inline) or `$$...$$` (display) and return the appropriate node.
     fn consume_dollar_math(&mut self) -> LatexNode {
-        self.pos += 1; // skip first `$`
+        self.lexer.pos += 1; // skip first `$`
         let display = self.peek() == Some('$');
-        if display { self.pos += 1; }
+        if display { self.lexer.pos += 1; }
 
         let mut content = String::new();
         while let Some(c) = self.peek() {
             if c == '$' {
-                self.pos += 1;
-                if display && self.peek() == Some('$') { self.pos += 1; }
+                self.lexer.pos += 1;
+                if display && self.peek() == Some('$') { self.lexer.pos += 1; }
                 break;
             }
             content.push(c);
-            self.pos += c.len_utf8();
+            self.lexer.pos += c.len_utf8();
         }
 
         if display { LatexNode::RawMathDisplay(content) } else { LatexNode::RawMathInline(content) }
@@ -702,7 +630,7 @@ impl Parser {
         let mut nodes: Vec<LatexNode> = Vec::new();
         if force_active { self.in_document = true; }
 
-        while self.pos < self.input.len() {
+        while self.lexer.pos < self.lexer.input.len() {
             let current = match self.peek() { Some(c) => c, None => break };
 
             // ----------------------------------------------------------------
@@ -719,7 +647,7 @@ impl Parser {
             // Non-breaking space  ~
             // ----------------------------------------------------------------
             if current == '~' && self.in_document {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 nodes.push(LatexNode::Text("\u{00A0}".to_string())); // &nbsp;
                 continue;
             }
@@ -750,7 +678,7 @@ impl Parser {
             if current == '\\' && self.in_document
                 && self.peek_ahead(1) == Some('\\')
             {
-                self.pos += 2;
+                self.lexer.pos += 2;
                 nodes.push(LatexNode::LineBreak);
                 continue;
             }
@@ -759,13 +687,13 @@ impl Parser {
             // Command  \name
             // ----------------------------------------------------------------
             if current == '\\' {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 let mut command = String::new();
 
                 // Special single-char commands like \{ \} \_ etc.
                 if let Some(nc) = self.peek() {
                     if !nc.is_alphabetic() {
-                        self.pos += nc.len_utf8(); // consume nc
+                        self.lexer.pos += nc.len_utf8(); // consume nc
 
                         // Accent commands: read the base letter from {x} or bare x
                         if matches!(nc, '\'' | '`' | '"' | '^' | '~' | '=' | '.') && self.in_document {
@@ -822,7 +750,7 @@ impl Parser {
                 }
 
                 while let Some(c) = self.peek() {
-                    if c.is_alphabetic() { command.push(c); self.pos += c.len_utf8(); }
+                    if c.is_alphabetic() { command.push(c); self.lexer.pos += c.len_utf8(); }
                     else { break; }
                 }
 
@@ -1014,7 +942,7 @@ impl Parser {
                         // \def\name{body}  — no argument count syntax
                         self.skip_whitespace();
                         if self.peek() == Some('\\') {
-                            self.pos += 1;
+                            self.lexer.pos += 1;
                             let name = self.read_command_word();
                             let body = self.parse_braces_content();
                             if !name.is_empty() {
@@ -1027,13 +955,13 @@ impl Parser {
                         // \let\new=\existing  — record as 0-arg alias
                         self.skip_whitespace();
                         if self.peek() == Some('\\') {
-                            self.pos += 1;
+                            self.lexer.pos += 1;
                             let new_name = self.read_command_word();
                             self.skip_whitespace();
-                            if self.peek() == Some('=') { self.pos += 1; }
+                            if self.peek() == Some('=') { self.lexer.pos += 1; }
                             self.skip_whitespace();
                             if self.peek() == Some('\\') {
-                                self.pos += 1;
+                                self.lexer.pos += 1;
                                 let existing = self.read_command_word();
                                 // Store as alias expansion
                                 let body = format!("\\{}", existing);
@@ -1333,8 +1261,8 @@ impl Parser {
                             ));
                         } else {
                             // Declaration form: consume rest of stream
-                            let rest = self.input[self.pos..].to_string();
-                            self.pos = self.input.len();
+                            let rest = self.lexer.input[self.lexer.pos..].to_string();
+                            self.lexer.pos = self.lexer.input.len();
                             nodes.push(LatexNode::FontSize(
                                 command.clone(),
                                 Parser::new(&rest).parse(true, labels)
@@ -1390,7 +1318,7 @@ impl Parser {
                         // consume the delimiter — single char OR a \command
                         self.skip_whitespace();
                         if self.peek() == Some('\\') {
-                            self.pos += 1; // skip backslash
+                            self.lexer.pos += 1; // skip backslash
                             self.read_command_word(); // e.g. rangle, lfloor, vert …
                         } else {
                             self.next_char(); // (, ), [, ], |, . etc.
@@ -1578,8 +1506,8 @@ impl Parser {
                     "choose" if self.in_document => {
                         // nodes collected so far = numerator; rest of input = denominator
                         let num = std::mem::take(&mut nodes);
-                        let den_raw = self.input[self.pos..].to_string();
-                        self.pos = self.input.len();
+                        let den_raw = self.lexer.input[self.lexer.pos..].to_string();
+                        self.lexer.pos = self.lexer.input.len();
                         let den = Parser::new(&den_raw).parse(true, labels);
                         nodes.push(LatexNode::Text(
                             "<span class=\"latex-binom\">\
@@ -2597,7 +2525,7 @@ impl Parser {
                         self.skip_whitespace();
                         // read the next command or char and emit negated form
                         if self.peek() == Some('\\') {
-                            self.pos += 1;
+                            self.lexer.pos += 1;
                             let sym = self.read_command_word();
                             let negated = match sym.as_str() {
                                 "in"        => "∉",
@@ -2987,7 +2915,7 @@ impl Parser {
             // in parse_tabular() before this branch is reached.
             // ----------------------------------------------------------------
             if current == '&' && self.in_document {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 nodes.push(LatexNode::HSpace("0.5em".to_string()));
                 continue;
             }
@@ -2996,7 +2924,7 @@ impl Parser {
             // Superscript  ^
             // ----------------------------------------------------------------
             if current == '^' && self.in_document {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 nodes.push(LatexNode::Superscript(self.parse_argument()));
                 continue;
             }
@@ -3005,7 +2933,7 @@ impl Parser {
             // Subscript  _
             // ----------------------------------------------------------------
             if current == '_' && self.in_document {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 nodes.push(LatexNode::Subscript(self.parse_argument()));
                 continue;
             }
@@ -3028,7 +2956,7 @@ impl Parser {
             }
 
             if current == '}' && self.in_document {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 continue;
             }
 
@@ -3039,9 +2967,9 @@ impl Parser {
             // These are just source characters, not commands.
             // ----------------------------------------------------------------
             if current == '`' && self.in_document {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 if self.peek() == Some('`') {
-                    self.pos += 1;
+                    self.lexer.pos += 1;
                     nodes.push(LatexNode::Text("\u{201C}".to_string())); // "
                 } else {
                     nodes.push(LatexNode::Text("\u{2018}".to_string())); // '
@@ -3050,9 +2978,9 @@ impl Parser {
             }
 
             if current == '\'' && self.in_document {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 if self.peek() == Some('\'') {
-                    self.pos += 1;
+                    self.lexer.pos += 1;
                     nodes.push(LatexNode::Text("\u{201D}".to_string())); // "
                 } else {
                     nodes.push(LatexNode::Text("\u{2019}".to_string())); // '
@@ -3062,11 +2990,11 @@ impl Parser {
 
             // Em-dash  ---  and en-dash  --  (hyphens in text)
             if current == '-' && self.in_document {
-                self.pos += 1;
+                self.lexer.pos += 1;
                 if self.peek() == Some('-') {
-                    self.pos += 1;
+                    self.lexer.pos += 1;
                     if self.peek() == Some('-') {
-                        self.pos += 1;
+                        self.lexer.pos += 1;
                         nodes.push(LatexNode::Text("—".to_string())); // em-dash
                     } else {
                         nodes.push(LatexNode::Text("–".to_string())); // en-dash
@@ -3086,7 +3014,7 @@ impl Parser {
                     nodes.push(LatexNode::Text(current.to_string()));
                 }
 
-                self.pos += 1;
+                self.lexer.pos += 1;
             } else if self.in_document && !text.trim().is_empty() {
                 nodes.push(LatexNode::Text(text));
             } else if self.in_document {
@@ -4045,7 +3973,7 @@ impl Parser {
         let mut depth  = 0usize;
         while let Some(c) = self.peek() {
             match c {
-                '{' => { depth += 1; result.push(c); self.pos += 1; }
+                '{' => { depth += 1; result.push(c); self.lexer.pos += 1; }
                 '}' => {
                     if depth == 0 {
                         // Leave the brace for the outer parser to consume
@@ -4053,9 +3981,9 @@ impl Parser {
                     }
                     depth -= 1;
                     result.push(c);
-                    self.pos += 1;
+                    self.lexer.pos += 1;
                 }
-                _ => { result.push(c); self.pos += c.len_utf8(); }
+                _ => { result.push(c); self.lexer.pos += c.len_utf8(); }
             }
         }
         result
