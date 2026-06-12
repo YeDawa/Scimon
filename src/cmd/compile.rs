@@ -26,12 +26,12 @@ use crate::{
     },
 };
 
-pub struct Compiler {
+pub struct Compile {
     file: String,
     output: Option<String>,
 }
 
-impl Compiler {
+impl Compile {
 
     pub fn new(file: &str, output: Option<String>) -> Self {
         Self {

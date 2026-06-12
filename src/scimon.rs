@@ -13,7 +13,7 @@ use crate::{
 
     cmd::{
         monset::Monset,
-        compile::Compiler,
+        compile::Compile,
     },
     
     monlib::{
@@ -123,7 +123,7 @@ impl Scimon {
                 },
 
                 Commands::Compile { file, output } => {
-                    if let Err(err) = Compiler::new(&file, output).compile().await {
+                    if let Err(err) = Compile::new(&file, output).compile().await {
                         ErrorsAlerts::generic(&err.to_string());
                     }
                 },
