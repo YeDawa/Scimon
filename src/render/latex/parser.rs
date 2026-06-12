@@ -2403,8 +2403,29 @@ impl Parser {
                     // Package config — consume silently
                     // --------------------------------------------------------
                     "lstset" | "lstdefinestyle" | "tcbset" | "tcbuselibrary"
-                    | "pgfplotsset" | "usetikzlibrary" | "tikzset" => {
+                    | "pgfplotsset" | "usetikzlibrary" => {
                         self.parse_braces_content();
+                    }
+
+                    // \tikzset{name/.style={...}, ...} — named TikZ styles,
+                    // stored in `labels` so every tikzpicture can expand them
+                    "tikzset" => {
+                        let content = self.parse_braces_content();
+                        for (key, value) in Self::key_value_list(&content) {
+                            if let Some(name) = key.strip_suffix("/.style") {
+                                labels.insert(format!("tikzstyle@{}", name.trim()), value);
+                            }
+                        }
+                    }
+
+                    // \tikzstyle{name}=[options] (deprecated but common)
+                    "tikzstyle" => {
+                        let name = self.parse_braces_content();
+                        self.skip_whitespace();
+                        if self.peek() == Some('=') { self.next_char(); }
+                        if let Some(options) = self.parse_optional_arg() {
+                            labels.insert(format!("tikzstyle@{}", name.trim()), options);
+                        }
                     }
 
                     "lstinputlisting" => {
@@ -3427,12 +3448,22 @@ impl Parser {
                 for axis in axes {
                     nodes.push(LatexNode::PgfPlot(axis));
                 }
-            } else if let Some(picture) = Tikz::parse(&raw, opt.as_deref()) {
-                nodes.push(LatexNode::Tikz(picture));
             } else {
-                nodes.push(LatexNode::Text(
-                    format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
-                ));
+                // named styles from \tikzstyle/\tikzset across the document
+                let styles: HashMap<String, String> = labels.iter()
+                    .filter_map(|(key, value)| {
+                        let name = key.strip_prefix("tikzstyle@")?;
+                        Some((name.to_string(), value.clone()))
+                    })
+                    .collect();
+
+                if let Some(picture) = Tikz::parse(&raw, opt.as_deref(), &styles) {
+                    nodes.push(LatexNode::Tikz(picture));
+                } else {
+                    nodes.push(LatexNode::Text(
+                        format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
+                    ));
+                }
             }
 
         } else if matches!(env, "algorithm" | "algorithm2e" | "algorithm*") && self.in_document {
