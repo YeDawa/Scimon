@@ -396,7 +396,9 @@ impl LatexNode {
             }
 
             LatexNode::LineBreak     => buf.push_str("<br/>"),
-            LatexNode::NewPage       => buf.push_str("<div style=\"page-break-after: always;\"></div>"),
+            LatexNode::NewPage       => buf.push_str(
+                "<div style=\"break-after: page; page-break-after: always; clear: both;\"></div>"
+            ),
             LatexNode::HorizontalRule => buf.push_str("<hr class=\"latex-hr\"/>"),
 
             // ----------------------------------------------------------------
@@ -781,12 +783,15 @@ impl LatexNode {
             // ----------------------------------------------------------------
             // Floats
             // ----------------------------------------------------------------
+            // floats never split across pages, mirroring LaTeX
             LatexNode::TableFloat(children) => {
                 ctx.tab_num += 1;
                 ctx.last_counter = ctx.tab_num.to_string();
                 ctx.in_float = true;
                 ctx.float_kind = String::from("Table");
+                buf.push_str("<div class=\"latex-float\" style=\"break-inside: avoid; page-break-inside: avoid;\">");
                 Nodes::write(children, ctx, buf);
+                buf.push_str("</div>");
                 ctx.in_float = false;
                 ctx.float_kind = String::new();
             }
@@ -796,7 +801,9 @@ impl LatexNode {
                 ctx.last_counter = ctx.fig_num.to_string();
                 ctx.in_float = true;
                 ctx.float_kind = String::from("Figure");
+                buf.push_str("<div class=\"latex-float\" style=\"break-inside: avoid; page-break-inside: avoid;\">");
                 Nodes::write(children, ctx, buf);
+                buf.push_str("</div>");
                 ctx.in_float = false;
                 ctx.float_kind = String::new();
             }

@@ -1821,8 +1821,17 @@ impl Parser {
                             "<div style=\"break-after:column;\"></div>".to_string()
                         )),
 
-                    "clearpage" | "cleardoublepage" if self.in_document =>
+                    "clearpage" if self.in_document =>
                         nodes.push(LatexNode::NewPage),
+
+                    // continue on the next odd (right-hand) page
+                    "cleardoublepage" if self.in_document =>
+                        nodes.push(LatexNode::Text(
+                            "<div style=\"break-after: right; page-break-after: right;\"></div>".to_string()
+                        )),
+
+                    // \enlargethispage{1cm} — no HTML equivalent, consume
+                    "enlargethispage" => { self.parse_braces_content(); }
 
                     "noindent" | "indent" | "centering" | "raggedright"
                     | "raggedleft" | "smallskip" | "medskip" | "bigskip" => {}
@@ -1835,8 +1844,10 @@ impl Parser {
                         self.parse_optional_arg(); // optional penalty
                         // No visual output — hint only
                     }
-                    "newpage" | "pagebreak"
-                    if self.in_document => nodes.push(LatexNode::NewPage),
+                    "newpage" | "pagebreak" if self.in_document => {
+                        self.parse_optional_arg(); // \pagebreak[n] priority
+                        nodes.push(LatexNode::NewPage);
+                    }
 
                     "par" if self.in_document => nodes.push(LatexNode::Text("\n\n".to_string())),
                     "nobreakspace" if self.in_document =>
@@ -3194,11 +3205,20 @@ impl Parser {
             nodes.extend(inner);
             nodes.push(LatexNode::Text("</div>".to_string()));
 
-        } else if matches!(env, "samepage" | "sloppypar" | "comment") && self.in_document {
+        } else if matches!(env, "sloppypar" | "comment") && self.in_document {
             let raw = self.read_until_end(env);
             if env != "comment" {
                 nodes.extend(Parser::new(raw.trim()).parse(true, labels));
             }
+
+        } else if env == "samepage" && self.in_document {
+            // keep the whole block on one page
+            let raw = self.read_until_end("samepage");
+            nodes.push(LatexNode::Text(
+                "<div style=\"break-inside: avoid; page-break-inside: avoid;\">".to_string()
+            ));
+            nodes.extend(Parser::new(raw.trim()).parse(true, labels));
+            nodes.push(LatexNode::Text("</div>".to_string()));
 
         } else if env == "thebibliography" && self.in_document {
             self.parse_braces_content(); // {widest-label} — ignored

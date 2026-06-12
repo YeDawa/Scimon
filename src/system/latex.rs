@@ -58,10 +58,28 @@ impl LaTex {
             String::new()
         };
 
-        let css_style = RenderInjectFiles.latex_css_style().await;
+        let css_style = format!(
+            "{}\n{}",
+            RenderInjectFiles.latex_css_style().await,
+            Self::PAGINATION_CSS,
+        );
         let js_script = RenderInjectFiles.latex_js_script().await;
         TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
     }
+
+    /// Print-pagination rules layered on top of the remote stylesheet:
+    /// headings keep their following content, blocks that must not split
+    /// stay whole, and paragraphs avoid widows/orphans — approximating
+    /// LaTeX's page-breaking decisions.
+    const PAGINATION_CSS: &'static str = "\
+        .document-container p { orphans: 3; widows: 3; }\n\
+        h1, h2, h3, h4, .title-block, .bib-title, .acronym-title {\n\
+            break-after: avoid-page; page-break-after: avoid;\n\
+        }\n\
+        .latex-table, .latex-theorem, .latex-tikz, .latex-pgfplot,\n\
+        .latex-image, .caption, pre, blockquote, .footnote-list li {\n\
+            break-inside: avoid; page-break-inside: avoid;\n\
+        }\n";
 
     /// Load bibliography databases, the citation style and acronym
     /// definitions before the body renders, so references resolve even when
