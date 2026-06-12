@@ -178,27 +178,41 @@ impl Render {
             ..Default::default()
         });
 
-        // First pass prints with the simulated page numbers; the PDF's own
-        // named destinations then reveal the exact page of every \label, and
-        // a second pass prints with the corrected numbers.
+        // The first pass prints with the simulated page numbers; the PDF's
+        // own named destinations then reveal the exact page of every \label.
+        // Iterate to a fixed point: late layout shifts (slow web fonts that
+        // beat the wait's timeout, images) re-paginate the document between
+        // prints, so keep reprinting until the destinations agree with the
+        // numbers shown in the text.
         let mut contents = tab.print_to_pdf(pdf_options())?;
 
         if content.contains("data-ref") {
-            let destinations = Self::destination_pages(&contents);
-            if !destinations.is_empty() {
+            for _ in 0..3 {
+                let destinations = Self::destination_pages(&contents);
+                if destinations.is_empty() {
+                    break;
+                }
+
                 let pages = serde_json::to_string(&destinations)?;
-                tab.evaluate(&format!(r#"
+                let changed = tab.evaluate(&format!(r#"
                     (function() {{
                         var pages = {};
+                        var changed = false;
                         document.querySelectorAll('[data-ref]').forEach(function(ref) {{
                             var page = pages[ref.getAttribute('data-ref')];
-                            if (page !== undefined) {{
+                            if (page !== undefined && ref.textContent !== String(page)) {{
                                 ref.textContent = String(page);
+                                changed = true;
                             }}
                         }});
+                        return changed;
                     }})()
                 "#, pages), false)?;
 
+                // numbers already match the real pages — `contents` is final
+                if changed.value != Some(serde_json::Value::Bool(true)) {
+                    break;
+                }
                 contents = tab.print_to_pdf(pdf_options())?;
             }
         }
