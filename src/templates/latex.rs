@@ -18,10 +18,14 @@ impl TemplateLaTex {
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
                 <script>
                     window.MathJax = {{
+                        loader: {{
+                            load: ['[tex]/mhchem', '[tex]/physics']
+                        }},
                         tex: {{
                             inlineMath: [['\\(', '\\)'], ['$', '$']],
                             displayMath: [['\\[', '\\]'], ['$$', '$$']],
-                            processEscapes: true
+                            processEscapes: true,
+                            packages: {{'[+]': ['mhchem', 'physics']}}
                         }},
                         options: {{
                             skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']

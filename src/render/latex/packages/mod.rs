@@ -5,6 +5,8 @@ use crate::render::latex::{
     tex_ast::LatexNode,
 };
 
+pub mod mhchem;
+pub mod physics;
 pub mod siunitx;
 pub mod tcolorbox;
 
@@ -47,10 +49,13 @@ pub trait LatexPackage: Sync {
 
 }
 
-/// Every registered package module, in lookup order.
+/// Every registered package module, in lookup order — siunitx comes before
+/// physics so \qty keeps its number-and-unit meaning.
 static REGISTRY: &[&dyn LatexPackage] = &[
     &siunitx::Siunitx,
     &tcolorbox::Tcolorbox,
+    &mhchem::Mhchem,
+    &physics::Physics,
 ];
 
 pub fn is_package_command(command: &str) -> bool {
