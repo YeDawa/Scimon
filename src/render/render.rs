@@ -102,6 +102,19 @@ impl Render {
             })
         "#, true)?;
 
+        // Wait for web fonts — fallback metrics paginate differently, which
+        // would desync the two print passes below
+        tab.evaluate(r#"
+            new Promise(function(resolve) {
+                if (document.fonts && document.fonts.ready) {
+                    document.fonts.ready.then(function() { resolve(); }).catch(resolve);
+                } else {
+                    resolve();
+                }
+                setTimeout(resolve, 3000);
+            })
+        "#, true)?;
+
         // Resolve \pageref{} placeholders before printing.
         // PAGE_H = 697px is the printable page height calibrated for this
         // template. Forced breaks (\newpage et al.) have zero height in the
@@ -159,12 +172,35 @@ impl Render {
             })()
         "#, false)?;
 
-        let pdf_options: Option<PrintToPdfOptions> = Some(PrintToPdfOptions {
+        let pdf_options = || Some(PrintToPdfOptions {
             print_background: Some(true),
             ..Default::default()
         });
 
-        let contents = tab.print_to_pdf(pdf_options)?;
+        // First pass prints with the simulated page numbers; the PDF's own
+        // named destinations then reveal the exact page of every \label, and
+        // a second pass prints with the corrected numbers.
+        let mut contents = tab.print_to_pdf(pdf_options())?;
+
+        if content.contains("data-ref") {
+            let destinations = Self::destination_pages(&contents);
+            if !destinations.is_empty() {
+                let pages = serde_json::to_string(&destinations)?;
+                tab.evaluate(&format!(r#"
+                    (function() {{
+                        var pages = {};
+                        document.querySelectorAll('[data-ref]').forEach(function(ref) {{
+                            var page = pages[ref.getAttribute('data-ref')];
+                            if (page !== undefined) {{
+                                ref.textContent = String(page);
+                            }}
+                        }});
+                    }})()
+                "#, pages), false)?;
+
+                contents = tab.print_to_pdf(pdf_options())?;
+            }
+        }
 
         // release the accept loop and let the server thread finish
         stop.store(true, Ordering::SeqCst);
@@ -172,6 +208,49 @@ impl Render {
         let _ = server.join();
 
         Ok(contents)
+    }
+
+    /// Map every named destination ("label-x") in the printed PDF to its
+    /// 1-based page number — the ground truth for \pageref resolution.
+    fn destination_pages(pdf: &[u8]) -> std::collections::HashMap<String, u32> {
+        let mut map = std::collections::HashMap::new();
+
+        let Ok(doc) = lopdf::Document::load_mem(pdf) else { return map };
+        let page_numbers: std::collections::HashMap<lopdf::ObjectId, u32> = doc
+            .get_pages()
+            .into_iter()
+            .map(|(number, id)| (id, number))
+            .collect();
+
+        let dests = doc.trailer.get(b"Root")
+            .and_then(|root| root.as_reference())
+            .and_then(|id| doc.get_dictionary(id))
+            .and_then(|catalog| catalog.get(b"Dests"))
+            .and_then(|dests| match dests {
+                lopdf::Object::Reference(id) => doc.get_dictionary(*id),
+                lopdf::Object::Dictionary(dict) => Ok(dict),
+                _ => Err(lopdf::Error::Type),
+            });
+
+        let Ok(dests) = dests else { return map };
+        for (name, value) in dests.iter() {
+            let array = match value {
+                lopdf::Object::Array(array) => array.clone(),
+                lopdf::Object::Reference(id) => match doc.get_object(*id).and_then(|o| o.as_array()) {
+                    Ok(array) => array.clone(),
+                    Err(_) => continue,
+                },
+                _ => continue,
+            };
+
+            if let Some(lopdf::Object::Reference(page_id)) = array.first() {
+                if let Some(&number) = page_numbers.get(page_id) {
+                    map.insert(String::from_utf8_lossy(name).to_string(), number);
+                }
+            }
+        }
+
+        map
     }
 
     /// Serve `content` over HTTP on an ephemeral loopback port, answering

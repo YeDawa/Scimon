@@ -625,7 +625,11 @@ impl LatexNode {
             // References & labels
             // ----------------------------------------------------------------
             LatexNode::Label(name) => {
-                let _ = write!(buf, "<span id=\"label-{}\"></span>", name);
+                // first anchor wins (a float's hoisted anchor renders before
+                // the \label inside it); duplicates would be invalid HTML
+                if ctx.emitted_labels.insert(name.clone()) {
+                    let _ = write!(buf, "<span id=\"label-{}\"></span>", name);
+                }
             }
 
             LatexNode::Ref(key) => {

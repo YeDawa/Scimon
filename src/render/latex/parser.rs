@@ -3279,26 +3279,38 @@ impl Parser {
         } else if (env == "table" || env == "table*") && self.in_document {
             let raw = self.read_until_end(env);
             self.current_table += 1;
-            Self::extract_and_register_labels(&raw, &self.current_table.to_string(), "tab:", labels);
+            let registered = Self::extract_and_register_labels(
+                &raw, &self.current_table.to_string(), "tab:", labels,
+            );
             let mut sub = Parser::new(raw.trim());
             sub.current_table      = self.current_table;
             sub.current_section    = self.current_section;
             sub.current_chapter    = self.current_chapter;
             sub.current_subsection = self.current_subsection;
             sub.current_equation   = self.current_equation;
+
+            // anchors go at the TOP of the float (hypcap-style) but INSIDE
+            // its unbreakable wrapper, so they travel with it when the page
+            // fragmenter pushes the float — links land with the table visible
+            let mut children = sub.parse(true, labels);
+            for name in registered.into_iter().rev() {
+                children.insert(0, LatexNode::Label(name));
+            }
 
             // table* spans every column in two-column layouts
             if env == "table*" {
                 nodes.push(LatexNode::Text("<div style=\"column-span: all;\">".to_string()));
-                nodes.push(LatexNode::TableFloat(sub.parse(true, labels)));
+                nodes.push(LatexNode::TableFloat(children));
                 nodes.push(LatexNode::Text("</div>".to_string()));
             } else {
-                nodes.push(LatexNode::TableFloat(sub.parse(true, labels)));
+                nodes.push(LatexNode::TableFloat(children));
             }
 
         } else if (env == "figure" || env == "figure*") && self.in_document {
             let raw = self.read_until_end(env);
-            Self::extract_and_register_labels(&raw, &self.current_section.to_string(), "fig:", labels);
+            let registered = Self::extract_and_register_labels(
+                &raw, &self.current_section.to_string(), "fig:", labels,
+            );
             let mut sub = Parser::new(raw.trim());
             sub.current_section    = self.current_section;
             sub.current_chapter    = self.current_chapter;
@@ -3306,13 +3318,18 @@ impl Parser {
             sub.current_table      = self.current_table;
             sub.current_subsection = self.current_subsection;
 
+            let mut children = sub.parse(true, labels);
+            for name in registered.into_iter().rev() {
+                children.insert(0, LatexNode::Label(name));
+            }
+
             // figure* spans every column in two-column layouts
             if env == "figure*" {
                 nodes.push(LatexNode::Text("<div style=\"column-span: all;\">".to_string()));
-                nodes.push(LatexNode::FigureFloat(sub.parse(true, labels)));
+                nodes.push(LatexNode::FigureFloat(children));
                 nodes.push(LatexNode::Text("</div>".to_string()));
             } else {
-                nodes.push(LatexNode::FigureFloat(sub.parse(true, labels)));
+                nodes.push(LatexNode::FigureFloat(children));
             }
 
         } else if (env == "equation" || env == "equation*") && self.in_document {

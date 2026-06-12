@@ -58,6 +58,9 @@ pub struct RenderContext {
     pub pending_footnotes: Vec<(usize, String)>,
     /// \footnotemark numbers not yet claimed by a \footnotetext (FIFO)
     pub unresolved_marks:  Vec<usize>,
+    /// label anchors already written — keeps ids unique when a float's
+    /// anchor is hoisted to its top and \label also appears inside
+    pub emitted_labels:    HashSet<String>,
     pub phantom_id:        usize,
 
     pub in_float: bool,
@@ -111,6 +114,7 @@ impl RenderContext {
             footnote_num:      0,
             pending_footnotes: Vec::new(),
             unresolved_marks:  Vec::new(),
+            emitted_labels:    HashSet::new(),
             phantom_id:        0,
 
             in_float: false,
