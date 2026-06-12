@@ -1,9 +1,10 @@
 use minify::html::minify;
 
 use std::{
-    error::Error,
     ffi::OsStr,
+    error::Error,
     thread::JoinHandle,
+    collections::HashMap,
 
     io::{
         Read,
@@ -212,11 +213,11 @@ impl Render {
 
     /// Map every named destination ("label-x") in the printed PDF to its
     /// 1-based page number — the ground truth for \pageref resolution.
-    fn destination_pages(pdf: &[u8]) -> std::collections::HashMap<String, u32> {
-        let mut map = std::collections::HashMap::new();
+    fn destination_pages(pdf: &[u8]) -> HashMap<String, u32> {
+        let mut map = HashMap::new();
 
         let Ok(doc) = lopdf::Document::load_mem(pdf) else { return map };
-        let page_numbers: std::collections::HashMap<lopdf::ObjectId, u32> = doc
+        let page_numbers: HashMap<lopdf::ObjectId, u32> = doc
             .get_pages()
             .into_iter()
             .map(|(number, id)| (id, number))
