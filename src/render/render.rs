@@ -77,8 +77,11 @@ impl Render {
         "#, true)?;
 
         // Resolve \pageref{} placeholders before printing.
-        // PAGE_H = 871px is calibrated from: scrollHeight=6098, total_pages=7
-        // for this specific template. Adjust if the template changes significantly.
+        // PAGE_H = 697px is the printable page height calibrated for this
+        // template. Forced breaks (\newpage et al.) have zero height in the
+        // measured layout, so pagination is simulated: natural breaks every
+        // PAGE_H within a segment, plus one page per forced-break div
+        // (\cleardoublepage additionally skips to the next odd page).
         tab.evaluate(r#"
             (function() {
                 var PAGE_H = 697;
@@ -87,6 +90,28 @@ impl Render {
                     var top = 0;
                     while (el) { top += el.offsetTop || 0; el = el.offsetParent; }
                     return top;
+                }
+
+                var breaks = [];
+                document.querySelectorAll(
+                    '[style*="break-after: page"], [style*="page-break-after: always"], [style*="break-after: right"]'
+                ).forEach(function(el) {
+                    breaks.push({
+                        y: offsetTop(el),
+                        right: (el.getAttribute('style') || '').indexOf('break-after: right') !== -1
+                    });
+                });
+                breaks.sort(function(a, b) { return a.y - b.y; });
+
+                function pageOf(targetY) {
+                    var page = 1, segStart = 0;
+                    for (var i = 0; i < breaks.length && breaks[i].y <= targetY; i++) {
+                        page += Math.floor((breaks[i].y - segStart) / PAGE_H); // natural breaks
+                        page += 1;                                             // the forced break
+                        if (breaks[i].right && page % 2 === 0) page += 1;      // next odd page
+                        segStart = breaks[i].y;
+                    }
+                    return page + Math.floor((targetY - segStart) / PAGE_H);
                 }
 
                 function findTarget(id) {
@@ -102,7 +127,7 @@ impl Render {
                 document.querySelectorAll('[data-ref]').forEach(function(ref) {
                     var target = findTarget(ref.getAttribute('data-ref'));
                     if (target) {
-                        ref.textContent = String(Math.floor(offsetTop(target) / PAGE_H) + 1);
+                        ref.textContent = String(pageOf(offsetTop(target)));
                     }
                 });
             })()

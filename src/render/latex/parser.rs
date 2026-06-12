@@ -3318,7 +3318,11 @@ impl Parser {
         } else if (env == "equation" || env == "equation*") && self.in_document {
             let raw = self.read_until_end(env);
             self.current_equation += 1;
-            Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
+            // the math body goes to MathJax, so anchors for its labels must
+            // be emitted here for \pageref to find them in the DOM
+            for name in Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels) {
+                nodes.push(LatexNode::Label(name));
+            }
             nodes.push(LatexNode::EquationBlock(
                 vec![LatexNode::RawMathDisplay(raw.trim().to_string())]
             ));
@@ -3343,7 +3347,9 @@ impl Parser {
         ) && self.in_document {
             let raw = self.read_until_end(env);
             self.current_equation += 1;
-            Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels);
+            for name in Self::extract_and_register_labels(&raw, &self.current_equation.to_string(), "", labels) {
+                nodes.push(LatexNode::Label(name));
+            }
             let latex = format!("\\begin{{{}}}{}\\end{{{}}}", env, raw.trim(), env);
             nodes.push(LatexNode::AlignBlock(vec![LatexNode::RawMathDisplay(latex)]));
 
@@ -4279,14 +4285,17 @@ impl Parser {
             .join(",")
     }
 
+    /// Returns the registered label names so callers can emit anchors for
+    /// content whose body never reaches the HTML DOM (e.g. MathJax blocks).
     fn extract_and_register_labels(
         raw: &str,
         value: &str,
         prefix: &str,
         labels: &mut HashMap<String, String>,
-    ) {
+    ) -> Vec<String> {
         let tag = "\\label{";
         let mut pos = 0;
+        let mut registered = Vec::new();
 
         while pos + tag.len() <= raw.len() {
             if raw[pos..].starts_with(tag) {
@@ -4300,11 +4309,14 @@ impl Parser {
                 let key = &raw[start..pos];
                 if prefix.is_empty() || key.starts_with(prefix) {
                     labels.insert(key.to_string(), value.to_string());
+                    registered.push(key.to_string());
                 }
             } else {
                 pos += 1;
             }
         }
+
+        registered
     }
 
 }

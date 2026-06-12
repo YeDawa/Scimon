@@ -630,13 +630,21 @@ impl LatexNode {
 
             LatexNode::Ref(key) => {
                 let num = ctx.labels.get(key).cloned().unwrap_or_else(|| "??".to_string());
-                let prefix = if key.starts_with("ref-") { "ref" } else { "item" };
-                let _ = write!(buf, "<a href=\"#{}-{}\" class=\"cross-ref\">{}</a>", prefix, num, num);
+                if key.starts_with("ref-") {
+                    let _ = write!(buf, "<a href=\"#ref-{}\" class=\"cross-ref\">{}</a>", num, num);
+                } else {
+                    // jump to the label's own anchor — "item-{num}" ids are
+                    // shared between sections, tables and figures
+                    let _ = write!(buf, "<a href=\"#label-{}\" class=\"cross-ref\">{}</a>", key, num);
+                }
             }
 
             LatexNode::PageRef(label) => {
-                let (href, data_ref) = if let Some(num) = ctx.labels.get(label) {
-                    (format!("item-{}", num), format!("item-{}", num))
+                // the inline <span> emitted by \label sits exactly where the
+                // target lives, so it resolves to the right page even when
+                // section/table/figure counters collide on "item-{num}" ids
+                let (href, data_ref) = if ctx.labels.contains_key(label) {
+                    (format!("label-{}", label), format!("label-{}", label))
                 } else {
                     (format!("label-{}", label), format!("label-{}", label))
                 };
