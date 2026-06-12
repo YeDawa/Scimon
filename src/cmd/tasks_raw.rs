@@ -64,9 +64,9 @@ impl TasksRaw {
             
                         let name = FileNameRemote::new(url).get();
                         let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-                            ChatGPT::new(&url, "", custom_name).title()?.to_string().replace(" ", "_")
+                            ChatGPT::new(&url, "", custom_name).title().await?.to_string().replace(" ", "_")
                         } else if url.contains(Uris::PROVIDERS_DOMAINS[8]) {
-                            Gemini::new(&url, "", custom_name).title()?.to_string().replace(" ", "_")
+                            Gemini::new(&url, "", custom_name).title().await?.to_string().replace(" ", "_")
                         } else {
                             name
                         };

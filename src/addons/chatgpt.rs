@@ -26,9 +26,9 @@ impl ChatGPT {
         }
     }
 
-    fn get_content(&self) -> Result<(String, String), Box<dyn Error>> {
+    async fn get_content(&self) -> Result<(String, String), Box<dyn Error>> {
         let scraping = Scraping::new(&self.url);
-        let content = scraping.get_html()?;
+        let content = scraping.get_html().await?;
 
         let title = scraping.title(&content);
         let html_content = scraping.content(&content, Addons::CHATGPT_CONTENT_CLASS);
@@ -39,8 +39,8 @@ impl ChatGPT {
         Ok((title, stripped_reasoning_text))
     }
 
-    pub fn title(&self) -> Result<String, Box<dyn Error>> {
-        let (title, _) = self.get_content()?;
+    pub async fn title(&self) -> Result<String, Box<dyn Error>> {
+        let (title, _) = self.get_content().await?;
         Ok(title)
     }
 
@@ -53,7 +53,7 @@ impl ChatGPT {
     }
 
     pub async fn convert(&self) -> Result<(), Box<dyn Error>> {
-        let (file_name, html_content) = self.get_content()?;
+        let (file_name, html_content) = self.get_content().await?;
         
         let css_style = RenderInjectFiles.css_style().await;
         let styled_html = TemplateGeneric.base(&css_style, &html_content);
@@ -62,7 +62,7 @@ impl ChatGPT {
         let path = format!("{}{}", &self.path, &file);
         let data_url = encode(&styled_html);
 
-        Scraping::new(&data_url).print_pdf(path.as_str())?;
+        Scraping::new(&data_url).print_pdf(path.as_str()).await?;
         SuccessAlerts::download_and_generated_pdf(&file, &self.url);
         Ok(())
     }

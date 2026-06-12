@@ -1,8 +1,12 @@
-use std::ffi::OsStr;
+use futures::StreamExt;
 
-use headless_chrome::{
-    Browser, 
-    LaunchOptionsBuilder
+use chromiumoxide::{
+    cdp::browser_protocol::page::PrintToPdfParams,
+
+    browser::{
+        Browser, 
+        BrowserConfig
+    }
 };
 
 use std::{
@@ -27,24 +31,32 @@ impl Scraping {
         }
     }
 
-    pub fn get_html(&self) -> Result<String, Box<dyn Error>> {
-        let extra_args: Vec<&OsStr> = vec![
-            OsStr::new("--headless=new"),
-            OsStr::new("--window-position=-32000,-32000"),
-        ];
-        let browser = Browser::new(
-            LaunchOptionsBuilder::default()
-                .headless(true)
-                .args(extra_args)
-                .build()
-                .expect("failed to build launch options"),
-        )?;
-        let tab = browser.new_tab()?;
+    pub async fn get_html(&self) -> Result<String, Box<dyn Error>> {
+        let config = BrowserConfig::builder()
+            .arg("--headless=new")
+            .arg("--window-position=-32000,-32000")
+            .arg("--disable-gpu")
+            .arg("--no-sandbox")
+            .build()
+            .map_err(|e| format!("Failed to build launch options: {:?}", e))?;
 
-        tab.navigate_to(&self.url)?;
-        tab.wait_until_navigated()?;
+        let (mut browser, mut handler) = Browser::launch(config).await?;
 
-        let content = tab.get_content()?;
+        let browser_handle = tokio::task::spawn(async move {
+            while let Some(event) = handler.next().await {
+                if event.is_err() {
+                    break;
+                }
+            }
+        });
+
+        let page = browser.new_page(&self.url).await?;
+        page.wait_for_navigation().await?;
+
+        let content = page.content().await?;
+        browser.close().await?;
+        let _ = browser_handle.await;
+
         Ok(content)
     }
 
@@ -80,17 +92,33 @@ impl Scraping {
         return html_content;
     }
 
-    pub fn print_pdf(&self, path: &str) -> Result<(), Box<dyn Error>> {
-        let data_url = format!("data:text/html;charset=utf-8,{}", &self.url);
+    pub async fn print_pdf(&self, path: &str) -> Result<(), Box<dyn Error>> {
+        let config = BrowserConfig::builder()
+            .arg("--headless=new")
+            .arg("--window-position=-32000,-32000")
+            .arg("--disable-gpu")
+            .arg("--no-sandbox")
+            .build()
+            .map_err(|e| format!("Failed to build browser config: {:?}", e))?;
 
-        let browser = Browser::default()?;
-        let tab = browser.new_tab()?;
+        let (mut browser, mut handler) = Browser::launch(config).await?;
+        let browser_handle = tokio::task::spawn(async move {
+            while let Some(event) = handler.next().await {
+                if event.is_err() {
+                    break;
+                }
+            }
+        });
 
-        tab.navigate_to(&data_url)?;
-        tab.wait_until_navigated()?;
+        let page = browser.new_page("about:blank").await?;
+        page.set_content(&self.url).await?;
 
-        let contents = tab.print_to_pdf(None)?;
+        let pdf_options = PrintToPdfParams::builder().build();
+        let contents = page.pdf(pdf_options).await?;
+
         write(path, contents)?;
+        browser.close().await?;
+        let _ = browser_handle.await;
 
         Ok(())
     }
