@@ -1,8 +1,12 @@
 use is_url::is_url;
 
 use std::{
-    fs::write,
     error::Error,
+
+    fs::{
+        write,
+        read_to_string,
+    },
 };
 
 use crate::{
@@ -42,7 +46,7 @@ impl Compiler {
         let content = if is_url(&self.file) {
             Remote.content(&self.file).await?
         } else {
-            fs::read_to_string(&self.file)?
+            read_to_string(&self.file)?
         };
 
         let output_name = if let Some(output) = &self.output {
