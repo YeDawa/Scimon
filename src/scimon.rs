@@ -122,7 +122,7 @@ impl Scimon {
                     let _ = self.sync(&cmd).await;
                 },
 
-                Commands::Latex { file, output } => {
+                Commands::Compile { file, output } => {
                     if let Err(err) = Compiler::new(&file, output).latex().await {
                         ErrorsAlerts::generic(&err.to_string());
                     }

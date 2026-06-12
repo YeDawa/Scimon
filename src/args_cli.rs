@@ -72,7 +72,7 @@ pub enum Commands {
     },
 
     /// Compile a LaTeX file into PDF
-    Latex {
+    Compile {
         /// LaTeX file to be compiled
         file: String,
 
