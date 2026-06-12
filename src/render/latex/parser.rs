@@ -2,6 +2,7 @@ use chrono::Local;
 use std::collections::HashMap;
 
 use crate::render::latex::{
+    tikz::Tikz,
     bibtex::BibStyle,
     pgfplots::Pgfplots,
 
@@ -17,7 +18,7 @@ use crate::render::latex::{
 // ---------------------------------------------------------------------------
 // Greek letters, operators and other math symbols supported as \commands
 // ---------------------------------------------------------------------------
-fn math_symbol(cmd: &str) -> Option<&'static str> {
+pub fn math_symbol(cmd: &str) -> Option<&'static str> {
     match cmd {
         // Greek lowercase
         "alpha"   => Some("α"),
@@ -3419,16 +3420,19 @@ impl Parser {
         {
             let raw = self.read_until_end(env);
 
-            // pgfplots: every axis environment becomes an inline SVG chart
+            // pgfplots: every axis environment becomes an inline SVG chart;
+            // plain pictures go through the TikZ drawing renderer
             let axes = Pgfplots::parse(&raw);
-            if axes.is_empty() {
-                nodes.push(LatexNode::Text(
-                    format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
-                ));
-            } else {
+            if !axes.is_empty() {
                 for axis in axes {
                     nodes.push(LatexNode::PgfPlot(axis));
                 }
+            } else if let Some(picture) = Tikz::parse(&raw, opt.as_deref()) {
+                nodes.push(LatexNode::Tikz(picture));
+            } else {
+                nodes.push(LatexNode::Text(
+                    format!("<div class=\"latex-tikz-placeholder\">[{} diagram]</div>", env)
+                ));
             }
 
         } else if matches!(env, "algorithm" | "algorithm2e" | "algorithm*") && self.in_document {

@@ -15,6 +15,11 @@ use crate::render::latex::{
         PgfAxis,
         Pgfplots,
     },
+
+    tikz::{
+        Tikz,
+        TikzPicture,
+    },
 };
 
 // ---------------------------------------------------------------------------
@@ -228,6 +233,10 @@ pub enum LatexNode {
     // --- pgfplots ---
     /// \begin{axis}...\end{axis} inside a tikzpicture, rendered as inline SVG
     PgfPlot(PgfAxis),
+
+    // --- TikZ ---
+    /// Plain tikzpicture drawing (\draw, \node, ...), rendered as inline SVG
+    Tikz(TikzPicture),
 
     // --- Links ---
     Url(String),
@@ -865,6 +874,15 @@ impl LatexNode {
             LatexNode::PgfPlot(axis) => {
                 buf.push_str("<div class=\"latex-pgfplot\" style=\"text-align: center; margin: 14px 0;\">");
                 buf.push_str(&Pgfplots::render_svg(axis, ctx));
+                buf.push_str("</div>");
+            }
+
+            // ----------------------------------------------------------------
+            // TikZ drawings
+            // ----------------------------------------------------------------
+            LatexNode::Tikz(picture) => {
+                buf.push_str("<div class=\"latex-tikz\" style=\"text-align: center; margin: 14px 0;\">");
+                buf.push_str(&Tikz::render_svg(picture, ctx));
                 buf.push_str("</div>");
             }
 
