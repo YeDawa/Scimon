@@ -6,6 +6,8 @@ use crate::render::latex::{
     pgfplots::Pgfplots,
 
     tex_ast::{
+        AcrCaps,
+        AcrForm,
         CiteKind,
         LatexNode,
         TableCell,
@@ -601,6 +603,37 @@ impl Parser {
         } else {
             None
         }
+    }
+
+    /// "key=value, key={braced, value}, flag" option lists used by
+    /// \newacronym, \DeclareAcronym, \printacronyms and friends.
+    /// Flags without '=' are ignored; commas inside braces are preserved.
+    fn key_value_list(raw: &str) -> HashMap<String, String> {
+        let mut parts = Vec::new();
+        let mut current = String::new();
+        let mut depth = 0usize;
+
+        for c in raw.chars() {
+            match c {
+                '{' | '[' => { depth += 1; current.push(c); }
+                '}' | ']' => { depth = depth.saturating_sub(1); current.push(c); }
+                ',' if depth == 0 => parts.push(std::mem::take(&mut current)),
+                _ => current.push(c),
+            }
+        }
+        parts.push(current);
+
+        let mut map = HashMap::new();
+        for part in parts {
+            if let Some((key, value)) = part.split_once('=') {
+                let value = value.trim()
+                    .trim_start_matches('{')
+                    .trim_end_matches('}')
+                    .trim();
+                map.insert(key.trim().to_lowercase(), value.to_string());
+            }
+        }
+        map
     }
 
     /// Read everything up to `\end{env_name}`, consuming the tag.
@@ -1840,96 +1873,123 @@ impl Parser {
                     }
 
                     // --------------------------------------------------------
-                    // Glossaries package
+                    // Acronyms (acro / acronym / glossaries packages)
+                    // Resolved at render time so definitions survive across
+                    // environments and \ac gets first-use expansion.
                     // --------------------------------------------------------
-                    // \newacronym{label}{short}{long}
-                    "newacronym" | "newglossaryentry" => {
-                        let label = self.parse_braces_content();
-                        let short = self.parse_braces_content();
-                        let long  = self.parse_braces_content();
-                        // store: short form and long form keyed by label
-                        self.macros.insert(
-                            format!("gls@{}", label),
-                            (0, short.clone())
-                        );
-                        self.macros.insert(
-                            format!("gls@long@{}", label),
-                            (0, long)
-                        );
-                        self.macros.insert(
-                            format!("gls@pl@{}", label),
-                            (0, format!("{}s", short))
-                        );
+                    // \newacronym[longplural=...]{label}{short}{long}
+                    "newacronym" => {
+                        let options = self.parse_optional_arg().unwrap_or_default();
+                        let keys = Self::key_value_list(&options);
+                        nodes.push(LatexNode::AcronymDef {
+                            label: self.parse_braces_content(),
+                            short: self.parse_braces_content(),
+                            long:  self.parse_braces_content(),
+                            short_plural: keys.get("shortplural").cloned(),
+                            long_plural:  keys.get("longplural").cloned(),
+                        });
                     }
 
-                    // \gls{label} — short form
-                    "gls" | "glsentrytext" if self.in_document => {
-                        self.parse_optional_arg();
+                    // \newglossaryentry{label}{name=..., description=...}
+                    // Plain glossary entries print their name; the empty long
+                    // form keeps \gls from expanding them like an acronym.
+                    "newglossaryentry" => {
                         let label = self.parse_braces_content();
-                        let text = self.macros.get(&format!("gls@{}", label))
-                            .map(|(_, b)| b.clone())
-                            .unwrap_or_else(|| label.clone());
-                        nodes.push(LatexNode::Text(text));
+                        let keys = Self::key_value_list(&self.parse_braces_content());
+                        nodes.push(LatexNode::AcronymDef {
+                            short: keys.get("name").cloned().unwrap_or_else(|| label.clone()),
+                            long:  String::new(),
+                            short_plural: keys.get("plural").cloned(),
+                            long_plural:  None,
+                            label,
+                        });
                     }
-                    // \Gls{label} — capitalised short form
-                    "Gls" | "GLS" if self.in_document => {
-                        self.parse_optional_arg();
+
+                    // acro: \DeclareAcronym{label}{short=..., long=...}
+                    "DeclareAcronym" => {
                         let label = self.parse_braces_content();
-                        let text = self.macros.get(&format!("gls@{}", label))
-                            .map(|(_, b)| b.clone())
-                            .unwrap_or_else(|| label.clone());
-                        let cap = Self::capitalise(&text);
-                        nodes.push(LatexNode::Text(cap));
+                        let keys = Self::key_value_list(&self.parse_braces_content());
+                        let short = keys.get("short").cloned().unwrap_or_else(|| label.clone());
+                        let long  = keys.get("long").cloned().unwrap_or_default();
+
+                        // *-plural keys are suffixes; *-plural-form replaces the word
+                        let short_plural = keys.get("short-plural-form").cloned()
+                            .or_else(|| keys.get("short-plural").map(|sfx| format!("{}{}", short, sfx)));
+                        let long_plural = keys.get("long-plural-form").cloned()
+                            .or_else(|| keys.get("long-plural").map(|sfx| format!("{}{}", long, sfx)));
+
+                        nodes.push(LatexNode::AcronymDef {
+                            label, short, long, short_plural, long_plural,
+                        });
                     }
-                    // \glspl{label} — plural short form
-                    "glspl" | "Glspl" | "GLSpl" if self.in_document => {
-                        self.parse_optional_arg();
+
+                    // acronym package: \acro{label}[short]{long}
+                    "acro" | "acrodef" => {
                         let label = self.parse_braces_content();
-                        let text = self.macros.get(&format!("gls@pl@{}", label))
-                            .map(|(_, b)| b.clone())
-                            .unwrap_or_else(|| format!("{}s", label));
-                        let cap = if command.starts_with('G') { Self::capitalise(&text) } else { text };
-                        nodes.push(LatexNode::Text(cap));
+                        let short = self.parse_optional_arg().unwrap_or_else(|| label.clone());
+                        nodes.push(LatexNode::AcronymDef {
+                            long: self.parse_braces_content(),
+                            short_plural: None,
+                            long_plural:  None,
+                            label, short,
+                        });
                     }
-                    // \glslong / \glsfull — long or "long (short)" form
-                    "glslong" | "glsfull" | "acrlong" | "acrfull"
-                    | "acf" | "acl" if self.in_document => {
+
+                    // \ac, \acs, \acl, \acf, \gls and variants
+                    "ac"  | "Ac"  | "acp"  | "Acp"
+                    | "acs" | "Acs" | "acsp"
+                    | "acl" | "Acl" | "aclp"
+                    | "acf" | "Acf" | "acfp"
+                    | "acr" | "acrshort" | "acrlong" | "acrfull"
+                    | "gls" | "Gls" | "GLS" | "glspl" | "Glspl" | "GLSpl"
+                    | "glsshort" | "glslong" | "glsfull"
+                    | "glsentrytext" | "glsentryshort" | "glsentrylong" | "glsentryfull"
+                    if self.in_document => {
                         self.parse_optional_arg();
                         let label = self.parse_braces_content();
-                        let long  = self.macros.get(&format!("gls@long@{}", label))
-                            .map(|(_, b)| b.clone())
-                            .unwrap_or_else(|| label.clone());
-                        let short = self.macros.get(&format!("gls@{}", label))
-                            .map(|(_, b)| b.clone())
-                            .unwrap_or_default();
-                        let text = if command == "acf" || command == "glsfull" || command == "acrfull" {
-                            if short.is_empty() { long } else { format!("{} ({})", long, short) }
+                        let lower = command.to_lowercase();
+
+                        let form = if lower.contains("full")
+                            || matches!(lower.as_str(), "acf" | "acfp")
+                        {
+                            AcrForm::Full
+                        } else if lower.contains("long")
+                            || matches!(lower.as_str(), "acl" | "aclp")
+                        {
+                            AcrForm::Long
+                        } else if lower.contains("short") || lower.contains("text")
+                            || matches!(lower.as_str(), "acs" | "acsp")
+                        {
+                            AcrForm::Short
                         } else {
-                            long
+                            AcrForm::Auto
                         };
-                        nodes.push(LatexNode::Text(text));
+
+                        let plural = lower.ends_with("pl")
+                            || matches!(lower.as_str(), "acp" | "acsp" | "acfp" | "aclp");
+
+                        let caps = if command.starts_with("GLS") {
+                            AcrCaps::All
+                        } else if command.chars().next().is_some_and(char::is_uppercase) {
+                            AcrCaps::First
+                        } else {
+                            AcrCaps::No
+                        };
+
+                        nodes.push(LatexNode::Acronym { label, form, plural, caps });
                     }
-                    // \ac{label} / \acs{label} — short form (acronym package)
-                    "ac" | "acs" | "acr" | "acrshort" if self.in_document => {
-                        self.parse_optional_arg();
-                        let label = self.parse_braces_content();
-                        let text = self.macros.get(&format!("gls@{}", label))
-                            .map(|(_, b)| b.clone())
-                            .unwrap_or_else(|| label.clone());
-                        nodes.push(LatexNode::Text(text));
+
+                    "acresetall" | "glsresetall" => nodes.push(LatexNode::AcronymReset),
+
+                    // \printacronyms[name=...] / \printglossary[title=...]
+                    "printglossaries" | "printglossary" | "printacronyms" => {
+                        let options = self.parse_optional_arg().unwrap_or_default();
+                        let keys = Self::key_value_list(&options);
+                        let title = keys.get("title").or_else(|| keys.get("name")).cloned();
+                        nodes.push(LatexNode::PrintAcronyms { title });
                     }
-                    // \acp / \acsp — plural short form
-                    "acp" | "acsp" if self.in_document => {
-                        self.parse_optional_arg();
-                        let label = self.parse_braces_content();
-                        let text = self.macros.get(&format!("gls@pl@{}", label))
-                            .map(|(_, b)| b.clone())
-                            .unwrap_or_else(|| format!("{}s", label));
-                        nodes.push(LatexNode::Text(text));
-                    }
-                    // \printglossaries / \printacronyms / \printindex — placeholders
-                    "printglossaries" | "printglossary" | "printacronyms"
-                    | "printindex" | "makeindex" | "makeglossaries" => {}
+
+                    "printindex" | "makeindex" | "makeglossaries" => {}
                     // \index{entry} — consume silently
                     "index" | "glossary" => { self.parse_braces_content(); }
 

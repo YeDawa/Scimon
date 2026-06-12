@@ -1,9 +1,22 @@
-use std::collections::HashMap;
+use std::collections::{
+    HashMap,
+    HashSet,
+};
 
 use crate::render::latex::bibtex::{
     BibEntry,
     BibStyle,
 };
+
+/// Acronym registered by \newacronym, \DeclareAcronym or \acro
+#[derive(Debug, Clone)]
+pub struct AcronymInfo {
+    pub short:        String,
+    pub long:         String,
+    /// explicit plural forms; defaults to short/long + "s"
+    pub short_plural: Option<String>,
+    pub long_plural:  Option<String>,
+}
 
 pub struct RenderContext {
     pub doc_title:  String,
@@ -33,6 +46,10 @@ pub struct RenderContext {
     pub nocite_all:     bool,
     /// User-defined colors from \definecolor
     pub color_defs:     HashMap<String, String>,
+
+    /// Acronyms keyed by label, plus first-use tracking for \ac and \gls
+    pub acronyms:      HashMap<String, AcronymInfo>,
+    pub acronyms_used: HashSet<String>,
 
     pub footnote_num:      usize,
     pub pending_footnotes: Vec<(usize, String)>,
@@ -77,6 +94,9 @@ impl RenderContext {
             bib_style:      BibStyle::Numeric,
             nocite_all:     false,
             color_defs:     HashMap::new(),
+
+            acronyms:      HashMap::new(),
+            acronyms_used: HashSet::new(),
 
             footnote_num:      0,
             pending_footnotes: Vec::new(),

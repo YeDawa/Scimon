@@ -1,6 +1,10 @@
 use crate::render::latex::{
     nodes::Nodes,
-    context::RenderContext,
+
+    context::{
+        AcronymInfo,
+        RenderContext,
+    },
 
     bibtex::{
         BibStyle,
@@ -32,6 +36,30 @@ pub enum CiteKind {
     Full,
     /// \footcite, \footcitetext — citation in a footnote
     Foot,
+}
+
+// ---------------------------------------------------------------------------
+// Acronym command families (acro / acronym / glossaries packages)
+// ---------------------------------------------------------------------------
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AcrForm {
+    /// \ac, \gls — full form on first use, short form afterwards
+    Auto,
+    /// \acs, \acrshort — short form always
+    Short,
+    /// \acl, \acrlong — long form always
+    Long,
+    /// \acf, \acrfull — "long (short)" always
+    Full,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AcrCaps {
+    No,
+    /// \Ac, \Gls — capitalize the first letter
+    First,
+    /// \GLS — uppercase everything
+    All,
 }
 
 // ---------------------------------------------------------------------------
@@ -124,6 +152,27 @@ pub enum LatexNode {
     BibStyleSet(BibStyle),
     /// \printbibliography[title=...] (empty file) or \bibliography{file}
     Bibliography { file: String, title: Option<String> },
+
+    // --- Acronyms & glossaries ---
+    /// \newacronym, \DeclareAcronym, \acro — registers, renders nothing
+    AcronymDef {
+        label:        String,
+        short:        String,
+        long:         String,
+        short_plural: Option<String>,
+        long_plural:  Option<String>,
+    },
+    /// \ac, \acs, \acl, \acf, \gls and friends
+    Acronym {
+        label:  String,
+        form:   AcrForm,
+        plural: bool,
+        caps:   AcrCaps,
+    },
+    /// \acresetall, \glsresetall — every acronym becomes "unused" again
+    AcronymReset,
+    /// \printacronyms[name=...] / \printglossary[title=...] / \printglossaries
+    PrintAcronyms { title: Option<String> },
     /// \begin{thebibliography}{widest-label}...\end{thebibliography} inline bib
     TheBibliography(Vec<(String, Vec<LatexNode>)>),
     Label(String),
@@ -571,6 +620,28 @@ impl LatexNode {
                     ctx.bib_database.extend(BibTextRender::load(file));
                 }
                 Self::write_bibliography(title.as_deref(), ctx, buf);
+            }
+
+            // ----------------------------------------------------------------
+            // Acronyms & glossaries
+            // ----------------------------------------------------------------
+            LatexNode::AcronymDef { label, short, long, short_plural, long_plural } => {
+                ctx.acronyms.insert(label.clone(), AcronymInfo {
+                    short:        short.clone(),
+                    long:         long.clone(),
+                    short_plural: short_plural.clone(),
+                    long_plural:  long_plural.clone(),
+                });
+            }
+
+            LatexNode::Acronym { label, form, plural, caps } => {
+                Self::write_acronym(label, *form, *plural, *caps, ctx, buf);
+            }
+
+            LatexNode::AcronymReset => ctx.acronyms_used.clear(),
+
+            LatexNode::PrintAcronyms { title } => {
+                Self::write_acronym_list(title.as_deref(), ctx, buf);
             }
 
             LatexNode::NoCite(keys) => {
@@ -1059,6 +1130,90 @@ impl LatexNode {
                 }
             },
         }
+    }
+
+    fn apply_caps(text: &str, caps: AcrCaps) -> String {
+        match caps {
+            AcrCaps::No => text.to_string(),
+            AcrCaps::All => text.to_uppercase(),
+            AcrCaps::First => {
+                let mut chars = text.chars();
+                match chars.next() {
+                    Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                    None => String::new(),
+                }
+            }
+        }
+    }
+
+    fn write_acronym(
+        label: &str,
+        form: AcrForm,
+        plural: bool,
+        caps: AcrCaps,
+        ctx: &mut RenderContext,
+        buf: &mut String,
+    ) {
+        let Some(info) = ctx.acronyms.get(label) else {
+            // undefined label — print it as-is, like the real packages do
+            buf.push_str(&Self::apply_caps(label, caps));
+            return;
+        };
+
+        let short = if plural {
+            info.short_plural.clone().unwrap_or_else(|| format!("{}s", info.short))
+        } else {
+            info.short.clone()
+        };
+        let long = if plural {
+            info.long_plural.clone().unwrap_or_else(|| format!("{}s", info.long))
+        } else {
+            info.long.clone()
+        };
+
+        let first_use = !ctx.acronyms_used.contains(label);
+        let text = match form {
+            _ if long.is_empty()       => short,
+            AcrForm::Short             => short,
+            AcrForm::Long              => long,
+            AcrForm::Full              => format!("{} ({})", long, short),
+            AcrForm::Auto if first_use => format!("{} ({})", long, short),
+            AcrForm::Auto              => short,
+        };
+
+        // \ac and \acf count as a use; \acs and \acl deliberately do not
+        if matches!(form, AcrForm::Auto | AcrForm::Full) {
+            ctx.acronyms_used.insert(label.to_string());
+        }
+
+        buf.push_str(&Self::apply_caps(&text, caps));
+    }
+
+    fn write_acronym_list(title: Option<&str>, ctx: &mut RenderContext, buf: &mut String) {
+        use std::fmt::Write as _;
+
+        let mut entries: Vec<(&String, &AcronymInfo)> = ctx.acronyms.iter()
+            .filter(|(_, info)| !info.long.is_empty())
+            .collect();
+        if entries.is_empty() {
+            return;
+        }
+        entries.sort_by_key(|(_, info)| info.short.to_uppercase());
+
+        let _ = write!(
+            buf,
+            "<h2 class=\"acronym-title\">{}</h2><dl class=\"acronym-list\">",
+            title.unwrap_or("Acronyms")
+        );
+        for (_, info) in entries {
+            let _ = write!(
+                buf,
+                "<dt style=\"float: left; clear: left; min-width: 90px; font-weight: bold;\">{}</dt>\
+                 <dd style=\"margin: 0 0 4px 100px;\">{}</dd>",
+                info.short, info.long
+            );
+        }
+        buf.push_str("</dl>");
     }
 
     fn write_bibliography(title: Option<&str>, ctx: &mut RenderContext, buf: &mut String) {

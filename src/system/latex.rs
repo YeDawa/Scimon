@@ -21,8 +21,12 @@ use crate::{
             nodes::Nodes,
             parser::Parser,
             tex_ast::LatexNode,
-            context::RenderContext,
             bibtex::BibTextRender,
+
+            context::{
+                AcronymInfo,
+                RenderContext,
+            },
         },
     },
 };
@@ -39,7 +43,7 @@ impl LaTex {
         let document_ast = parser.parse(force_active, &mut labels);
 
         let mut context = RenderContext::new(labels);
-        self.prescan_bibliography(&document_ast, &mut context);
+        self.prescan(&document_ast, &mut context);
         let mut html_body = Nodes::render(&document_ast, &mut context);
 
         let toc_html = self.build_toc(&context);
@@ -59,7 +63,10 @@ impl LaTex {
         TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
     }
 
-    fn prescan_bibliography(&self, ast: &[LatexNode], ctx: &mut RenderContext) {
+    /// Load bibliography databases, the citation style and acronym
+    /// definitions before the body renders, so references resolve even when
+    /// they are declared after their first use.
+    fn prescan(&self, ast: &[LatexNode], ctx: &mut RenderContext) {
         for node in ast {
             match node {
                 LatexNode::BibStyleSet(style) => ctx.bib_style = *style,
@@ -69,6 +76,15 @@ impl LaTex {
 
                 LatexNode::Bibliography { file, .. } if !file.is_empty() =>
                     ctx.bib_database.extend(BibTextRender::load(file)),
+
+                LatexNode::AcronymDef { label, short, long, short_plural, long_plural } => {
+                    ctx.acronyms.insert(label.clone(), AcronymInfo {
+                        short:        short.clone(),
+                        long:         long.clone(),
+                        short_plural: short_plural.clone(),
+                        long_plural:  long_plural.clone(),
+                    });
+                }
 
                 _ => {}
             }
