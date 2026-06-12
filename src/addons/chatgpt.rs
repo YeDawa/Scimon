@@ -1,10 +1,14 @@
-use std::error::Error;
-use urlencoding::encode;
+use std::{
+    fs::write,
+    error::Error,
+};
 
 use crate::{
     consts::addons::Addons,
     utils::scraping::Scraping,
+    render::render::Render,
     ui::success_alerts::SuccessAlerts,
+    render::render_images::RenderImages,
     templates::generic::TemplateGeneric,
     helpers::chatgpt_cleaner::ChatGPTCleaner,
     render::render_inject_files::RenderInjectFiles,
@@ -57,12 +61,14 @@ impl ChatGPT {
         
         let css_style = RenderInjectFiles.css_style().await;
         let styled_html = TemplateGeneric.base(&css_style, &html_content);
+        let styled_html = RenderImages::new(styled_html).render().await?;
 
         let file = self.custom_name(&file_name);
         let path = format!("{}{}", &self.path, &file);
-        let data_url = encode(&styled_html);
 
-        Scraping::new(&data_url).print_pdf(path.as_str()).await?;
+        let pdf_contents = Render.connect_to_browser(&styled_html).await?;
+        write(&path, pdf_contents)?;
+
         SuccessAlerts::download_and_generated_pdf(&file, &self.url);
         Ok(())
     }

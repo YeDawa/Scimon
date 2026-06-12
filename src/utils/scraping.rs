@@ -1,21 +1,14 @@
+use std::error::Error;
+
 use futures::StreamExt;
 
-use chromiumoxide::{
-    cdp::browser_protocol::page::PrintToPdfParams,
-
-    browser::{
-        Browser, 
-        BrowserConfig
-    }
-};
-
-use std::{
-    fs::write,
-    error::Error,
+use chromiumoxide::browser::{
+    Browser,
+    BrowserConfig,
 };
 
 use scraper::{
-    Html, 
+    Html,
     Selector
 };
 
@@ -52,6 +45,22 @@ impl Scraping {
 
         let page = browser.new_page(&self.url).await?;
         page.wait_for_navigation().await?;
+
+        // Páginas do ChatGPT/Gemini são renderizadas por JS: espera o documento
+        // terminar de carregar antes de capturar o HTML.
+        page.evaluate(r#"
+            new Promise(function(resolve) {
+                if (document.readyState === 'complete') {
+                    resolve();
+                } else {
+                    window.addEventListener('load', function() { resolve(); });
+                }
+                setTimeout(resolve, 15000);
+            })
+        "#).await?;
+
+        // Pequena folga para a hidratação do SPA assentar o conteúdo no DOM.
+        tokio::time::sleep(std::time::Duration::from_millis(2500)).await;
 
         let content = page.content().await?;
         browser.close().await?;
@@ -90,37 +99,6 @@ impl Scraping {
         }
 
         return html_content;
-    }
-
-    pub async fn print_pdf(&self, path: &str) -> Result<(), Box<dyn Error>> {
-        let config = BrowserConfig::builder()
-            .arg("--headless=new")
-            .arg("--window-position=-32000,-32000")
-            .arg("--disable-gpu")
-            .arg("--no-sandbox")
-            .build()
-            .map_err(|e| format!("Failed to build browser config: {:?}", e))?;
-
-        let (mut browser, mut handler) = Browser::launch(config).await?;
-        let browser_handle = tokio::task::spawn(async move {
-            while let Some(event) = handler.next().await {
-                if event.is_err() {
-                    break;
-                }
-            }
-        });
-
-        let page = browser.new_page("about:blank").await?;
-        page.set_content(&self.url).await?;
-
-        let pdf_options = PrintToPdfParams::builder().build();
-        let contents = page.pdf(pdf_options).await?;
-
-        write(path, contents)?;
-        browser.close().await?;
-        let _ = browser_handle.await;
-
-        Ok(())
     }
 
 }

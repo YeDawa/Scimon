@@ -113,6 +113,27 @@ impl Render {
             })
         "#).await?;
 
+        // Force lazy images to load and wait for them to decode before printing
+        page.evaluate(r#"
+            new Promise(function(resolve) {
+                var imgs = Array.prototype.slice.call(document.querySelectorAll('img'));
+                Promise.all(imgs.map(function(img) {
+                    img.loading = 'eager';
+                    if (img.complete && img.naturalWidth > 0) {
+                        return Promise.resolve();
+                    }
+                    if (img.decode) {
+                        return img.decode().catch(function() {});
+                    }
+                    return new Promise(function(done) {
+                        img.addEventListener('load', done);
+                        img.addEventListener('error', done);
+                    });
+                })).then(resolve).catch(resolve);
+                setTimeout(resolve, 10000);
+            })
+        "#).await?;
+
         // Resolve \pageref{} placeholders
         page.evaluate(r#"
             (function() {
