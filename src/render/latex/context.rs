@@ -1,5 +1,9 @@
 use std::collections::HashMap;
-use crate::render::latex::bibtex::BibEntry;
+
+use crate::render::latex::bibtex::{
+    BibEntry,
+    BibStyle,
+};
 
 pub struct RenderContext {
     pub doc_title:  String,
@@ -22,6 +26,9 @@ pub struct RenderContext {
     pub citation_order: Vec<String>,
     pub citation_map:   HashMap<String, usize>,
     pub bib_database:   HashMap<String, BibEntry>,
+    /// Active citation/bibliography style (biblatex style option,
+    /// \bibliographystyle, or numeric by default)
+    pub bib_style:      BibStyle,
     /// true when \nocite{*} was seen — include every .bib entry at render time
     pub nocite_all:     bool,
     /// User-defined colors from \definecolor
@@ -67,6 +74,7 @@ impl RenderContext {
             citation_order: Vec::new(),
             citation_map:   HashMap::new(),
             bib_database:   HashMap::new(),
+            bib_style:      BibStyle::Numeric,
             nocite_all:     false,
             color_defs:     HashMap::new(),
 

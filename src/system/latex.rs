@@ -18,11 +18,13 @@ use crate::{
         render_inject_files::RenderInjectFiles,
 
         latex::{
-            nodes::Nodes, 
+            nodes::Nodes,
             parser::Parser,
-            context::RenderContext, 
-        }, 
-    }, 
+            tex_ast::LatexNode,
+            context::RenderContext,
+            bibtex::BibTextRender,
+        },
+    },
 };
 
 pub struct LaTex;
@@ -37,6 +39,7 @@ impl LaTex {
         let document_ast = parser.parse(force_active, &mut labels);
 
         let mut context = RenderContext::new(labels);
+        Self::prescan_bibliography(&document_ast, &mut context);
         let mut html_body = Nodes::render(&document_ast, &mut context);
 
         let toc_html = Self::build_toc(&context);
@@ -54,6 +57,25 @@ impl LaTex {
         let css_style = RenderInjectFiles.latex_css_style().await;
         let js_script = RenderInjectFiles.latex_js_script().await;
         TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
+    }
+
+    /// Load bibliography databases and the citation style before the body
+    /// renders, so author-year citations resolve even when \bibliography
+    /// appears after the \cite commands.
+    fn prescan_bibliography(ast: &[LatexNode], ctx: &mut RenderContext) {
+        for node in ast {
+            match node {
+                LatexNode::BibStyleSet(style) => ctx.bib_style = *style,
+
+                LatexNode::BibResource(file) =>
+                    ctx.bib_database.extend(BibTextRender::load(file)),
+
+                LatexNode::Bibliography { file, .. } if !file.is_empty() =>
+                    ctx.bib_database.extend(BibTextRender::load(file)),
+
+                _ => {}
+            }
+        }
     }
 
     fn build_toc(ctx: &RenderContext) -> String {

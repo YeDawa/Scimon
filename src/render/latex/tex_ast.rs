@@ -1,8 +1,33 @@
 use crate::render::latex::{
     nodes::Nodes,
-    bibtex::BibTextRender,
     context::RenderContext,
+
+    bibtex::{
+        BibStyle,
+        BibTextRender,
+    },
 };
+
+// ---------------------------------------------------------------------------
+// Citation command families — how a \cite-like command presents its keys
+// ---------------------------------------------------------------------------
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CiteKind {
+    /// \cite, \citep, \parencite, \autocite — parenthetical/bracketed
+    Paren,
+    /// \citet, \textcite — author as part of the sentence
+    Text,
+    /// \citeauthor — author names only
+    Author,
+    /// \citeyear, \citedate — year only
+    Year,
+    /// \citetitle — title only
+    Title,
+    /// \fullcite — full reference inline
+    Full,
+    /// \footcite, \footcitetext — citation in a footnote
+    Foot,
+}
 
 // ---------------------------------------------------------------------------
 // Table cell — carries colspan, rowspan and column-spec styling
@@ -80,11 +105,20 @@ pub enum LatexNode {
     AlignBlock(Vec<LatexNode>),
 
     // --- References & labels ---
-    Cite(String),
-    CiteMultiple(Vec<String>),
+    Cite {
+        keys:     Vec<String>,
+        kind:     CiteKind,
+        prenote:  Option<String>,
+        postnote: Option<String>,
+    },
     /// \nocite{*} or \nocite{key,key2} — include in bibliography without inline cite
     NoCite(Vec<String>),
-    Bibliography(String),
+    /// \addbibresource{file.bib} — loads the database, renders nothing
+    BibResource(String),
+    /// Style selected by \usepackage[style=...]{biblatex} or \bibliographystyle
+    BibStyleSet(BibStyle),
+    /// \printbibliography[title=...] (empty file) or \bibliography{file}
+    Bibliography { file: String, title: Option<String> },
     /// \begin{thebibliography}{widest-label}...\end{thebibliography} inline bib
     TheBibliography(Vec<(String, Vec<LatexNode>)>),
     Label(String),
@@ -506,67 +540,28 @@ impl LatexNode {
                 );
             }
 
-            LatexNode::Cite(key) => {
-                let number = ctx.register_citation(key);
-                let _ = write!(buf, "<a href=\"#ref-{}\" class=\"cite\">[{}]</a>", key, number);
-            }
-
-            LatexNode::CiteMultiple(keys) => {
-                buf.push_str("[");
-                let mut first = true;
-                for key in keys {
-                    if !first { buf.push_str(", "); }
-                    first = false;
-                    let number = ctx.register_citation(key);
-                    let _ = write!(buf, "<a href=\"#ref-{}\" class=\"cite\">{}</a>", key, number);
-                }
-                buf.push_str("]");
+            LatexNode::Cite { keys, kind, prenote, postnote } => {
+                Self::write_cite(keys, *kind, prenote.as_deref(), postnote.as_deref(), ctx, buf);
             }
 
             // ----------------------------------------------------------------
             // Bibliography
             // ----------------------------------------------------------------
-            LatexNode::Bibliography(file) => {
-                let source = if file.starts_with("http://") || file.starts_with("https://") {
-                    file.clone()
-                } else {
-                    format!("{}.bib", file)
-                };
-                let bib_content = BibTextRender::fetch_bibliography(&source).unwrap_or_default();
-                ctx.bib_database = BibTextRender::parse_bibtex(&bib_content);
-
-                if ctx.nocite_all {
-                    let mut all: Vec<String> = ctx.bib_database.keys().cloned().collect();
-                    all.sort();
-                    for key in all {
-                        if !ctx.citation_map.contains_key(&key) { ctx.register_citation(&key); }
-                    }
+            // Database and style are loaded by LaTex::prescan before the body
+            // renders; this is a fallback for sources prescan did not reach.
+            LatexNode::BibResource(file) => {
+                if ctx.bib_database.is_empty() {
+                    ctx.bib_database.extend(BibTextRender::load(file));
                 }
+            }
 
-                let keys_ordered: Vec<String> = if !ctx.citation_order.is_empty() {
-                    ctx.citation_order.clone()
-                } else {
-                    let mut k: Vec<String> = ctx.bib_database.keys().cloned().collect();
-                    k.sort(); k
-                };
+            LatexNode::BibStyleSet(style) => ctx.bib_style = *style,
 
-                buf.push_str("<h2 class=\"bib-title\">References</h2><ol class=\"bibliography\">");
-                for key in &keys_ordered {
-                    if let Some(entry) = ctx.bib_database.get(key) {
-                        let _ = write!(
-                            buf,
-                            "<li id=\"ref-{}\">{}, <em>{}</em>, {}.</li>",
-                            key, entry.author, entry.title, entry.year
-                        );
-                    } else {
-                        let _ = write!(
-                            buf,
-                            "<li><strong style='color:red;'>Error: Ref '{}' not found!</strong></li>",
-                            key
-                        );
-                    }
+            LatexNode::Bibliography { file, title } => {
+                if ctx.bib_database.is_empty() && !file.is_empty() {
+                    ctx.bib_database.extend(BibTextRender::load(file));
                 }
-                buf.push_str("</ol>");
+                Self::write_bibliography(title.as_deref(), ctx, buf);
             }
 
             LatexNode::NoCite(keys) => {
@@ -895,6 +890,227 @@ impl LatexNode {
                 );
             }
         }
+    }
+
+    /// (author label, year) pair for in-text author-year citations
+    fn author_year_label(key: &str, ctx: &RenderContext, textual: bool) -> (String, String) {
+        match ctx.bib_database.get(key) {
+            Some(entry) => (entry.cite_authors(ctx.bib_style, textual), entry.year()),
+            None => (key.to_string(), String::from("?")),
+        }
+    }
+
+    fn write_cite(
+        keys: &[String],
+        kind: CiteKind,
+        prenote: Option<&str>,
+        postnote: Option<&str>,
+        ctx: &mut RenderContext,
+        buf: &mut String,
+    ) {
+        use std::fmt::Write as _;
+
+        for key in keys {
+            ctx.register_citation(key);
+        }
+        let style = ctx.bib_style;
+
+        match kind {
+            // Single-field forms: \citeauthor, \citeyear, \citetitle, \fullcite
+            CiteKind::Author | CiteKind::Year | CiteKind::Title | CiteKind::Full => {
+                let mut first = true;
+                for key in keys {
+                    if !first { buf.push_str("; "); }
+                    first = false;
+
+                    let text = match ctx.bib_database.get(key) {
+                        Some(entry) => match kind {
+                            CiteKind::Author => entry.cite_authors(style, true),
+                            CiteKind::Year   => entry.year(),
+                            CiteKind::Title  => format!("<em>{}</em>", entry.field("title")),
+                            _                => entry.full_reference(style),
+                        },
+                        None => key.clone(),
+                    };
+
+                    if kind == CiteKind::Full {
+                        buf.push_str(&text);
+                    } else {
+                        let _ = write!(buf, "<a href=\"#ref-{}\" class=\"cite\">{}</a>", key, text);
+                    }
+                }
+            }
+
+            // \footcite — full reference dropped into a footnote
+            CiteKind::Foot => {
+                ctx.footnote_num += 1;
+                let num = ctx.footnote_num;
+
+                let mut content = keys.iter()
+                    .map(|key| ctx.bib_database.get(key)
+                        .map(|entry| entry.full_reference(style))
+                        .unwrap_or_else(|| key.clone()))
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                if let Some(post) = postnote {
+                    let _ = write!(content, ", {}", post);
+                }
+
+                ctx.pending_footnotes.push((num, content));
+                let _ = write!(
+                    buf,
+                    "<sup class=\"footnote-ref\"><a href=\"#fn-{}\" id=\"fnref-{}\">{}</a></sup>",
+                    num, num, num
+                );
+            }
+
+            CiteKind::Paren | CiteKind::Text => match style {
+                // [1] / [Sil20] — \textcite prepends the author name
+                BibStyle::Numeric | BibStyle::Alphabetic => {
+                    if kind == CiteKind::Text {
+                        if let Some(entry) = keys.first().and_then(|k| ctx.bib_database.get(k)) {
+                            buf.push_str(&entry.cite_authors(style, true));
+                            buf.push(' ');
+                        }
+                    }
+
+                    buf.push('[');
+                    if let Some(pre) = prenote {
+                        let _ = write!(buf, "{} ", pre);
+                    }
+
+                    let mut first = true;
+                    for key in keys {
+                        if !first { buf.push_str(", "); }
+                        first = false;
+
+                        let label = match (style, ctx.bib_database.get(key)) {
+                            (BibStyle::Alphabetic, Some(entry)) => entry.alpha_label(),
+                            _ => ctx.citation_map.get(key).copied().unwrap_or(0).to_string(),
+                        };
+                        let _ = write!(buf, "<a href=\"#ref-{}\" class=\"cite\">{}</a>", key, label);
+                    }
+
+                    if let Some(post) = postnote {
+                        let _ = write!(buf, ", {}", post);
+                    }
+                    buf.push(']');
+                }
+
+                // (Silva & Santos, 2020) / (SILVA; SANTOS, 2020, p. 10)
+                BibStyle::AuthorYear | BibStyle::Abnt => {
+                    if kind == CiteKind::Text {
+                        // Silva and Santos (2020, p. 10); Knuth (1984)
+                        for (i, key) in keys.iter().enumerate() {
+                            if i > 0 { buf.push_str("; "); }
+                            let (author, year) = Self::author_year_label(key, ctx, true);
+
+                            let mut paren = year;
+                            if i == keys.len() - 1 {
+                                if let Some(post) = postnote {
+                                    let _ = write!(paren, ", {}", post);
+                                }
+                            }
+                            let _ = write!(
+                                buf,
+                                "{} (<a href=\"#ref-{}\" class=\"cite\">{}</a>)",
+                                author, key, paren
+                            );
+                        }
+                    } else {
+                        buf.push('(');
+                        if let Some(pre) = prenote {
+                            let _ = write!(buf, "{} ", pre);
+                        }
+
+                        for (i, key) in keys.iter().enumerate() {
+                            if i > 0 { buf.push_str("; "); }
+                            let (author, year) = Self::author_year_label(key, ctx, false);
+                            let _ = write!(
+                                buf,
+                                "<a href=\"#ref-{}\" class=\"cite\">{}, {}</a>",
+                                key, author, year
+                            );
+                        }
+
+                        if let Some(post) = postnote {
+                            let _ = write!(buf, ", {}", post);
+                        }
+                        buf.push(')');
+                    }
+                }
+            },
+        }
+    }
+
+    fn write_bibliography(title: Option<&str>, ctx: &mut RenderContext, buf: &mut String) {
+        use std::fmt::Write as _;
+        let style = ctx.bib_style;
+
+        if ctx.nocite_all {
+            let mut all: Vec<String> = ctx.bib_database.keys().cloned().collect();
+            all.sort();
+            for key in all {
+                if !ctx.citation_map.contains_key(&key) {
+                    ctx.register_citation(&key);
+                }
+            }
+        }
+
+        let mut keys: Vec<String> = if !ctx.citation_order.is_empty() {
+            ctx.citation_order.clone()
+        } else {
+            let mut all: Vec<String> = ctx.bib_database.keys().cloned().collect();
+            all.sort();
+            all
+        };
+
+        // Numeric lists keep citation order; the others are alphabetical
+        if style != BibStyle::Numeric {
+            keys.sort_by_key(|key| ctx.bib_database.get(key)
+                .map(|entry| entry.sort_key())
+                .unwrap_or_else(|| key.to_uppercase()));
+        }
+
+        let _ = write!(buf, "<h2 class=\"bib-title\">{}</h2>", title.unwrap_or("References"));
+
+        let numbered = style == BibStyle::Numeric;
+        buf.push_str(if numbered {
+            "<ol class=\"bibliography\">"
+        } else {
+            "<ul class=\"bibliography\" style=\"list-style:none; padding-left:0;\">"
+        });
+
+        for key in &keys {
+            match ctx.bib_database.get(key) {
+                Some(entry) => {
+                    let label = if style == BibStyle::Alphabetic {
+                        format!("[{}] ", entry.alpha_label())
+                    } else {
+                        String::new()
+                    };
+                    let item_style = if numbered {
+                        ""
+                    } else {
+                        " style=\"margin: 0 0 8px 0; padding-left: 2em; text-indent: -2em;\""
+                    };
+                    let _ = write!(
+                        buf,
+                        "<li id=\"ref-{}\"{}>{}{}</li>",
+                        key, item_style, label, entry.full_reference(style)
+                    );
+                }
+                None => {
+                    let _ = write!(
+                        buf,
+                        "<li id=\"ref-{}\"><strong style=\"color:red;\">Reference '{}' not found</strong></li>",
+                        key, key
+                    );
+                }
+            }
+        }
+
+        buf.push_str(if numbered { "</ol>" } else { "</ul>" });
     }
 
     fn to_roman(n: usize) -> String {

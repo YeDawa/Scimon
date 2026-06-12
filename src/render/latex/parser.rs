@@ -1,9 +1,14 @@
 use chrono::Local;
 use std::collections::HashMap;
 
-use crate::render::latex::tex_ast::{
-    LatexNode, 
-    TableCell,
+use crate::render::latex::{
+    bibtex::BibStyle,
+
+    tex_ast::{
+        CiteKind,
+        LatexNode,
+        TableCell,
+    },
 };
 
 // ---------------------------------------------------------------------------
@@ -795,10 +800,30 @@ impl Parser {
                     // --------------------------------------------------------
                     // Preamble / metadata (allowed outside \begin{document})
                     // --------------------------------------------------------
-                    "documentclass" | "usepackage" | "pagestyle"
+                    "documentclass" | "pagestyle"
                     | "geometry" | "hypersetup" => {
                         self.parse_optional_arg();
                         self.parse_braces_content();
+                    }
+
+                    // \usepackage[style=...]{biblatex} selects the citation style
+                    "usepackage" => {
+                        let options = self.parse_optional_arg().unwrap_or_default();
+                        let package = self.parse_braces_content();
+
+                        if package.contains("biblatex") {
+                            for option in options.split(',') {
+                                let mut parts = option.splitn(2, '=');
+                                let name = parts.next().unwrap_or("").trim();
+                                let value = parts.next().unwrap_or("").trim();
+
+                                if matches!(name, "style" | "citestyle" | "bibstyle") {
+                                    if let Some(style) = BibStyle::from_name(value) {
+                                        nodes.push(LatexNode::BibStyleSet(style));
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // \setcounter{name}{value}
@@ -1787,18 +1812,30 @@ impl Parser {
                     | "fullcite" | "volcite" | "Citet" | "Citep"
                     if self.in_document =>
                     {
-                        self.parse_optional_arg(); // optional prenote
-                        self.parse_optional_arg(); // optional postnote
+                        let kind = match command.as_str() {
+                            "citet" | "Citet" | "citealt" | "textcite" => CiteKind::Text,
+                            "citeauthor"                               => CiteKind::Author,
+                            "citeyear" | "citedate"                    => CiteKind::Year,
+                            "citetitle"                                => CiteKind::Title,
+                            "fullcite" | "volcite"                     => CiteKind::Full,
+                            "footcite" | "footcitetext"                => CiteKind::Foot,
+                            _                                          => CiteKind::Paren,
+                        };
+
+                        // one optional arg is a postnote; two are prenote + postnote
+                        let unties = |note: String| note.replace('~', "\u{a0}");
+                        let (prenote, postnote) = match (self.parse_optional_arg(), self.parse_optional_arg()) {
+                            (Some(pre), Some(post)) => (Some(unties(pre)), Some(unties(post))),
+                            (Some(post), None)      => (None, Some(unties(post))),
+                            _                       => (None, None),
+                        };
+
                         let raw = self.parse_braces_content();
                         let keys: Vec<String> = raw.split(',')
                             .map(|s| s.trim().to_string())
                             .filter(|s| !s.is_empty())
                             .collect();
-                        if keys.len() == 1 {
-                            nodes.push(LatexNode::Cite(keys.into_iter().next().unwrap_or_default()));
-                        } else {
-                            nodes.push(LatexNode::CiteMultiple(keys));
-                        }
+                        nodes.push(LatexNode::Cite { keys, kind, prenote, postnote });
                     }
 
                     // --------------------------------------------------------
@@ -1905,25 +1942,37 @@ impl Parser {
                     }
 
                     "bibliography" if self.in_document =>
-                        nodes.push(LatexNode::Bibliography(self.parse_braces_content())),
+                        nodes.push(LatexNode::Bibliography {
+                            file: self.parse_braces_content(),
+                            title: None,
+                        }),
 
-                    // biblatex: \printbibliography[options]
+                    // biblatex: \printbibliography[title=..., heading=..., etc.]
                     "printbibliography" if self.in_document => {
-                        self.parse_optional_arg(); // [heading=..., title=..., etc.]
-                        nodes.push(LatexNode::Bibliography(String::new()));
+                        let options = self.parse_optional_arg().unwrap_or_default();
+                        let title = options.split(',').find_map(|option| {
+                            let mut parts = option.splitn(2, '=');
+                            if parts.next()?.trim() != "title" {
+                                return None;
+                            }
+                            let value = parts.next()?.trim()
+                                .trim_matches(|c| c == '{' || c == '}')
+                                .to_string();
+                            Some(value)
+                        });
+                        nodes.push(LatexNode::Bibliography { file: String::new(), title });
                     }
 
-                    // biblatex: \addbibresource{file.bib} — treated like \bibliography
-                    "addbibresource" => {
-                        let file = self.parse_braces_content();
-                        let stem = file.trim_end_matches(".bib").to_string();
-                        if !self.in_document {
-                            // Store for later use — same as \bibliography
-                            nodes.push(LatexNode::Bibliography(stem));
+                    // biblatex: \addbibresource{file.bib} — loads the database
+                    "addbibresource" =>
+                        nodes.push(LatexNode::BibResource(self.parse_braces_content())),
+
+                    "bibliographystyle" => {
+                        let name = self.parse_braces_content();
+                        if let Some(style) = BibStyle::from_name(&name) {
+                            nodes.push(LatexNode::BibStyleSet(style));
                         }
                     }
-
-                    "bibliographystyle" => { self.parse_braces_content(); }
 
                     // --------------------------------------------------------
                     // Labels & cross-references
