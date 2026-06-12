@@ -355,6 +355,9 @@ pub struct Parser {
     /// User-defined macros: name → (num_args, body_template)
     /// `#1` .. `#9` in body are replaced by positional arguments.
     pub macros: HashMap<String, (usize, String)>,
+
+    /// Current \theoremstyle, applied to subsequent \newtheorem definitions
+    theorem_style: String,
 }
 
 impl Parser {
@@ -370,6 +373,7 @@ impl Parser {
             current_table: 0,
             current_equation: 0,
             macros: HashMap::new(),
+            theorem_style: String::from("plain"),
         }
     }
 
@@ -889,11 +893,37 @@ impl Parser {
                         }
                     }
 
-                    // \newtheorem{env}{label}
-                    "newtheorem" | "theoremstyle" => {
-                        self.parse_optional_arg();
-                        self.parse_braces_content();
-                        if command == "newtheorem" { self.parse_braces_content(); }
+                    // \theoremstyle{plain|definition|remark} — applies to
+                    // every \newtheorem that follows
+                    "theoremstyle" => {
+                        self.theorem_style = self.parse_braces_content();
+                    }
+
+                    // \newtheorem{env}{Label}[parent] — numbered within parent
+                    // \newtheorem{env}[shared]{Label} — shares shared's counter
+                    // \newtheorem*{env}{Label}        — unnumbered
+                    "newtheorem" => {
+                        let env    = self.parse_braces_content();
+                        let shared = self.parse_optional_arg();
+                        let title  = self.parse_braces_content();
+                        let mut parent = self.parse_optional_arg().unwrap_or_default();
+
+                        let counter = if starred {
+                            String::new()
+                        } else if let Some(sibling) = shared {
+                            // sharing a counter also inherits its numbering parent
+                            if let Some(def) = labels.get(&format!("thm@{}", sibling)) {
+                                parent = def.splitn(4, '|').nth(2).unwrap_or("").to_string();
+                            }
+                            sibling
+                        } else {
+                            env.clone()
+                        };
+
+                        labels.insert(
+                            format!("thm@{}", env),
+                            format!("{}|{}|{}|{}", title, counter, parent, self.theorem_style),
+                        );
                     }
 
                     // \newenvironment{name}[n]{begin-code}{end-code}
@@ -1010,8 +1040,10 @@ impl Parser {
                     // --------------------------------------------------------
                     "begin" => {
                         let env = self.parse_braces_content();
-                        self.parse_optional_arg(); // [htbp] placement etc.
-                        nodes.extend(self.parse_environment(&env, labels));
+                        // [htbp] placement, theorem notes, etc. — forwarded so
+                        // environments that care about it can use it
+                        let opt = self.parse_optional_arg();
+                        nodes.extend(self.parse_environment(&env, opt, labels));
                     }
 
 
@@ -3042,8 +3074,25 @@ impl Parser {
         nodes
     }
 
-    fn parse_environment(&mut self, env: &str, labels: &mut HashMap<String, String>) -> Vec<LatexNode> {
+    fn parse_environment(&mut self, env: &str, opt: Option<String>, labels: &mut HashMap<String, String>) -> Vec<LatexNode> {
         let mut nodes: Vec<LatexNode> = Vec::new();
+
+        // Environments declared with \newtheorem take precedence over
+        // built-ins. The registry lives in `labels` (threaded through every
+        // sub-parser); numbering happens at render time.
+        if let Some(def) = labels.get(&format!("thm@{}", env)).cloned() {
+            let mut fields = def.splitn(4, '|');
+            let title   = fields.next().unwrap_or("").to_string();
+            let counter = fields.next().unwrap_or("").to_string();
+            let parent  = fields.next().unwrap_or("").to_string();
+            let style   = fields.next().unwrap_or("plain").to_string();
+
+            let raw  = self.read_until_end(env);
+            let body = Parser::new(raw.trim()).parse(true, labels);
+
+            nodes.push(LatexNode::Theorem { title, counter, parent, style, note: opt, body });
+            return nodes;
+        }
 
         if env == "document" {
             self.in_document = true;
@@ -3247,14 +3296,25 @@ impl Parser {
             "exercise" | "solution" | "question" | "answer" | "notation" |
             "observation" | "assumption" | "fact" | "problem" | "note"
         ) {
-            let raw   = self.read_until_end(env);
-            let inner = Parser::new(raw.trim()).parse(true, labels);
-            let label = Self::capitalise(env);
-            nodes.push(LatexNode::Text(
-                format!("<div class=\"latex-theorem latex-{}\"><strong>{}.</strong> ", env, label)
-            ));
-            nodes.extend(inner);
-            nodes.push(LatexNode::Text("</div>".to_string()));
+            let raw  = self.read_until_end(env);
+            let body = Parser::new(raw.trim()).parse(true, labels);
+
+            let style = match env {
+                "proof" => "proof",
+                "definition" | "example" | "exercise" | "problem"
+                | "question" | "solution" | "answer" => "definition",
+                "remark" | "note" | "notation" | "observation" | "claim" => "remark",
+                _ => "plain",
+            };
+
+            nodes.push(LatexNode::Theorem {
+                title:   Self::capitalise(env),
+                counter: if env == "proof" { String::new() } else { env.to_string() },
+                parent:  String::new(),
+                style:   style.to_string(),
+                note:    opt,
+                body,
+            });
 
         } else if env == "minipage" && self.in_document {
             self.parse_optional_arg();

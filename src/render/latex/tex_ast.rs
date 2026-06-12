@@ -173,6 +173,20 @@ pub enum LatexNode {
     AcronymReset,
     /// \printacronyms[name=...] / \printglossary[title=...] / \printglossaries
     PrintAcronyms { title: Option<String> },
+
+    // --- amsthm ---
+    /// Theorem-like block (built-in or declared with \newtheorem).
+    /// `counter` names the shared counter ("" = unnumbered), `parent` the
+    /// counter it resets within ("section"/"chapter", "" = global), and
+    /// `style` one of plain | definition | remark | proof.
+    Theorem {
+        title:   String,
+        counter: String,
+        parent:  String,
+        style:   String,
+        note:    Option<String>,
+        body:    Vec<LatexNode>,
+    },
     /// \begin{thebibliography}{widest-label}...\end{thebibliography} inline bib
     TheBibliography(Vec<(String, Vec<LatexNode>)>),
     Label(String),
@@ -642,6 +656,59 @@ impl LatexNode {
 
             LatexNode::PrintAcronyms { title } => {
                 Self::write_acronym_list(title.as_deref(), ctx, buf);
+            }
+
+            // ----------------------------------------------------------------
+            // amsthm theorem-like blocks
+            // ----------------------------------------------------------------
+            LatexNode::Theorem { title, counter, parent, style, note, body } => {
+                let number = if counter.is_empty() {
+                    String::new()
+                } else {
+                    let parent_value = if parent.is_empty() { 0 } else { ctx.counter_value(parent) };
+                    let (count, last_parent) = ctx.theorem_counters
+                        .entry(counter.clone())
+                        .or_insert((0, 0));
+
+                    // the counter resets whenever its parent advances
+                    if *last_parent != parent_value {
+                        *count = 0;
+                        *last_parent = parent_value;
+                    }
+                    *count += 1;
+
+                    if parent.is_empty() {
+                        format!(" {}", count)
+                    } else {
+                        format!(" {}.{}", parent_value, count)
+                    }
+                };
+
+                let note_text = note.as_ref()
+                    .map(|n| format!(" ({})", n))
+                    .unwrap_or_default();
+
+                // plain: bold head, italic body; definition: bold head,
+                // upright body; remark/proof: italic head, upright body
+                let italic_body = style == "plain";
+                let head = format!("{}{}{}.", title, number, note_text);
+                let head_html = match style.as_str() {
+                    "remark" | "proof" => format!("<em>{}</em>", head),
+                    _ => format!("<strong style=\"font-style: normal;\">{}</strong>", head),
+                };
+
+                let _ = write!(
+                    buf,
+                    "<div class=\"latex-theorem latex-thm-{}\" style=\"margin: 10px 0;{}\">{} ",
+                    style,
+                    if italic_body { " font-style: italic;" } else { "" },
+                    head_html
+                );
+                Nodes::write(body, ctx, buf);
+                if style == "proof" {
+                    buf.push_str("<span style=\"float: right;\">∎</span>");
+                }
+                buf.push_str("</div>");
             }
 
             LatexNode::NoCite(keys) => {

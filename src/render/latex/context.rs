@@ -51,6 +51,9 @@ pub struct RenderContext {
     pub acronyms:      HashMap<String, AcronymInfo>,
     pub acronyms_used: HashSet<String>,
 
+    /// amsthm counters: counter name → (count, parent counter's last value)
+    pub theorem_counters: HashMap<String, (usize, usize)>,
+
     pub footnote_num:      usize,
     pub pending_footnotes: Vec<(usize, String)>,
     pub phantom_id:        usize,
@@ -97,6 +100,8 @@ impl RenderContext {
 
             acronyms:      HashMap::new(),
             acronyms_used: HashSet::new(),
+
+            theorem_counters: HashMap::new(),
 
             footnote_num:      0,
             pending_footnotes: Vec::new(),
