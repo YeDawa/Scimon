@@ -56,9 +56,14 @@ pub struct RenderContext {
 
     pub footnote_num:      usize,
     pub pending_footnotes: Vec<(usize, String)>,
+    /// \footnotemark numbers not yet claimed by a \footnotetext (FIFO)
+    pub unresolved_marks:  Vec<usize>,
     pub phantom_id:        usize,
 
     pub in_float: bool,
+    /// "Table" or "Figure" while rendering inside the matching float,
+    /// so captions can label themselves correctly
+    pub float_kind: String,
 
     // fancyhdr — header/footer slots (rendered HTML strings)
     pub header_left:   String,
@@ -105,9 +110,11 @@ impl RenderContext {
 
             footnote_num:      0,
             pending_footnotes: Vec::new(),
+            unresolved_marks:  Vec::new(),
             phantom_id:        0,
 
             in_float: false,
+            float_kind: String::new(),
 
             header_left:   String::new(),
             header_center: String::new(),
@@ -185,14 +192,18 @@ impl RenderContext {
             "<hr class=\"footnote-rule\"/><ol class=\"footnote-list\">"
         );
 
-        let footnotes = std::mem::take(&mut self.pending_footnotes);
+        // sort by mark number and pin each item's displayed number, so the
+        // list matches the superscripts even when \footnotetext arrives out
+        // of document order (e.g. after a float)
+        let mut footnotes = std::mem::take(&mut self.pending_footnotes);
+        footnotes.sort_by_key(|(num, _)| *num);
         for (num, content) in footnotes {
             html.push_str(&format!(
-                "<li id=\"fn-{}\">{} <a href=\"#fnref-{}\" class=\"footnote-back\">↩</a></li>",
-                num, content, num
+                "<li id=\"fn-{}\" value=\"{}\">{} <a href=\"#fnref-{}\" class=\"footnote-back\">↩</a></li>",
+                num, num, content, num
             ));
         }
-        
+
         html.push_str("</ol>");
         html
     }

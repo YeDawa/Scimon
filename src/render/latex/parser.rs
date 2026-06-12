@@ -2196,10 +2196,13 @@ impl Parser {
                         nodes.push(LatexNode::Image(self.parse_braces_content()));
                     }
                     "caption" if self.in_document => {
+                        self.parse_optional_arg(); // [short title] for \listoffigures
+                        let raw = self.parse_braces_content();
+                        let content = Parser::new(&raw).parse(true, labels);
                         if starred {
-                            nodes.push(LatexNode::CaptionStar(self.parse_braces_content()));
+                            nodes.push(LatexNode::CaptionStar(content));
                         } else {
-                            nodes.push(LatexNode::Caption(self.parse_braces_content()));
+                            nodes.push(LatexNode::Caption(content));
                         }
                     }
 

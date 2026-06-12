@@ -207,9 +207,9 @@ pub enum LatexNode {
 
     // --- Floats ---
     Image(String),
-    Caption(String),
+    Caption(Vec<LatexNode>),
     /// \caption*{text} — unnumbered caption
-    CaptionStar(String),
+    CaptionStar(Vec<LatexNode>),
     Table(Vec<Vec<TableCell>>),
 
     /// Wrapper for \begin{table}...\end{table} — increments tab_num first,
@@ -596,6 +596,7 @@ impl LatexNode {
                 let num = if let Some(n) = explicit { *n } else {
                     ctx.footnote_num += 1; ctx.footnote_num
                 };
+                ctx.unresolved_marks.push(num);
                 let _ = write!(
                     buf,
                     "<sup class=\"footnote-ref\"><a href=\"#fn-{}\" id=\"fnref-{}\">{}</a></sup>",
@@ -604,7 +605,16 @@ impl LatexNode {
             }
 
             LatexNode::FootnoteText { num, content } => {
-                let n = if let Some(n) = num { *n } else { ctx.footnote_num };
+                // without an explicit number, claim the oldest unmatched
+                // \footnotemark — robust even when other footnotes (e.g. in
+                // a caption) advanced the counter in between
+                let n = num.unwrap_or_else(|| {
+                    if ctx.unresolved_marks.is_empty() {
+                        ctx.footnote_num
+                    } else {
+                        ctx.unresolved_marks.remove(0)
+                    }
+                });
                 let html = Nodes::render(content, ctx);
                 ctx.pending_footnotes.push((n, html));
             }
@@ -775,27 +785,40 @@ impl LatexNode {
                 ctx.tab_num += 1;
                 ctx.last_counter = ctx.tab_num.to_string();
                 ctx.in_float = true;
+                ctx.float_kind = String::from("Table");
                 Nodes::write(children, ctx, buf);
                 ctx.in_float = false;
+                ctx.float_kind = String::new();
             }
 
             LatexNode::FigureFloat(children) => {
                 ctx.fig_num += 1;
                 ctx.last_counter = ctx.fig_num.to_string();
                 ctx.in_float = true;
+                ctx.float_kind = String::from("Figure");
                 Nodes::write(children, ctx, buf);
                 ctx.in_float = false;
+                ctx.float_kind = String::new();
             }
 
-            LatexNode::Caption(text) => {
+            LatexNode::Caption(content) => {
+                let kind = if ctx.float_kind.is_empty() {
+                    String::from("Figure/Table")
+                } else {
+                    ctx.float_kind.clone()
+                };
                 let _ = write!(
                     buf,
-                    "<div class=\"caption\"><strong>Figure/Table {}:</strong> {}</div>",
-                    ctx.last_counter, text
+                    "<div class=\"caption\"><strong>{} {}:</strong> ",
+                    kind, ctx.last_counter
                 );
+                Nodes::write(content, ctx, buf);
+                buf.push_str("</div>");
             }
-            LatexNode::CaptionStar(text) => {
-                let _ = write!(buf, "<div class=\"caption\">{}</div>", text);
+            LatexNode::CaptionStar(content) => {
+                buf.push_str("<div class=\"caption\">");
+                Nodes::write(content, ctx, buf);
+                buf.push_str("</div>");
             }
 
             LatexNode::Image(url) => {
