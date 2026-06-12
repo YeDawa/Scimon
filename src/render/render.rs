@@ -1,53 +1,53 @@
 use minify::html::minify;
 
 use std::{
-    ffi::OsStr,
     error::Error,
     thread::JoinHandle,
     collections::HashMap,
 
     io::{
-        Read,
-        Write,
+        Read, 
+        Write
     },
 
     net::{
-        TcpListener,
-        TcpStream,
+        TcpListener, 
+        TcpStream
     },
 
     sync::{
         Arc,
 
         atomic::{
-            AtomicBool,
             Ordering,
+            AtomicBool, 
         },
     },
 };
 
-use headless_chrome::{
-    Browser,
-    LaunchOptionsBuilder,
-    types::PrintToPdfOptions,
+use chromiumoxide::{
+    cdp::browser_protocol::page::PrintToPdfParams,
+
+    browser::{
+        Browser, 
+        BrowserConfig
+    },
 };
+use futures::StreamExt;
 
 use crate::{
     consts::addons::Addons,
     configs::settings::Settings,
-
     render::{
         render_images::RenderImages,
         render_inject::RenderInject,
     },
-
     utils::remote::Remote,
 };
 
 pub struct Render;
 
 impl Render {
-
     pub async fn render_content(&self, file: &str, md_content: String) -> Result<String, Box<dyn Error>> {
         let minify_prop = Settings.get("render_markdown.minify_html", "BOOLEAN");
         let template_content = Remote.content(Addons::README_TEMPLATE_LINK).await?;
@@ -64,48 +64,45 @@ impl Render {
     }
 
     pub async fn connect_to_browser(&self, content: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-        // --headless=new uses the new headless code path that never creates a visible
-        // window on Windows, unlike the legacy --headless flag.
-        // --window-position moves any residual window fully off-screen as a fallback.
-        let extra_args: Vec<&OsStr> = vec![
-            OsStr::new("--headless=new"),
-            OsStr::new("--window-position=-32000,-32000"),
-        ];
-        let browser = Browser::new(
-            LaunchOptionsBuilder::default()
-                .headless(true)
-                .args(extra_args)
-                .build()
-                .expect("failed to build launch options"),
-        )?;
+        let config = BrowserConfig::builder()
+            .arg("--headless=new")
+            .arg("--window-position=-32000,-32000")
+            .arg("--disable-gpu")
+            .arg("--no-sandbox")
+            .build()
+            .map_err(|e| format!("Failed to build browser config: {:?}", e))?;
 
-        let tab = browser.new_tab()?;
+        let (mut browser, mut handler) = Browser::launch(config).await?;
 
-        // Serve the document from an ephemeral loopback socket instead of a
-        // data: URL — fragment hrefs ("#label-x") do not resolve against
-        // data: URLs, which makes Chrome drop every internal link annotation
-        // from the printed PDF.
+        let browser_handle = tokio::task::spawn(async move {
+            while let Some(event) = handler.next().await {
+                if event.is_err() {
+                    break;
+                }
+            }
+        });
+
+        let page = browser.new_page("about:blank").await?;
+
         let (port, stop, server) = Self::serve_content(content.to_string())?;
 
-        tab.navigate_to(&format!("http://127.0.0.1:{}/document.html", port))?
-            .wait_until_navigated()?;
+        page.goto(&format!("http://127.0.0.1:{}/document.html", port)).await?;
+        page.wait_for_navigation().await?;
 
-        // Wait for MathJax to finish typesetting (if present)
-        tab.evaluate(r#"
+        // Wait for MathJax to finish typesetting
+        page.evaluate(r#"
             new Promise(function(resolve) {
                 if (typeof MathJax === 'undefined' || typeof MathJax.startup === 'undefined') {
                     resolve();
                     return;
                 }
                 MathJax.startup.promise.then(resolve).catch(resolve);
-                // Safety timeout: resolve after 5s regardless
                 setTimeout(resolve, 5000);
             })
-        "#, true)?;
+        "#).await?;
 
-        // Wait for web fonts — fallback metrics paginate differently, which
-        // would desync the two print passes below
-        tab.evaluate(r#"
+        // Wait for web fonts
+        page.evaluate(r#"
             new Promise(function(resolve) {
                 if (document.fonts && document.fonts.ready) {
                     document.fonts.ready.then(function() { resolve(); }).catch(resolve);
@@ -114,15 +111,10 @@ impl Render {
                 }
                 setTimeout(resolve, 3000);
             })
-        "#, true)?;
+        "#).await?;
 
-        // Resolve \pageref{} placeholders before printing.
-        // PAGE_H = 697px is the printable page height calibrated for this
-        // template. Forced breaks (\newpage et al.) have zero height in the
-        // measured layout, so pagination is simulated: natural breaks every
-        // PAGE_H within a segment, plus one page per forced-break div
-        // (\cleardoublepage additionally skips to the next odd page).
-        tab.evaluate(r#"
+        // Resolve \pageref{} placeholders
+        page.evaluate(r#"
             (function() {
                 var PAGE_H = 697;
 
@@ -146,9 +138,9 @@ impl Render {
                 function pageOf(targetY) {
                     var page = 1, segStart = 0;
                     for (var i = 0; i < breaks.length && breaks[i].y <= targetY; i++) {
-                        page += Math.floor((breaks[i].y - segStart) / PAGE_H); // natural breaks
-                        page += 1;                                             // the forced break
-                        if (breaks[i].right && page % 2 === 0) page += 1;      // next odd page
+                        page += Math.floor((breaks[i].y - segStart) / PAGE_H);
+                        page += 1;
+                        if (breaks[i].right && page % 2 === 0) page += 1;
                         segStart = breaks[i].y;
                     }
                     return page + Math.floor((targetY - segStart) / PAGE_H);
@@ -157,10 +149,8 @@ impl Render {
                 function findTarget(id) {
                     var el = document.getElementById(id);
                     if (el) return el;
-                    if (id.startsWith('item-'))
-                        return document.getElementById('label-' + id.slice(5));
-                    if (id.startsWith('label-'))
-                        return document.getElementById('item-' + id.slice(6));
+                    if (id.startsWith('item-')) return document.getElementById('label-' + id.slice(5));
+                    if (id.startsWith('label-')) return document.getElementById('item-' + id.slice(6));
                     return null;
                 }
 
@@ -171,20 +161,14 @@ impl Render {
                     }
                 });
             })()
-        "#, false)?;
+        "#).await?;
 
-        let pdf_options = || Some(PrintToPdfOptions {
-            print_background: Some(true),
-            ..Default::default()
-        });
+        // Configuração nativa de PDF do chromiumoxide
+        let pdf_options = PrintToPdfParams::builder()
+            .print_background(true)
+            .build();
 
-        // The first pass prints with the simulated page numbers; the PDF's
-        // own named destinations then reveal the exact page of every \label.
-        // Iterate to a fixed point: late layout shifts (slow web fonts that
-        // beat the wait's timeout, images) re-paginate the document between
-        // prints, so keep reprinting until the destinations agree with the
-        // numbers shown in the text.
-        let mut contents = tab.print_to_pdf(pdf_options())?;
+        let mut contents = page.pdf(pdf_options.clone()).await?;
 
         if content.contains("data-ref") {
             for _ in 0..3 {
@@ -193,8 +177,10 @@ impl Render {
                     break;
                 }
 
-                let pages = serde_json::to_string(&destinations)?;
-                let changed = tab.evaluate(&format!(r#"
+                let pages_json = serde_json::to_string(&destinations)?;
+                
+                // O evaluate do chromiumoxide permite extrair o valor retornado
+                let eval_result = page.evaluate(format!(r#"
                     (function() {{
                         var pages = {};
                         var changed = false;
@@ -207,26 +193,31 @@ impl Render {
                         }});
                         return changed;
                     }})()
-                "#, pages), false)?;
+                "#, pages_json)).await?;
 
-                // numbers already match the real pages — `contents` is final
-                if changed.value != Some(serde_json::Value::Bool(true)) {
+                // Converte o retorno do JS para um bool no Rust
+                let changed = eval_result.into_value::<bool>().unwrap_or(false);
+
+                if !changed {
                     break;
                 }
-                contents = tab.print_to_pdf(pdf_options())?;
+                
+                // Gera o PDF novamente se houve mudança
+                contents = page.pdf(pdf_options.clone()).await?;
             }
         }
 
-        // release the accept loop and let the server thread finish
+        // Limpeza (desliga o servidor local e o browser)
         stop.store(true, Ordering::SeqCst);
         let _ = TcpStream::connect(("127.0.0.1", port));
         let _ = server.join();
+        
+        browser.close().await?;
+        let _ = browser_handle.await;
 
         Ok(contents)
     }
 
-    // Map every named destination ("label-x") in the printed PDF to its
-    // 1-based page number — the ground truth for \pageref resolution.
     fn destination_pages(pdf: &[u8]) -> HashMap<String, u32> {
         let mut map = HashMap::new();
 
@@ -268,8 +259,6 @@ impl Render {
         map
     }
 
-    // Serve `content` over HTTP on an ephemeral loopback port, answering
-    // every request with the same document until the stop flag is set.
     fn serve_content(
         content: String,
     ) -> Result<(u16, Arc<AtomicBool>, JoinHandle<()>), Box<dyn Error>> {
@@ -286,7 +275,6 @@ impl Render {
                 }
                 let Ok(mut stream) = stream else { continue };
 
-                // request line and headers are irrelevant — drain best-effort
                 let mut request = [0u8; 2048];
                 let _ = stream.read(&mut request);
 

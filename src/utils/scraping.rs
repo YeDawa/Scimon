@@ -1,5 +1,9 @@
 use std::ffi::OsStr;
-use headless_chrome::{Browser, LaunchOptionsBuilder};
+
+use headless_chrome::{
+    Browser, 
+    LaunchOptionsBuilder
+};
 
 use std::{
     fs::write,
