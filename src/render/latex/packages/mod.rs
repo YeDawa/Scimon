@@ -1,0 +1,111 @@
+//! Package modules — LaTeX package support decoupled from the core parser.
+//!
+//! Each third-party LaTeX package (siunitx, tcolorbox, ...) lives in its own
+//! module implementing [`LatexPackage`]. The parser consults the registry
+//! when it finds a command or environment it does not own, so adding a
+//! package never touches the core `match` again.
+//!
+//! # Adding a package
+//!
+//! 1. Create `packages/<name>.rs` with a unit struct implementing
+//!    [`LatexPackage`]: declare the commands/environments it owns and
+//!    translate them to [`LatexNode`]s, using the `Parser` argument to
+//!    consume arguments (`parse_braces_content`, `parse_optional_arg`,
+//!    `read_until_end`) and `labels` for cross-references.
+//! 2. Declare the module below and add the struct to [`REGISTRY`].
+//!
+//! Handlers are always active rather than gated on `\usepackage` — like the
+//! rest of the renderer, documents without a full preamble still work, and
+//! a `\newcommand`/`\renewcommand` with the same name takes precedence
+//! (user macros are expanded before the registry is consulted).
+
+use std::collections::HashMap;
+
+use crate::render::latex::{
+    parser::Parser,
+    tex_ast::LatexNode,
+};
+
+pub mod siunitx;
+pub mod tcolorbox;
+
+/// A LaTeX package handled outside the core parser.
+pub trait LatexPackage: Sync {
+
+    /// Command words this package owns (without the backslash)
+    fn commands(&self) -> &'static [&'static str] {
+        &[]
+    }
+
+    /// Environment names this package owns
+    fn environments(&self) -> &'static [&'static str] {
+        &[]
+    }
+
+    /// Translate one of the declared commands into nodes. The command word
+    /// arrives without the backslash; `starred` covers \cmd* variants.
+    fn command(
+        &self,
+        _command: &str,
+        _starred: bool,
+        _parser: &mut Parser,
+        _labels: &mut HashMap<String, String>,
+    ) -> Vec<LatexNode> {
+        Vec::new()
+    }
+
+    /// Translate one of the declared environments into nodes. `options` is
+    /// the [...] group that followed \begin{env}, when present.
+    fn environment(
+        &self,
+        _env: &str,
+        _options: Option<String>,
+        _parser: &mut Parser,
+        _labels: &mut HashMap<String, String>,
+    ) -> Vec<LatexNode> {
+        Vec::new()
+    }
+
+}
+
+/// Every registered package module, in lookup order.
+static REGISTRY: &[&dyn LatexPackage] = &[
+    &siunitx::Siunitx,
+    &tcolorbox::Tcolorbox,
+];
+
+pub fn is_package_command(command: &str) -> bool {
+    REGISTRY.iter().any(|package| package.commands().contains(&command))
+}
+
+pub fn is_package_environment(env: &str) -> bool {
+    REGISTRY.iter().any(|package| package.environments().contains(&env))
+}
+
+pub fn command(
+    command: &str,
+    starred: bool,
+    parser: &mut Parser,
+    labels: &mut HashMap<String, String>,
+) -> Vec<LatexNode> {
+    for package in REGISTRY {
+        if package.commands().contains(&command) {
+            return package.command(command, starred, parser, labels);
+        }
+    }
+    Vec::new()
+}
+
+pub fn environment(
+    env: &str,
+    options: Option<String>,
+    parser: &mut Parser,
+    labels: &mut HashMap<String, String>,
+) -> Vec<LatexNode> {
+    for package in REGISTRY {
+        if package.environments().contains(&env) {
+            return package.environment(env, options, parser, labels);
+        }
+    }
+    Vec::new()
+}

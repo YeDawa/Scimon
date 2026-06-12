@@ -2,6 +2,7 @@ use chrono::Local;
 use std::collections::HashMap;
 
 use crate::render::latex::{
+    packages,
     tikz::Tikz,
     bibtex::BibStyle,
     pgfplots::Pgfplots,
@@ -595,7 +596,7 @@ impl Parser {
     }
 
     /// Consume an optional `[…]` argument, returning its contents.
-    fn parse_optional_arg(&mut self) -> Option<String> {
+    pub(crate) fn parse_optional_arg(&mut self) -> Option<String> {
         self.skip_whitespace();
         if self.peek() == Some('[') {
             self.next_char();
@@ -642,7 +643,7 @@ impl Parser {
     }
 
     /// Read everything up to `\end{env_name}`, consuming the tag.
-    fn read_until_end(&mut self, env_name: &str) -> String {
+    pub(crate) fn read_until_end(&mut self, env_name: &str) -> String {
         let end_tag = format!("\\end{{{}}}", env_name);
         let mut raw = String::new();
         while self.pos < self.input.len() {
@@ -1339,53 +1340,6 @@ impl Parser {
                                 Parser::new(&rest).parse(true, labels)
                             ));
                         }
-                    }
-
-                    // --------------------------------------------------------
-                    // siunitx — \SI{value}{unit}  \si{unit}  \num{number}  \ang{deg}
-                    // --------------------------------------------------------
-                    "SI" if self.in_document => {
-                        self.parse_optional_arg(); // [options]
-                        let val  = self.parse_braces_content();
-                        let unit = self.parse_braces_content();
-                        let unit_html = Self::siunitx_unit(&unit);
-                        nodes.push(LatexNode::Text(
-                            format!("<span class=\"si-value\">{}</span>\u{202F}<span class=\"si-unit\">{}</span>",
-                                val, unit_html)
-                        ));
-                    }
-                    "si" if self.in_document => {
-                        self.parse_optional_arg();
-                        let unit = self.parse_braces_content();
-                        nodes.push(LatexNode::Text(
-                            format!("<span class=\"si-unit\">{}</span>", Self::siunitx_unit(&unit))
-                        ));
-                    }
-                    "num" if self.in_document => {
-                        self.parse_optional_arg();
-                        let val = self.parse_braces_content();
-                        let formatted = Self::siunitx_num(&val);
-                        nodes.push(LatexNode::Text(
-                            format!("<span class=\"si-value\">{}</span>", formatted)
-                        ));
-                    }
-                    "ang" if self.in_document => {
-                        self.parse_optional_arg();
-                        let raw = self.parse_braces_content();
-                        // raw may be "45" or "30;10;5" (deg;min;sec)
-                        let formatted = if raw.contains(';') {
-                            let parts: Vec<&str> = raw.split(';').collect();
-                            let mut s = String::new();
-                            if !parts[0].is_empty() { s.push_str(&format!("{}°", parts[0])); }
-                            if parts.len() > 1 && !parts[1].is_empty() { s.push_str(&format!("{}'", parts[1])); }
-                            if parts.len() > 2 && !parts[2].is_empty() { s.push_str(&format!("{}″", parts[2])); }
-                            s
-                        } else {
-                            format!("{}°", raw)
-                        };
-                        nodes.push(LatexNode::Text(
-                            format!("<span class=\"si-ang\">{}</span>", formatted)
-                        ));
                     }
 
                     // --------------------------------------------------------
@@ -3004,6 +2958,15 @@ impl Parser {
                     }
 
                     // --------------------------------------------------------
+                    // Package modules (siunitx, tcolorbox, ...) — consulted
+                    // after user macros so \renewcommand takes precedence
+                    // --------------------------------------------------------
+                    _ if packages::is_package_command(command.as_str()) && self.in_document => {
+                        let handled = packages::command(command.as_str(), starred, self, labels);
+                        nodes.extend(handled);
+                    }
+
+                    // --------------------------------------------------------
                     // Math symbols (catches all entries in math_symbol())
                     // --------------------------------------------------------
                     _ if self.in_document => {
@@ -3151,6 +3114,12 @@ impl Parser {
             let body = Parser::new(raw.trim()).parse(true, labels);
 
             nodes.push(LatexNode::Theorem { title, counter, parent, style, note: opt, body });
+            return nodes;
+        }
+
+        // Package modules own their environments (tcolorbox, ...)
+        if self.in_document && packages::is_package_environment(env) {
+            nodes.extend(packages::environment(env, opt, self, labels));
             return nodes;
         }
 
@@ -3453,24 +3422,6 @@ impl Parser {
                 body,
                 balanced: env == "multicols",
             });
-
-        } else if env == "tcolorbox" && self.in_document {
-            let opts  = self.parse_optional_arg().unwrap_or_default();
-            let raw   = self.read_until_end("tcolorbox");
-            let inner = Parser::new(raw.trim()).parse(true, labels);
-            let (title, colback, colframe) = Self::parse_tcolorbox(&opts);
-            nodes.push(LatexNode::Text(format!(
-                "<div class=\"latex-tcolorbox\" style=\"--tcb-back:{colback}; --tcb-frame:{colframe};\">",
-                colback = colback, colframe = colframe,
-            )));
-            if let Some(t) = title {
-                nodes.push(LatexNode::Text(format!(
-                    "<div class=\"tcolorbox-title\" style=\"background:{};\">{}</div>", colframe, t
-                )));
-            }
-            nodes.push(LatexNode::Text("<div class=\"tcolorbox-body\">".to_string()));
-            nodes.extend(inner);
-            nodes.push(LatexNode::Text("</div></div>".to_string()));
 
         } else if matches!(env, "framed" | "shaded" | "shaded*" | "oframed" | "mdframed")
                && self.in_document
@@ -4037,134 +3988,8 @@ impl Parser {
         if s.is_empty() { "100%".to_string() } else { s.to_string() }
     }
 
-    /// Parse tcolorbox key=value options, return (title, colback, colframe).
-    fn parse_tcolorbox(opts: &str) -> (Option<String>, String, String) {
-        let mut title:    Option<String> = None;
-        let mut colback  = "#eaf4fb".to_string();
-        let mut colframe = "#2980b9".to_string();
-
-        for part in opts.split(',') {
-            let kv: Vec<&str> = part.splitn(2, '=').collect();
-            if kv.len() != 2 { continue; }
-            match kv[0].trim() {
-                "title"    => title    = Some(kv[1].trim().to_string()),
-                "colback"  => colback  = Self::latex_color(kv[1].trim()),
-                "colframe" => colframe = Self::latex_color(kv[1].trim()),
-                _ => {}
-            }
-        }
-        (title, colback, colframe)
-    }
-
-    /// Format a siunitx number: group digits, handle scientific notation.
-    fn siunitx_num(raw: &str) -> String {
-        let s = raw.trim();
-        // Handle scientific notation: 1e6, 1.5e-3, 1.5E10
-        if let Some(pos) = s.to_lowercase().find('e') {
-            let mantissa = &s[..pos];
-            let exp = &s[pos + 1..];
-            return format!("{} × 10<sup>{}</sup>", mantissa, exp);
-        }
-        // Group integer digits in threes
-        let (int_part, dec_part) = if let Some(dot) = s.find('.') {
-            (&s[..dot], Some(&s[dot..]))
-        } else {
-            (s, None)
-        };
-        let digits: String = int_part.chars().rev().enumerate()
-            .flat_map(|(i, c)| {
-                if i > 0 && i % 3 == 0 && c.is_ascii_digit() {
-                    vec!['\u{202F}', c] // narrow no-break space
-                } else {
-                    vec![c]
-                }
-            })
-            .collect::<String>()
-            .chars().rev().collect();
-        match dec_part {
-            Some(d) => format!("{}{}", digits, d),
-            None    => digits,
-        }
-    }
-
-    /// Convert siunitx unit macros to HTML (e.g. \meter\per\second → m s⁻¹).
-    fn siunitx_unit(raw: &str) -> String {
-        let mut result = String::new();
-        let mut per = false;
-        let mut i = 0;
-        let chars: Vec<char> = raw.chars().collect();
-        while i < chars.len() {
-            if chars[i] == '\\' {
-                i += 1;
-                let start = i;
-                while i < chars.len() && chars[i].is_alphabetic() { i += 1; }
-                let cmd: String = chars[start..i].iter().collect();
-                match cmd.as_str() {
-                    "per"        => { per = true; continue; }
-                    "square"     => { result.push_str("<sup>2</sup>"); continue; }
-                    "cubic"      => { result.push_str("<sup>3</sup>"); continue; }
-                    "squared"    => { result.push_str("<sup>2</sup>"); continue; }
-                    "cubed"      => { result.push_str("<sup>3</sup>"); continue; }
-                    "meter" | "metre"     => result.push('m'),
-                    "gram"                => result.push('g'),
-                    "kilogram"            => result.push_str("kg"),
-                    "second"              => result.push('s'),
-                    "minute"              => result.push_str("min"),
-                    "hour"                => result.push('h'),
-                    "kelvin"              => result.push('K'),
-                    "mole"                => result.push_str("mol"),
-                    "ampere"              => result.push('A'),
-                    "candela"             => result.push_str("cd"),
-                    "newton"              => result.push('N'),
-                    "pascal"              => result.push_str("Pa"),
-                    "joule"               => result.push('J'),
-                    "watt"                => result.push('W'),
-                    "volt"                => result.push('V'),
-                    "ohm"                 => result.push('Ω'),
-                    "siemens"             => result.push('S'),
-                    "farad"               => result.push('F'),
-                    "henry"               => result.push('H'),
-                    "tesla"               => result.push('T'),
-                    "hertz"               => result.push_str("Hz"),
-                    "liter" | "litre"     => result.push('L'),
-                    // SI prefixes used standalone (e.g. \kilo\gram)
-                    "kilo"   => result.push('k'),
-                    "mega"   => result.push('M'),
-                    "giga"   => result.push('G'),
-                    "tera"   => result.push('T'),
-                    "milli"  => result.push('m'),
-                    "micro"  => result.push('μ'),
-                    "nano"   => result.push('n'),
-                    "pico"   => result.push('p'),
-                    "centi"  => result.push('c'),
-                    "deci"   => result.push('d'),
-                    "hecto"  => result.push('h'),
-                    "degree" | "degreeCelsius" => result.push('°'),
-                    "celsius"  => result.push_str("°C"),
-                    "fahrenheit" => result.push_str("°F"),
-                    "radian"   => result.push_str("rad"),
-                    "steradian"=> result.push_str("sr"),
-                    "percent"  => result.push('%'),
-                    other      => result.push_str(other),
-                }
-                if per {
-                    // wrap last unit in superscript -1
-                    result.push_str("<sup>−1</sup>");
-                    per = false;
-                }
-            } else if chars[i].is_whitespace() {
-                result.push('\u{202F}'); // narrow no-break space between units
-                i += 1;
-            } else {
-                result.push(chars[i]);
-                i += 1;
-            }
-        }
-        result
-    }
-
     /// Convert a LaTeX color expression (name or `color!pct!base`) to CSS hex.
-    fn latex_color(raw: &str) -> String {
+    pub(crate) fn latex_color(raw: &str) -> String {
         let parts: Vec<&str> = raw.split('!').collect();
         let name = parts[0].trim().to_lowercase();
 
