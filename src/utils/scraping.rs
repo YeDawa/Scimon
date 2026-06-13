@@ -45,9 +45,7 @@ impl Scraping {
 
         let page = browser.new_page(&self.url).await?;
         page.wait_for_navigation().await?;
-
-        // Páginas do ChatGPT/Gemini são renderizadas por JS: espera o documento
-        // terminar de carregar antes de capturar o HTML.
+        
         page.evaluate(r#"
             new Promise(function(resolve) {
                 if (document.readyState === 'complete') {
@@ -59,7 +57,6 @@ impl Scraping {
             })
         "#).await?;
 
-        // Pequena folga para a hidratação do SPA assentar o conteúdo no DOM.
         tokio::time::sleep(std::time::Duration::from_millis(2500)).await;
 
         let content = page.content().await?;
