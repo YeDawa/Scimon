@@ -34,7 +34,6 @@ impl Scraping {
             .map_err(|e| format!("Failed to build launch options: {:?}", e))?;
 
         let (mut browser, mut handler) = Browser::launch(config).await?;
-
         let browser_handle = tokio::task::spawn(async move {
             while let Some(event) = handler.next().await {
                 if event.is_err() {
@@ -45,7 +44,7 @@ impl Scraping {
 
         let page = browser.new_page(&self.url).await?;
         page.wait_for_navigation().await?;
-        
+
         page.evaluate(r#"
             new Promise(function(resolve) {
                 if (document.readyState === 'complete') {
