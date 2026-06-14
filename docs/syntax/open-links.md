@@ -20,7 +20,9 @@ open "https://example.com"
 
 In this example:
 
-- The `open` variable is assigned the URL `"https://scibun.com"`.
-- After processing the list file, Scimon will open this URL in a web browser, allowing users to access the GitHub repository associated with the task or project.
+- The `open` variable is assigned the URL `"https://example.com"`.
+- After processing the list file, Scimon will open this URL in a web browser, allowing users to access the resource associated with the task or project.
 
 By utilizing the `open` variable, you can seamlessly provide users with additional information and resources to enhance their understanding and engagement with the processed tasks or projects.
+
+> Use the [`--no-open-link`](../commands.md#global-flags) flag to disable this behavior.

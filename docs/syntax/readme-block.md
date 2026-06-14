@@ -14,7 +14,7 @@ The retrieved content is then converted to text format. This text content is ass
 
 ### Rendering Markdown:
 
-The Markdown content retrieved from the URL is rendered directly within the list file. This means that you can include Markdown snippets within the list file, and Paimon will automatically render them during processing.
+The Markdown content retrieved from the URL is rendered directly within the list file. This means that you can include Markdown snippets within the list file, and Scimon will automatically render them during processing.
 
 #### Example Usage:
 
@@ -29,7 +29,7 @@ In this example:
 
 ## Block
 
-The Markdown content retrieved from the URL is rendered directly within the list file. This means that you can include Markdown snippets within the list file, and Paimon will automatically render them during processing.
+The Markdown content retrieved from the URL is rendered directly within the list file. This means that you can include Markdown snippets within the list file, and Scimon will automatically render them during processing.
 
 #### Example Usage:
 
@@ -37,7 +37,7 @@ The Markdown content retrieved from the URL is rendered directly within the list
 readme {
     # My Project
 
-    This is an example of how you can use the `readme{}` block to include Markdown content directly in the Paimon list file.
+    This is an example of how you can use the `readme{}` block to include Markdown content directly in the Scimon list file.
 
     ## Example Section
 

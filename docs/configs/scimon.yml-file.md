@@ -6,6 +6,8 @@ This configuration file is utilized to set up the tool. Please utilize this defa
 general:
   default_text_editor: 'notepad' # String (default: 'notepad')
   urlfilter_open: false # Boolean (valid values: 'true' or 'false'; default: 'false')
+  qrcode_size: 512 # Integer — pixel size of generated QR codes
+  level_compress: 6 # Integer (0-9) — compression level used by the `compress` block
 
 ui:
   show_header: true # Boolean (valid values: 'true' or 'false'; default: 'true')

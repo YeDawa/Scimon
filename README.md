@@ -10,7 +10,7 @@
 
 ## What is Scimon?
 
-Scimon is a tool designed for batch downloading PDF files using its own dedicated language, Monset (.mon). Monset features a very simple and quick-to-write syntax, making it easy to use. The Scimon interpreter is both fast and secure, as it is written in Rust, leveraging the language's best practices.
+Scimon is a tool designed for batch downloading PDF files using its own dedicated language, Scimon (.mon). The language features a very simple and quick-to-write syntax, making it easy to use. The Scimon interpreter is both fast and secure, as it is written in Rust, leveraging the language's best practices.
 
 Scimon is a language designed specifically for downloading files. It offers a streamlined syntax that makes the process of retrieving files from the internet straightforward and efficient. By focusing on simplicity, Scimon ensures that users can quickly grasp its fundamentals and start downloading files with minimal effort.
 
@@ -25,26 +25,25 @@ For more help and document, see our documentation:
 - [Flags](https://docs.scimon.dev/flags)
 - [Scrape](https://docs.scimon.dev/scrape)
 - [Providers](https://docs.scimon.dev/providers)
-- [Syntax](https://docs.scimon.dev/monset/what-is)
-  - [Downloads Block](https://docs.scimon.dev/monset/download-block)
-  - [Readme Block](https://docs.scimon.dev/monset/readme-block)
-  - [Commands Block](https://docs.scimon.dev/monset/commands-block)
-  - [Compress folder](https://docs.scimon.dev/monset/compress)
-  - [Open links](https://docs.scimon.dev/monset/open-links)
-  - [Markdown render](https://docs.scimon.dev/monset/markdown-render)
-  - [Style](https://docs.scimon.dev/monset/style)
-  - [Print](https://docs.scimon.dev/monset/prints)
-  - [Covers](https://docs.scimon.dev/monset/covers)
-  - [QR Code](https://docs.scimon.dev/monset/qrcode)
-  - [Math](https://docs.scimon.dev/monset/math)
+- [Syntax](https://docs.scimon.dev/syntax/what-is)
+  - [Downloads Block](https://docs.scimon.dev/syntax/download-block)
+  - [Readme Block](https://docs.scimon.dev/syntax/readme-block)
+  - [Commands Block](https://docs.scimon.dev/syntax/commands-block)
+  - [Compress folder](https://docs.scimon.dev/syntax/compress)
+  - [Open links](https://docs.scimon.dev/syntax/open-links)
+  - [Markdown render](https://docs.scimon.dev/syntax/markdown-render)
+  - [Style](https://docs.scimon.dev/syntax/style)
+  - [Print](https://docs.scimon.dev/syntax/prints)
+  - [Covers](https://docs.scimon.dev/syntax/covers)
+  - [QR Code](https://docs.scimon.dev/syntax/qrcode)
+  - [Math](https://docs.scimon.dev/syntax/math)
 - [Configs](https://docs.scimon.dev/configs/index)
   - [Scimon.yml file](https://docs.scimon.dev/configs/scimon.yml-file)
   - [.env file](https://docs.scimon.dev/configs/env-file)
-- [External Resources Usage](https://docs.scimon.dev/external-resources)
 
 ## Example of code and execute
 
-```monset
+```scimon
 @name "Scimon"
 @version "1.0.0"
 @description "Scimon is a simple and powerful tool for downloading files, generating QR codes, compressing folders, and more."

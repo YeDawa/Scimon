@@ -2,7 +2,7 @@
 
 To generate qr codes, use the following derivative:
 
-```monset
+```scimon
 qrcode "path/to/qrcodes"
 ```
 

@@ -2,7 +2,7 @@
 
 Simply use the `style` variable followed by the valid URL of the CSS file, and this will apply the defined style to the document:
 
-```monset
+```scimon
 style "https://example.com/path/to/custom_style.css"
 ```
 

@@ -1,28 +1,35 @@
-# Scrape: Command
+# Scrape
 
-The `scrape` command in Scimon enables scraping functionality, allowing you to extract information or data from a specified URL.
+The `scrape` command discovers downloadable documents on a web page and fetches
+them for you — handy when you don't have a ready-made list of direct links.
 
-### Usage:
-
-To initiate a scraping operation on a specific URL, use the following command:
+## Usage
 
 ```shell
-scimon scrape https://scibun.com 
+scimon scrape https://example.com
 ```
 
-In this command:
+Replace `https://example.com` with the page you want to scan.
 
-- `https://scibun.com` should be replaced with the URL you want to perform the scraping on.
+## How it works
 
-The `scrape` command in Scimon is designed to extract content from webpages, allowing you to retrieve various types of information such as documents.
+1. Scimon sends the URL to its scrape service, which returns the list of
+   documents found on the page.
+2. Each non-encrypted item in the result is downloaded, reusing the normal
+   download pipeline (so [providers](./providers.md) like ChatGPT/Gemini/Arxiv
+   are handled automatically).
+3. Files are saved to the Scimon scrape folder.
 
-### Result:
+Items the service marks as `encrypted` are skipped, and if nothing is found a
+message explains why.
 
-The result of the scraping operation depends on the specific implementation and configuration of Scimon. It could involve extracting text, images, links, or other structured data from the webpage.
+## Flags
 
-### Additional Notes:
+The [global flags](./commands.md#global-flags) apply here too — for example
+`--no-ignore` to process every result.
 
-- Scimon provides flexibility in configuring scraping rules and patterns to suit your specific requirements.
-- Ensure that you have proper permissions or authorization to scrape the content of the specified URL to comply with legal and ethical guidelines.
+## Notes
 
-By utilizing the `scrape` command in Scimon, you can automate the process of extracting valuable information from webpages, streamlining tasks such as data collection, content aggregation, and web monitoring.
+- Make sure you have permission to scrape and download the content of the target
+  URL, and comply with its terms of use.
+- Results depend on what the scrape service can detect on the page.

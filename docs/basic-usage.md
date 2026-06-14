@@ -30,12 +30,12 @@ Use the `--no-ignore` flag to download all files without skipping any:
 scimon run scimon.mon --no-ignore
 ```
 
-### Skip All Comments
+### Don't Open Links
 
-Use the `--no-comments` flag to skip downloading lines that are comments:
+Use the `--no-open-link` flag to prevent the `open` variable from opening URLs in your browser:
 
 ```shell
-scimon run scimon.mon --no-comments
+scimon run scimon.mon --no-open-link
 ```
 
 ### Skip README File Rendering
@@ -46,4 +46,12 @@ Use the `--no-readme` flag to skip rendering README files during the download pr
 scimon run scimon.mon --no-readme
 ```
 
-By using these flags, you can control how `scimon` handles different parts of the download list, ensuring a customized download process according to your needs.
+### Disable Secure Mode
+
+Use the `--no-secure` flag to disable secure mode for the `commands {}` runner:
+
+```shell
+scimon run scimon.mon --no-secure
+```
+
+By using these flags, you can control how `scimon` handles different parts of the download list, ensuring a customized download process according to your needs. See the full list on the [Commands](commands.md#global-flags) page.

@@ -27,19 +27,24 @@ nav:
   - Overview: index.md
   - How to build: build.md
   - Basic usage: basic-usage.md
+  - Commands: commands.md
   - Scrape: scrape.md
   - Providers: providers.md
-  - Monset:
-    - Downloads Block: monset/download-block.md
-    - Readme Block: monset/readme-block.md
-    - Commands Block: monset/commands-block.md
-    - Compress folder: monset/compress.md
-    - Open links: monset/open-links.md
-    - Style: monset/style.md
-    - Print: monset/prints.md
-    - Covers: monset/covers.md
-    - QR Code: monset/qrcode.md
-  - Markdown: monset/markdown-render.md
+  - LaTeX Compiler: compile.md
+  - Syntax:
+    - Overview: syntax/what-is.md
+    - Metadata: syntax/metadata.md
+    - Downloads Block: syntax/download-block.md
+    - Readme Block: syntax/readme-block.md
+    - Commands Block: syntax/commands-block.md
+    - Compress folder: syntax/compress.md
+    - Open links: syntax/open-links.md
+    - Style: syntax/style.md
+    - Print: syntax/prints.md
+    - Covers: syntax/covers.md
+    - QR Code: syntax/qrcode.md
+    - Math: syntax/math.md
+  - Markdown: syntax/markdown-render.md
   - Configs:
     - Scimon.yml file: configs/scimon.yml-file.md
     - .env file: configs/env-file.md

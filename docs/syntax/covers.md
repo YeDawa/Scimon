@@ -2,7 +2,7 @@
 
 To extract covers, use the following derivative:
 
-```monset
+```scimon
 covers "path/to/covers"
 ```
 

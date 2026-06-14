@@ -26,6 +26,15 @@ In this example:
 - `https://example.com/file5.pdf` will be skipped because it is followed by `!ignore`.
 - `https://example.com/file6.pdf` will be downloaded.
 
+### Special URLs
+
+Some URLs aren't just downloaded — Scimon recognizes them and applies a dedicated strategy automatically:
+
+- **Provider links** (ChatGPT/Gemini share links, Wikipedia, Arxiv, …) are fetched and rendered to PDF. See [Providers](../providers.md).
+- **`.tex` files** are compiled to PDF on the fly. See the [LaTeX Compiler](../compile.md).
+
+You can still combine these with `as "name.pdf"` and `!ignore`.
+
 ### Path Configuration
 
 You can specify the directory where the downloaded files should be stored by setting the `path` variable. This ensures that all files are saved in the specified folder in your file system.

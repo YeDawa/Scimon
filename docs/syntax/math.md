@@ -2,13 +2,13 @@
 
 To render mathematical formulas into image files, use the following syntax:
 
-```monset
+```scimon
 math "your_math_expression" > path/to/output.png
 ```
 
 For example, to render the formula `2 + 2 = 4`, the command would look like this:
 
-```monset
+```scimon
 math "2 + 2 = 4" > path/to/output.png
 ```
 
