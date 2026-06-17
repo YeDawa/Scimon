@@ -89,8 +89,6 @@ impl Serve {
         let method = parts.next().unwrap_or("");
         let raw_target = parts.next().unwrap_or("/");
 
-        // Read the remaining headers; we only care about `Range` (for PDF/media
-        // viewers that fetch byte ranges).
         let mut range: Option<String> = None;
         loop {
             let mut line = String::new();
@@ -114,17 +112,13 @@ impl Serve {
             return Self::respond(&mut stream, 405, "Method Not Allowed", "text/plain; charset=utf-8", b"405 Method Not Allowed");
         }
 
-        // Strip the query string and decode percent-encoding.
         let target = raw_target.split('?').next().unwrap_or("/");
         let decoded = Self::percent_decode(target);
 
-        // The embedded logo, served from a reserved route (not from disk).
-        // Not logged — it's an internal asset, not user content.
         if decoded == LOGO_ROUTE {
             return Self::respond(&mut stream, 200, "OK", "image/png", LOGO_PNG);
         }
 
-        // A literal `..` in the path is a traversal attempt.
         let Some(path) = Self::resolve(root, &decoded) else {
             Self::log(method, target, 403);
             return Self::respond(&mut stream, 403, "Forbidden", "text/plain; charset=utf-8", b"403 Forbidden");
@@ -135,7 +129,6 @@ impl Serve {
             return Self::respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Self::not_found().as_bytes());
         }
 
-        // Resolve symlinks and confirm the target is still inside `root`.
         let Some(path) = path.canonicalize().ok().filter(|p| p.starts_with(root)) else {
             Self::log(method, target, 403);
             return Self::respond(&mut stream, 403, "Forbidden", "text/plain; charset=utf-8", b"403 Forbidden");
@@ -157,6 +150,7 @@ impl Serve {
 
                 Self::serve_file(&mut stream, method, target, &bytes, content_type, &filename, range.as_deref())
             }
+
             Err(_) => {
                 Self::log(method, target, 500);
                 Self::respond(&mut stream, 500, "Internal Server Error", "text/plain; charset=utf-8", b"500 Internal Server Error")
@@ -164,8 +158,6 @@ impl Serve {
         }
     }
 
-    // Serve a file inline (so PDFs/images open in the browser), honoring a
-    // `Range` request with a 206 response when present.
     fn serve_file(
         stream: &mut TcpStream,
         method: &str,
@@ -212,8 +204,6 @@ impl Serve {
         Ok(())
     }
 
-    // Parse a single-range `Range: bytes=...` value into inclusive (start, end)
-    // byte offsets, clamped to the file size. Returns None when unsatisfiable.
     fn parse_range(header: &str, total: usize) -> Option<(usize, usize)> {
         if total == 0 {
             return None;
@@ -224,11 +214,11 @@ impl Serve {
         let (start_str, end_str) = spec.split_once('-')?;
 
         if start_str.is_empty() {
-            // Suffix range: last N bytes.
             let n: usize = end_str.parse().ok()?;
             if n == 0 {
                 return None;
             }
+
             return Some((total.saturating_sub(n), total - 1));
         }
 
@@ -246,8 +236,6 @@ impl Serve {
         (start <= end).then_some((start, end))
     }
 
-    // Map a decoded URL path onto a real path under `root`, rejecting any `..`
-    // segment that would escape the served directory (path traversal).
     fn resolve(root: &Path, url_path: &str) -> Option<PathBuf> {
         let mut path = root.to_path_buf();
 
@@ -296,7 +284,6 @@ impl Serve {
             })
             .collect();
 
-        // Directories first, then alphabetical.
         entries.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.to_lowercase().cmp(&b.0.to_lowercase())));
 
         let base = if url_path.ends_with('/') {
@@ -307,7 +294,6 @@ impl Serve {
 
         let mut items = String::new();
 
-        // Parent link when we're not at the served root.
         if dir.canonicalize().ok().as_deref() != Some(root) {
             items.push_str("<li><a href=\"../\">../</a></li>");
         }
@@ -317,8 +303,6 @@ impl Serve {
             let href = format!("{}{}", base, Self::percent_encode(&name));
             let href = if is_dir { format!("{}/", href) } else { href };
 
-            // Viewable files (images, PDFs, checksums) open in the lightbox
-            // instead of navigating away.
             let attrs = match (is_dir, Self::lightbox_kind(&name)) {
                 (false, Some(kind)) => format!(" class=\"lb\" data-type=\"{}\"", kind),
                 _ => String::new(),
@@ -358,7 +342,6 @@ impl Serve {
         html
     }
 
-    // Applied in <head> before the body renders, so the saved theme doesn't flash.
     const THEME_EARLY: &'static str = "<script>(function(){try{\
         var t=localStorage.getItem('scimon-theme');\
         if(t)document.documentElement.setAttribute('data-theme',t);\
@@ -493,7 +476,6 @@ impl Serve {
         })();
     "#;
 
-    // Which lightbox renderer a file uses, by extension. None means a normal link.
     fn lightbox_kind(name: &str) -> Option<&'static str> {
         match Path::new(name)
             .extension()
@@ -524,7 +506,6 @@ impl Serve {
         )
     }
 
-    // The Scimon logo, served from the embedded PNG route.
     fn logo() -> String {
         format!("<img src=\"{}\" alt=\"SciMon\" height=\"40\">", LOGO_ROUTE)
     }
