@@ -5,7 +5,6 @@ use is_url::is_url;
 use std::{
     fs::File,
     error::Error,
-    time::SystemTime,
 
     path::{
         Path,
@@ -117,9 +116,9 @@ impl Monset {
     }
 
     // Starts the built-in web server when the list declares `server "PORT"`,
-    // serving only the files produced during this run (modified at/after
-    // `started`). Blocks until interrupted, so it must run after every other step.
-    pub async fn server(&self, started: SystemTime) -> Result<(), Box<dyn Error>> {
+    // serving the files in the list's output `path` (downloads + generated).
+    // Blocks until interrupted, so it must run after every other step.
+    pub async fn server(&self) -> Result<(), Box<dyn Error>> {
         let contents = self.raw_contents().await?;
 
         if let Some(port) = Vars.get_server(&contents) {
@@ -137,11 +136,11 @@ impl Monset {
 
             let mut files = path
                 .as_deref()
-                .map(|p| Self::produced_files(p, started))
+                .map(Self::produced_files)
                 .unwrap_or_default();
 
-            // A zip from the `compress` block, if it was generated this run.
-            let archive = Self::produced_archive(&contents, started);
+            // The zip from the `compress` block, if it exists.
+            let archive = Self::produced_archive(&contents);
 
             // If the archive lives inside the served path, don't also list it as
             // a regular file — it's shown as the dedicated archive entry.
@@ -166,18 +165,13 @@ impl Monset {
         Ok(())
     }
 
-    // The archive declared by `compress "..."`, if the file exists and was
-    // written during this run: (display name, path).
-    fn produced_archive(contents: &str, started: SystemTime) -> Option<(String, PathBuf)> {
+    // The archive declared by `compress "..."`, if the file exists:
+    // (display name, path).
+    fn produced_archive(contents: &str) -> Option<(String, PathBuf)> {
         let zip = Vars.get_compress(contents)?;
         let path = PathBuf::from(&zip);
 
-        let fresh = path.metadata().ok()
-            .and_then(|m| m.modified().ok())
-            .map(|modified| modified >= started)
-            .unwrap_or(false);
-
-        if path.is_file() && fresh {
+        if path.is_file() {
             let name = path.file_name()
                 .map(|n| n.to_string_lossy().to_string())
                 .unwrap_or_else(|| "archive.zip".to_string());
@@ -188,20 +182,14 @@ impl Monset {
         }
     }
 
-    // Collects files under `root` written during this run (mtime >= started),
-    // as paths relative to `root` with forward slashes.
-    fn produced_files(root: &str, started: SystemTime) -> Vec<String> {
+    // Collects every file under `root` (the list's output folder), as paths
+    // relative to `root` with forward slashes.
+    fn produced_files(root: &str) -> Vec<String> {
         let root_path = Path::new(root);
         let mut files: Vec<String> = WalkDir::new(root_path)
             .into_iter()
             .flatten()
             .filter(|entry| entry.file_type().is_file())
-            .filter(|entry| {
-                entry.metadata().ok()
-                    .and_then(|m| m.modified().ok())
-                    .map(|modified| modified >= started)
-                    .unwrap_or(false)
-            })
             .filter_map(|entry| {
                 entry.path()
                     .strip_prefix(root_path)
