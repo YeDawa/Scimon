@@ -416,7 +416,8 @@ impl Serve {
         #lb.open{display:flex;}
         #lb .figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:.7rem;}
         #lb .stage{display:flex;align-items:center;justify-content:center;}
-        #lb img{max-width:90vw;max-height:82vh;border-radius:4px;}
+        #lb img{max-width:90vw;max-height:82vh;border-radius:4px;
+            background:#fff;padding:8px;box-sizing:border-box;}
         #lb iframe{width:90vw;height:82vh;border:0;border-radius:4px;background:#fff;}
         #lb pre{margin:0;background:#111;color:#eee;padding:1rem 1.2rem;border-radius:4px;
             max-width:90vw;max-height:82vh;overflow:auto;white-space:pre-wrap;
