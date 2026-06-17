@@ -12,6 +12,8 @@ use image::{
     ImageFormat,
 };
 
+use crate::ui::success_alerts::SuccessAlerts;
+
 pub struct GenQrCode {
     link: String,
     size: u32,
@@ -39,6 +41,7 @@ impl GenQrCode {
         image.write_to(&mut cursor, self.format)?;
         
         write(file_path, cursor.into_inner())?;
+        SuccessAlerts::qrcode(file_path.to_str().unwrap_or(""));
         Ok(())
     }
 

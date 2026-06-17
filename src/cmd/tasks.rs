@@ -92,11 +92,15 @@ impl Tasks {
             
                         let name = FileNameRemote::new(url).get();
                         let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-                            ChatGPT::new(&url, "", custom_name).title().await?.to_string().replace(" ", "_")
+                            ChatGPT::new(&url, "", custom_name).title().await
+                                .map(|t| t.to_string().replace(" ", "_"))
+                                .unwrap_or_else(|_| name.clone())
                         } else if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-                            Gemini::new(&url, "", custom_name).title().await?.to_string().replace(" ", "_")
+                            Gemini::new(&url, "", custom_name).title().await
+                                .map(|t| t.to_string().replace(" ", "_"))
+                                .unwrap_or_else(|_| name.clone())
                         } else {
-                            name
+                            name.clone()
                         };
 
                         let name_pdf = FileUtils.replace_extension(&qr_code_name, "png");

@@ -5,14 +5,10 @@ use std::error::Error;
 use image::ImageFormat;
 
 use crate::{
+    ui::ui_base::UI,
     consts::uris::Uris,
     configs::settings::Settings,
     generator::qr_code::GenQrCode,
-    
-    ui::{
-        ui_base::UI,
-        success_alerts::SuccessAlerts,
-    },
 
     utils::{
         file::FileUtils,
@@ -64,18 +60,21 @@ impl TasksRaw {
             
                         let name = FileNameRemote::new(url).get();
                         let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-                            ChatGPT::new(&url, "", custom_name).title().await?.to_string().replace(" ", "_")
+                            ChatGPT::new(&url, "", custom_name).title().await
+                                .map(|t| t.to_string().replace(" ", "_"))
+                                .unwrap_or_else(|_| name.clone())
                         } else if url.contains(Uris::PROVIDERS_DOMAINS[8]) {
-                            Gemini::new(&url, "", custom_name).title().await?.to_string().replace(" ", "_")
+                            Gemini::new(&url, "", custom_name).title().await
+                                .map(|t| t.to_string().replace(" ", "_"))
+                                .unwrap_or_else(|_| name.clone())
                         } else {
-                            name
+                            name.clone()
                         };
 
                         let name_pdf = FileUtils.replace_extension(&qr_code_name, "png");
                         let file_path = format!("{}{}", qrcode_path, name_pdf);
                         
                         GenQrCode::new(&url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
-                        SuccessAlerts::qrcode(file_path.as_str());
                     }
                 }
             }

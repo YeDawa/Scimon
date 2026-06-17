@@ -114,15 +114,15 @@ impl DownloadsBlock {
             UI::section_header("downloads", "normal");
             self.block(&contents, downloads_content, &path, flags).await?;
 
-            Covers::new(&contents).get().await?;
-            Compress::new(&contents).get()?;
-            Tasks.qr_codes(&contents, None).await?;
-            Math::new(&contents).render()?;
-            
-            Vars.get_open(&contents, flags.no_open_link).await;
-            ReadMeBlock.render_var_and_save_file(&contents, flags).await?;
+            let _ = Covers::new(&contents).get().await;
+            let _ = Compress::new(&contents).get();
+            let _ = Tasks.qr_codes(&contents, None).await;
+            let _ = Math::new(&contents).render();
 
-            Checksum::new(Some(contents)).files()?;
+            Vars.get_open(&contents, flags.no_open_link).await;
+            let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
+
+            let _ = Checksum::new(Some(contents)).files();
         } else {
             PanicAlerts::downloads_block();
         }
@@ -153,15 +153,15 @@ impl DownloadsBlock {
             UI::section_header("downloads", "normal");
             self.block(&contents, downloads_content, &path, flags).await?;
 
-            Compress::new(&contents).get()?;
-            Covers::new(&contents).get().await?;
-            TasksRaw.qr_codes(&contents, None).await?;
-            Math::new(&contents).render()?;
-            
-            Vars.get_open(&contents, flags.no_open_link).await;
-            ReadMeBlock.render_var_and_save_file(&contents, flags).await?;
+            let _ = Compress::new(&contents).get();
+            let _ = Covers::new(&contents).get().await;
+            let _ = TasksRaw.qr_codes(&contents, None).await;
+            let _ = Math::new(&contents).render();
 
-            Checksum::new(Some(contents)).files()?;
+            Vars.get_open(&contents, flags.no_open_link).await;
+            let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
+
+            let _ = Checksum::new(Some(contents)).files();
         } else {
             PanicAlerts::downloads_block();
         }
