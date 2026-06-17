@@ -170,10 +170,17 @@ impl Serve {
         if path.is_dir() {
             let source_name = source.as_ref().map(|s| s.0.as_str());
 
-            // At the root, show only the produced files when that list is set.
+            // With a produced-files list, show that virtual tree (folders are the
+            // entries' path segments); otherwise browse the directory.
             let body = match &files {
-                Some(files) if path == root => files_instance.produced_listing(files, source_name),
-                _ => files_instance.directory_listing(&path, &decoded, root, source_name),
+                Some(files) => {
+                    let prefix = path.strip_prefix(root)
+                        .map(|p| p.to_string_lossy().replace('\\', "/"))
+                        .unwrap_or_default();
+
+                    files_instance.produced_listing(files, &prefix, source_name)
+                }
+                None => files_instance.directory_listing(&path, &decoded, root, source_name),
             };
 
             Logs.print(method, target, 200);

@@ -4,6 +4,7 @@ use std::{
     fs::read_dir,
     error::Error,
     net::TcpStream,
+    collections::BTreeSet,
 };
 
 use crate::{
@@ -130,16 +131,56 @@ impl Files {
         self.render_page(&format!("Index of {}", escaped_base), &items, source_name)
     }
 
-    // Lists exactly the files produced during the run (relative paths under root).
-    pub fn produced_listing(&self, entries: &[String], source_name: Option<&str>) -> String {
+    // Lists the files produced during the run as a virtual tree: entries with a
+    // `/` become navigable folders. `prefix` is the folder being viewed (empty at
+    // root), relative to the served root.
+    pub fn produced_listing(&self, entries: &[String], prefix: &str, source_name: Option<&str>) -> String {
         let misc = Misc;
+        let prefix = prefix.trim_matches('/');
+
+        let mut folders: BTreeSet<String> = BTreeSet::new();
+        let mut files: Vec<&String> = Vec::new();
+
+        for entry in entries {
+            // The part of the entry inside the current folder, or skip it.
+            let rel = if prefix.is_empty() {
+                Some(entry.as_str())
+            } else {
+                entry.strip_prefix(&format!("{}/", prefix))
+            };
+
+            let Some(rel) = rel else { continue };
+
+            match rel.split_once('/') {
+                Some((dir, _)) => { folders.insert(dir.to_string()); }
+                None => files.push(entry),
+            }
+        }
+
         let mut items = String::new();
 
-        if entries.is_empty() {
+        if !prefix.is_empty() {
+            items.push_str("<li><span class=\"icon\">📁</span><a href=\"../\">../</a></li>");
+        }
+
+        if folders.is_empty() && files.is_empty() {
             items.push_str("<li>No files were generated.</li>");
         }
 
-        for entry in entries {
+        // Folders first.
+        for dir in &folders {
+            let parent = if prefix.is_empty() { String::new() } else { format!("{}/", prefix) };
+            let href = format!("/{}{}/", parent, misc.percent_encode(dir));
+
+            items.push_str(&format!(
+                "<li><span class=\"icon\">📁</span><a href=\"{}\">{}/</a></li>",
+                href,
+                misc.html_escape(dir)
+            ));
+        }
+
+        // Then files in this folder.
+        for entry in files {
             let kind = misc.lightbox_kind(entry);
 
             let icon = match kind {
@@ -147,6 +188,11 @@ impl Files {
                 Some("pdf") => "📕",
                 _ => "📄",
             };
+
+            let display = Path::new(entry)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| entry.clone());
 
             let href = format!(
                 "/{}",
@@ -163,11 +209,17 @@ impl Files {
                 icon,
                 attrs,
                 href,
-                misc.html_escape(entry)
+                misc.html_escape(&display)
             ));
         }
 
-        self.render_page("Generated files", &items, source_name)
+        let heading = if prefix.is_empty() {
+            "Generated files".to_string()
+        } else {
+            format!("Generated files: {}", misc.html_escape(prefix))
+        };
+
+        self.render_page(&heading, &items, source_name)
     }
 
     fn render_page(&self, heading: &str, items: &str, source_name: Option<&str>) -> String {
