@@ -152,7 +152,8 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
 
 ## Contributing
 
-Contributions are welcome! Feel free to open an issue or submit a pull request.
+Contributions are welcome! Please read the [contributing guide](CONTRIBUTING.md)
+before opening an issue or pull request.
 
 ## License
 
