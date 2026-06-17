@@ -36,6 +36,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 🔢 **Math to image** — render formulas straight to PNG.
 - 🔳 **QR codes & covers** — generate QR codes and extract document covers.
 - 🗜️ **Compression & scripts** — zip output folders and run Python/JavaScript/TypeScript steps (with a secure-by-default runner).
+- 🌍 **Built-in web server** — browse and preview the generated files in your browser (lightbox for images/PDFs, dark mode), via the `serve` command or `server "PORT"` in a list.
 
 ## Requirements
 
@@ -116,10 +117,13 @@ downloads {
 commands {
     https://gist.githubusercontent.com/Kremilly/e0e0db11e43269da179adab610f38bb1/raw/6820be26a936a54bac713d03deb49edf804d0b6b/index.py
 }
+
+server "8080"
 ```
 
 > [!NOTE]
 > Save the file as `scimon.mon`, then run `scimon run scimon.mon`.
+> With `server "8080"`, the generated files are served at `http://127.0.0.1:8080` until you stop it with `Ctrl+C`.
 
 ## Documentation
 
@@ -143,6 +147,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
   - [Covers](https://docs.scimon.dev/syntax/covers)
   - [QR Code](https://docs.scimon.dev/syntax/qrcode)
   - [Math](https://docs.scimon.dev/syntax/math)
+  - [Server](https://docs.scimon.dev/syntax/server)
 - [Markdown render](https://docs.scimon.dev/syntax/markdown-render)
 - [Configs](https://docs.scimon.dev/configs/scimon.yml-file)
   - [Scimon.yml file](https://docs.scimon.dev/configs/scimon.yml-file)

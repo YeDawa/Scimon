@@ -44,6 +44,7 @@ nav:
     - Covers: syntax/covers.md
     - QR Code: syntax/qrcode.md
     - Math: syntax/math.md
+    - Server: syntax/server.md
   - Markdown: syntax/markdown-render.md
   - Configs:
     - Scimon.yml file: configs/scimon.yml-file.md

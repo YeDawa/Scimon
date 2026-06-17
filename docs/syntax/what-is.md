@@ -19,4 +19,5 @@ The key strength of the language is its user-friendly design. The syntax is intu
 - [Covers](./covers.md)
 - [QR Code](./qrcode.md)
 - [Math](./math.md)
+- [Server](./server.md)
 - [Markdown render](./markdown-render.md)
