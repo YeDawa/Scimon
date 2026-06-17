@@ -66,9 +66,10 @@ impl Serve {
         let addr = format!("127.0.0.1:{}", self.port);
         let listener = TcpListener::bind(&addr)?;
 
-        ServerAlerts::started(self.port, &format!("http://{}", addr));
+        let url = &format!("http://{}", addr);
+        ServerAlerts::started(self.port, &url);
         ServerAlerts::to_quit();
-        
+
         for stream in listener.incoming() {
             let Ok(stream) = stream else { continue };
             let root = root.clone();
