@@ -45,6 +45,9 @@ pub struct Serve {
     root: PathBuf,
     // The reference `.mon` that started the server: (display name, contents).
     source: Option<Arc<(String, String)>>,
+    // Files produced during the run (relative to root); when set, the root page
+    // lists only these instead of browsing the whole directory.
+    files: Option<Arc<Vec<String>>>,
 }
 
 impl Serve {
@@ -55,12 +58,18 @@ impl Serve {
             None => Folders::DOWNLOAD_FOLDER.clone(),
         };
 
-        Self { root, port, source: None }
+        Self { root, port, source: None, files: None }
     }
 
     // Attaches the reference `.mon` so it can be viewed from the server.
     pub fn with_source(mut self, name: String, body: String) -> Self {
         self.source = Some(Arc::new((name, body)));
+        self
+    }
+
+    // Restricts the root listing to the files produced during the run.
+    pub fn with_files(mut self, files: Vec<String>) -> Self {
+        self.files = Some(Arc::new(files));
         self
     }
 
@@ -85,16 +94,17 @@ impl Serve {
             let Ok(stream) = stream else { continue };
             let root = root.clone();
             let source = self.source.clone();
+            let files = self.files.clone();
 
             thread::spawn(move || {
-                let _ = Self::handle(stream, &root, source);
+                let _ = Self::handle(stream, &root, source, files);
             });
         }
 
         Ok(())
     }
 
-    fn handle(mut stream: TcpStream, root: &Path, source: Option<Arc<(String, String)>>) -> Result<(), Box<dyn Error>> {
+    fn handle(mut stream: TcpStream, root: &Path, source: Option<Arc<(String, String)>>, files: Option<Arc<Vec<String>>>) -> Result<(), Box<dyn Error>> {
         let stream_instance = Stream;
         let mut reader = BufReader::new(stream.try_clone()?);
         let mut request_line = String::new();
@@ -159,7 +169,13 @@ impl Serve {
 
         if path.is_dir() {
             let source_name = source.as_ref().map(|s| s.0.as_str());
-            let body = files_instance.directory_listing(&path, &decoded, root, source_name);
+
+            // At the root, show only the produced files when that list is set.
+            let body = match &files {
+                Some(files) if path == root => files_instance.produced_listing(files, source_name),
+                _ => files_instance.directory_listing(&path, &decoded, root, source_name),
+            };
+
             Logs.print(method, target, 200);
             return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
         }

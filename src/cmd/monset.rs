@@ -1,12 +1,15 @@
 use reqwest;
+use walkdir::WalkDir;
 use is_url::is_url;
 
 use std::{
     fs::File,
+    path::Path,
     error::Error,
+    time::SystemTime,
 
     io::{
-        Read, 
+        Read,
         Cursor
     },
 };
@@ -110,9 +113,9 @@ impl Monset {
     }
 
     // Starts the built-in web server when the list declares `server "PORT"`,
-    // serving the list's `path` (or the default downloads folder). Blocks until
-    // interrupted, so it must run after every other step.
-    pub async fn server(&self) -> Result<(), Box<dyn Error>> {
+    // serving only the files produced during this run (modified at/after
+    // `started`). Blocks until interrupted, so it must run after every other step.
+    pub async fn server(&self, started: SystemTime) -> Result<(), Box<dyn Error>> {
         let contents = self.raw_contents().await?;
 
         if let Some(port) = Vars.get_server(&contents) {
@@ -128,12 +131,44 @@ impl Monset {
                 .unwrap_or("list.mon")
                 .to_string();
 
+            let files = path
+                .as_deref()
+                .map(|p| Self::produced_files(p, started))
+                .unwrap_or_default();
+
             Serve::new(path, port)
                 .with_source(name, contents.clone())
+                .with_files(files)
                 .run()?;
         }
 
         Ok(())
+    }
+
+    // Collects files under `root` written during this run (mtime >= started),
+    // as paths relative to `root` with forward slashes.
+    fn produced_files(root: &str, started: SystemTime) -> Vec<String> {
+        let root_path = Path::new(root);
+        let mut files: Vec<String> = WalkDir::new(root_path)
+            .into_iter()
+            .flatten()
+            .filter(|entry| entry.file_type().is_file())
+            .filter(|entry| {
+                entry.metadata().ok()
+                    .and_then(|m| m.modified().ok())
+                    .map(|modified| modified >= started)
+                    .unwrap_or(false)
+            })
+            .filter_map(|entry| {
+                entry.path()
+                    .strip_prefix(root_path)
+                    .ok()
+                    .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+            })
+            .collect();
+
+        files.sort();
+        files
     }
 
 }

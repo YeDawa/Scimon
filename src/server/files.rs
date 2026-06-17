@@ -126,13 +126,58 @@ impl Files {
             ));
         }
 
-        let components = Components;
         let escaped_base = misc.html_escape(&base);
+        self.render_page(&format!("Index of {}", escaped_base), &items, source_name)
+    }
+
+    // Lists exactly the files produced during the run (relative paths under root).
+    pub fn produced_listing(&self, entries: &[String], source_name: Option<&str>) -> String {
+        let misc = Misc;
+        let mut items = String::new();
+
+        if entries.is_empty() {
+            items.push_str("<li>No files were generated.</li>");
+        }
+
+        for entry in entries {
+            let kind = misc.lightbox_kind(entry);
+
+            let icon = match kind {
+                Some("image") => "🖼️",
+                Some("pdf") => "📕",
+                _ => "📄",
+            };
+
+            let href = format!(
+                "/{}",
+                entry.split('/').map(|s| misc.percent_encode(s)).collect::<Vec<_>>().join("/")
+            );
+
+            let attrs = match kind {
+                Some(kind) => format!(" class=\"lb\" data-type=\"{}\"", kind),
+                None => String::new(),
+            };
+
+            items.push_str(&format!(
+                "<li><span class=\"icon\">{}</span><a{} href=\"{}\">{}</a></li>",
+                icon,
+                attrs,
+                href,
+                misc.html_escape(entry)
+            ));
+        }
+
+        self.render_page("Generated files", &items, source_name)
+    }
+
+    fn render_page(&self, heading: &str, items: &str, source_name: Option<&str>) -> String {
+        let misc = Misc;
+        let components = Components;
 
         let mut html = String::new();
         html.push_str("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">");
         html.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-        html.push_str(&format!("<title>Scimon: {}</title>", escaped_base));
+        html.push_str(&format!("<title>Scimon: {}</title>", heading));
         html.push_str("<style>");
         html.push_str(&components.style());
         html.push_str("</style>");
@@ -140,7 +185,7 @@ impl Files {
         html.push_str("</head><body>");
         html.push_str(&components.theme_toggle());
         html.push_str(&format!("<a class=\"logo\" href=\"/\">{}</a>", components.logo()));
-        html.push_str(&format!("<h1>Index of {}</h1>", escaped_base));
+        html.push_str(&format!("<h1>{}</h1>", heading));
 
         if let Some(name) = source_name {
             html.push_str(&format!(
@@ -151,7 +196,7 @@ impl Files {
         }
 
         html.push_str("<ul>");
-        html.push_str(&items);
+        html.push_str(items);
         html.push_str("</ul>");
         html.push_str(&components.lightbox());
         html.push_str("<script>");

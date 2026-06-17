@@ -91,6 +91,9 @@ impl Scimon {
                     UI::header();
                     let monset = Monset::new(&file);
 
+                    // Marks the start so the server can list only files produced now.
+                    let started = std::time::SystemTime::now();
+
                     let contents = monset.raw_contents().await.unwrap_or_default();
 
                     if Monset::has_downloads_block(&contents) {
@@ -100,7 +103,7 @@ impl Scimon {
                     let _ = monset.run_code(&flags_clone).await;
                     let _ = ReadMeBlock.render_block_and_save_file(&file, &flags_clone);
 
-                    if let Err(err) = monset.server().await {
+                    if let Err(err) = monset.server(started).await {
                         ErrorsAlerts::generic(&err.to_string());
                     }
                 },
