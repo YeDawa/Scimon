@@ -48,6 +48,8 @@ pub struct Serve {
     // Files produced during the run (relative to root); when set, the root page
     // lists only these instead of browsing the whole directory.
     files: Option<Arc<Vec<String>>>,
+    // A generated archive (compress block): (display name, absolute path).
+    archive: Option<Arc<(String, PathBuf)>>,
 }
 
 impl Serve {
@@ -58,7 +60,7 @@ impl Serve {
             None => Folders::DOWNLOAD_FOLDER.clone(),
         };
 
-        Self { root, port, source: None, files: None }
+        Self { root, port, source: None, files: None, archive: None }
     }
 
     // Attaches the reference `.mon` so it can be viewed from the server.
@@ -70,6 +72,12 @@ impl Serve {
     // Restricts the root listing to the files produced during the run.
     pub fn with_files(mut self, files: Vec<String>) -> Self {
         self.files = Some(Arc::new(files));
+        self
+    }
+
+    // Attaches a generated archive (zip) to be downloadable from the server.
+    pub fn with_archive(mut self, name: String, path: PathBuf) -> Self {
+        self.archive = Some(Arc::new((name, path)));
         self
     }
 
@@ -95,16 +103,17 @@ impl Serve {
             let root = root.clone();
             let source = self.source.clone();
             let files = self.files.clone();
+            let archive = self.archive.clone();
 
             thread::spawn(move || {
-                let _ = Self::handle(stream, &root, source, files);
+                let _ = Self::handle(stream, &root, source, files, archive);
             });
         }
 
         Ok(())
     }
 
-    fn handle(mut stream: TcpStream, root: &Path, source: Option<Arc<(String, String)>>, files: Option<Arc<Vec<String>>>) -> Result<(), Box<dyn Error>> {
+    fn handle(mut stream: TcpStream, root: &Path, source: Option<Arc<(String, String)>>, files: Option<Arc<Vec<String>>>, archive: Option<Arc<(String, PathBuf)>>) -> Result<(), Box<dyn Error>> {
         let stream_instance = Stream;
         let mut reader = BufReader::new(stream.try_clone()?);
         let mut request_line = String::new();
@@ -150,6 +159,19 @@ impl Serve {
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
+        // The generated archive (compress block), served from its real location.
+        if decoded == Server::ARCHIVE_ROUTE {
+            if let Some(archive) = &archive {
+                if let Ok(bytes) = read(&archive.1) {
+                    let filename = archive.0.replace('"', "");
+                    return Files.serve_file(&mut stream, method, target, &bytes, "application/zip", &filename, range.as_deref());
+                }
+            }
+
+            Logs.print(method, target, 404);
+            return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
+        }
+
         let files_instance = Files;
         let stream_instance = Stream;
         let Some(path) = stream_instance.resolve(root, &decoded) else {
@@ -172,13 +194,15 @@ impl Serve {
 
             // With a produced-files list, show that virtual tree (folders are the
             // entries' path segments); otherwise browse the directory.
+            let archive_name = archive.as_ref().map(|a| a.0.as_str());
+
             let body = match &files {
                 Some(files) => {
                     let prefix = path.strip_prefix(root)
                         .map(|p| p.to_string_lossy().replace('\\', "/"))
                         .unwrap_or_default();
 
-                    files_instance.produced_listing(files, &prefix, source_name)
+                    files_instance.produced_listing(files, &prefix, source_name, archive_name)
                 }
                 None => files_instance.directory_listing(&path, &decoded, root, source_name),
             };

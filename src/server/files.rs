@@ -93,7 +93,10 @@ impl Files {
         let mut items = String::new();
 
         if dir.canonicalize().ok().as_deref() != Some(root) {
-            items.push_str("<li><span class=\"icon\">📁</span><a href=\"../\">../</a></li>");
+            items.push_str(&format!(
+                "<li>{}<a href=\"../\">../</a></li>",
+                Self::icon("corner-up-left")
+            ));
         }
 
         for (name, is_dir) in entries {
@@ -102,16 +105,7 @@ impl Files {
             let href = if is_dir { format!("{}/", href) } else { href };
 
             let kind = misc.lightbox_kind(&name);
-
-            let icon = if is_dir {
-                "📁"
-            } else {
-                match kind {
-                    Some("image") => "🖼️",
-                    Some("pdf") => "📕",
-                    _ => "📄",
-                }
-            };
+            let icon = if is_dir { "folder" } else { Self::file_icon(kind) };
 
             let attrs = match (is_dir, kind) {
                 (false, Some(kind)) => format!(" class=\"lb\" data-type=\"{}\"", kind),
@@ -119,8 +113,8 @@ impl Files {
             };
 
             items.push_str(&format!(
-                "<li><span class=\"icon\">{}</span><a{} href=\"{}\">{}</a></li>",
-                icon,
+                "<li>{}<a{} href=\"{}\">{}</a></li>",
+                Self::icon(icon),
                 attrs,
                 href,
                 misc.html_escape(&display)
@@ -134,7 +128,7 @@ impl Files {
     // Lists the files produced during the run as a virtual tree: entries with a
     // `/` become navigable folders. `prefix` is the folder being viewed (empty at
     // root), relative to the served root.
-    pub fn produced_listing(&self, entries: &[String], prefix: &str, source_name: Option<&str>) -> String {
+    pub fn produced_listing(&self, entries: &[String], prefix: &str, source_name: Option<&str>, archive_name: Option<&str>) -> String {
         let misc = Misc;
         let prefix = prefix.trim_matches('/');
 
@@ -160,7 +154,10 @@ impl Files {
         let mut items = String::new();
 
         if !prefix.is_empty() {
-            items.push_str("<li><span class=\"icon\">📁</span><a href=\"../\">../</a></li>");
+            items.push_str(&format!(
+                "<li>{}<a href=\"../\">../</a></li>",
+                Self::icon("corner-up-left")
+            ));
         }
 
         if folders.is_empty() && files.is_empty() {
@@ -173,7 +170,8 @@ impl Files {
             let href = format!("/{}{}/", parent, misc.percent_encode(dir));
 
             items.push_str(&format!(
-                "<li><span class=\"icon\">📁</span><a href=\"{}\">{}/</a></li>",
+                "<li>{}<a href=\"{}\">{}/</a></li>",
+                Self::icon("folder"),
                 href,
                 misc.html_escape(dir)
             ));
@@ -182,12 +180,6 @@ impl Files {
         // Then files in this folder.
         for entry in files {
             let kind = misc.lightbox_kind(entry);
-
-            let icon = match kind {
-                Some("image") => "🖼️",
-                Some("pdf") => "📕",
-                _ => "📄",
-            };
 
             let display = Path::new(entry)
                 .file_name()
@@ -205,12 +197,25 @@ impl Files {
             };
 
             items.push_str(&format!(
-                "<li><span class=\"icon\">{}</span><a{} href=\"{}\">{}</a></li>",
-                icon,
+                "<li>{}<a{} href=\"{}\">{}</a></li>",
+                Self::icon(Self::file_icon(kind)),
                 attrs,
                 href,
                 misc.html_escape(&display)
             ));
+        }
+
+        // The generated archive, only at the root.
+        if prefix.is_empty() {
+            if let Some(name) = archive_name {
+                items.push_str(&format!(
+                    "<li>{}<a href=\"{}\" download=\"{}\">{}</a></li>",
+                    Self::icon("file-archive"),
+                    Server::ARCHIVE_ROUTE,
+                    misc.html_escape(name),
+                    misc.html_escape(name)
+                ));
+            }
         }
 
         let heading = if prefix.is_empty() {
@@ -241,8 +246,9 @@ impl Files {
 
         if let Some(name) = source_name {
             html.push_str(&format!(
-                "<p class=\"source\"><a class=\"lb\" data-type=\"text\" href=\"{}\">📄 {}</a></p>",
+                "<p class=\"source\"><a class=\"lb\" data-type=\"text\" href=\"{}\">{} {}</a></p>",
                 Server::SOURCE_ROUTE,
+                Self::icon("file-code"),
                 misc.html_escape(name)
             ));
         }
@@ -254,9 +260,25 @@ impl Files {
         html.push_str("<script>");
         html.push_str(&components.theme_js());
         html.push_str(&components.lightbox_js());
-        html.push_str("</script></body></html>");
+        html.push_str("</script>");
+        html.push_str("<script src=\"https://unpkg.com/lucide@latest\"></script>");
+        html.push_str("<script>lucide.createIcons();</script>");
+        html.push_str("</body></html>");
 
         html
+    }
+
+    // A Lucide icon placeholder; replaced with an SVG by lucide.createIcons().
+    fn icon(name: &str) -> String {
+        format!("<span class=\"icon\"><i data-lucide=\"{}\"></i></span>", name)
+    }
+
+    fn file_icon(kind: Option<&str>) -> &'static str {
+        match kind {
+            Some("image") => "image",
+            Some("pdf") => "file-text",
+            _ => "file",
+        }
     }
 
 }

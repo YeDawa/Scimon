@@ -4,9 +4,13 @@ use is_url::is_url;
 
 use std::{
     fs::File,
-    path::Path,
     error::Error,
     time::SystemTime,
+
+    path::{
+        Path,
+        PathBuf,
+    },
 
     io::{
         Read,
@@ -131,18 +135,57 @@ impl Monset {
                 .unwrap_or("list.mon")
                 .to_string();
 
-            let files = path
+            let mut files = path
                 .as_deref()
                 .map(|p| Self::produced_files(p, started))
                 .unwrap_or_default();
 
-            Serve::new(path, port)
+            // A zip from the `compress` block, if it was generated this run.
+            let archive = Self::produced_archive(&contents, started);
+
+            // If the archive lives inside the served path, don't also list it as
+            // a regular file — it's shown as the dedicated archive entry.
+            if let (Some(root), Some((_, apath))) = (path.as_deref(), &archive) {
+                if let Ok(rel) = apath.strip_prefix(Path::new(root)) {
+                    let rel = rel.to_string_lossy().replace('\\', "/");
+                    files.retain(|f| f != &rel);
+                }
+            }
+
+            let mut serve = Serve::new(path, port)
                 .with_source(name, contents.clone())
-                .with_files(files)
-                .run()?;
+                .with_files(files);
+
+            if let Some((archive_name, archive_path)) = archive {
+                serve = serve.with_archive(archive_name, archive_path);
+            }
+
+            serve.run()?;
         }
 
         Ok(())
+    }
+
+    // The archive declared by `compress "..."`, if the file exists and was
+    // written during this run: (display name, path).
+    fn produced_archive(contents: &str, started: SystemTime) -> Option<(String, PathBuf)> {
+        let zip = Vars.get_compress(contents)?;
+        let path = PathBuf::from(&zip);
+
+        let fresh = path.metadata().ok()
+            .and_then(|m| m.modified().ok())
+            .map(|modified| modified >= started)
+            .unwrap_or(false);
+
+        if path.is_file() && fresh {
+            let name = path.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "archive.zip".to_string());
+
+            Some((name, path))
+        } else {
+            None
+        }
     }
 
     // Collects files under `root` written during this run (mtime >= started),

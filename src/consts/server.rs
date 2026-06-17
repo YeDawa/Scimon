@@ -6,6 +6,8 @@ impl Server {
 
     pub const SOURCE_ROUTE: &str = "/__scimon/source.mon";
 
+    pub const ARCHIVE_ROUTE: &str = "/__scimon/archive";
+
     pub const THEME_EARLY: &'static str = "<script>(function(){try{\
         var t=localStorage.getItem('scimon-theme');\
         if(t)document.documentElement.setAttribute('data-theme',t);\
@@ -51,11 +53,13 @@ impl Server {
         .logo img{display:block;filter:var(--logo-filter);}
         h1{font-size:1.2rem;}
         ul{list-style:none;padding:0;}
-        li{padding:.2rem 0;}
-        .icon{display:inline-block;width:1.5em;}
+        li{display:flex;align-items:center;padding:.2rem 0;}
+        .icon{display:inline-flex;width:1.5em;align-items:center;flex:none;}
+        .icon svg{width:18px;height:18px;}
         a{text-decoration:none;color:var(--link);}
         a:hover{text-decoration:underline;}
         .source{margin:.2rem 0 1rem;font-size:.9rem;}
+        .source a{display:inline-flex;align-items:center;}
         .theme-toggle{position:fixed;top:1rem;right:1rem;background:transparent;
             color:var(--fg);border:none;border-radius:6px;
             padding:.3rem .55rem;cursor:pointer;font-size:1rem;line-height:1;}
