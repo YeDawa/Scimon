@@ -53,7 +53,6 @@ impl Serve {
     }
 
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
-        UI::header();
         UI::section_header("Web Server", "info");
 
         if !self.root.is_dir() {

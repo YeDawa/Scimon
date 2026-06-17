@@ -127,8 +127,18 @@ impl Vars {
     
     pub fn get_qrcode(&self, contents: &str) -> Option<String> {
         let style_pattern = Regex::new(BlocksRegExp::GET_QRCODE_VAR).unwrap();
-    
+
         if let Some(caps) = style_pattern.captures(&contents) {
+            caps.get(1).map(|m| m.as_str().to_string())
+        } else {
+            None
+        }
+    }
+
+    pub fn get_server(&self, contents: &str) -> Option<String> {
+        let server_pattern = Regex::new(BlocksRegExp::GET_SERVER_VAR).unwrap();
+
+        if let Some(caps) = server_pattern.captures(&contents) {
             caps.get(1).map(|m| m.as_str().to_string())
         } else {
             None

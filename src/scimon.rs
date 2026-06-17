@@ -91,9 +91,20 @@ impl Scimon {
                     UI::header();
                     let monset = Monset::new(&file);
 
-                    let _ = monset.downloads(&flags_clone).await;
+                    let contents = monset.raw_contents().await.unwrap_or_default();
+
+                    // The downloads block is optional (a list may only compress,
+                    // serve, etc.); running it when absent would abort the process.
+                    if Monset::has_downloads_block(&contents) {
+                        let _ = monset.downloads(&flags_clone).await;
+                    }
+
                     let _ = monset.run_code(&flags_clone).await;
                     let _ = ReadMeBlock.render_block_and_save_file(&file, &flags_clone);
+
+                    if let Err(err) = monset.server().await {
+                        ErrorsAlerts::generic(&err.to_string());
+                    }
                 },
 
                 Commands::Pull { file } => {
@@ -130,6 +141,7 @@ impl Scimon {
                 },
 
                 Commands::Serve { path, port } => {
+                    UI::header();
                     if let Err(err) = Serve::new(path, port).run() {
                         ErrorsAlerts::generic(&err.to_string());
                     }

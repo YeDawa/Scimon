@@ -13,16 +13,18 @@ use std::{
 
 use crate::{
     args_cli::Flags,
+    syntax::vars::Vars,
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
 
     cmd::{
+        serve::Serve,
         tasks::Tasks,
         tasks_raw::TasksRaw,
     },
 
     syntax::blocks::{
-        runner_block::RunnerBlock, 
+        runner_block::RunnerBlock,
         downloads_block::DownloadsBlock
     },
 };
@@ -97,5 +99,33 @@ impl Monset {
 
         Ok(())
     }
-    
+
+    pub async fn raw_contents(&self) -> Result<String, Box<dyn Error>> {
+        let cursor = self.read_file().await?;
+        Ok(String::from_utf8_lossy(cursor.get_ref()).to_string())
+    }
+
+    pub fn has_downloads_block(contents: &str) -> bool {
+        contents.contains("downloads {") || contents.contains("downloads{")
+    }
+
+    // Starts the built-in web server when the list declares `server "PORT"`,
+    // serving the list's `path` (or the default downloads folder). Blocks until
+    // interrupted, so it must run after every other step.
+    pub async fn server(&self) -> Result<(), Box<dyn Error>> {
+        let contents = self.raw_contents().await?;
+
+        if let Some(port) = Vars.get_server(&contents) {
+            let port: u16 = port.trim().parse()
+                .map_err(|_| format!("Invalid server port: '{}'", port))?;
+
+            let path = Vars.get_path(&contents);
+            let path = if path.is_empty() { None } else { Some(path) };
+
+            Serve::new(path, port).run()?;
+        }
+
+        Ok(())
+    }
+
 }
