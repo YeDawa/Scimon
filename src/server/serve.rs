@@ -1,6 +1,7 @@
 use std::{
     thread,
     fs::read,
+    sync::Arc,
     error::Error,
 
     io::{
@@ -14,7 +15,7 @@ use std::{
     },
 
     path::{
-        Path, 
+        Path,
         PathBuf
     },
 };
@@ -42,6 +43,8 @@ use crate::{
 pub struct Serve {
     port: u16,
     root: PathBuf,
+    // The reference `.mon` that started the server: (display name, contents).
+    source: Option<Arc<(String, String)>>,
 }
 
 impl Serve {
@@ -52,11 +55,17 @@ impl Serve {
             None => Folders::DOWNLOAD_FOLDER.clone(),
         };
 
-        Self { root, port }
+        Self { root, port, source: None }
+    }
+
+    // Attaches the reference `.mon` so it can be viewed from the server.
+    pub fn with_source(mut self, name: String, body: String) -> Self {
+        self.source = Some(Arc::new((name, body)));
+        self
     }
 
     pub fn run(&self) -> Result<(), Box<dyn Error>> {
-        UI::section_header("Web Server", "info");
+        UI::section_header("Web Server", "normal");
 
         if !self.root.is_dir() {
             return Err(
@@ -75,16 +84,17 @@ impl Serve {
         for stream in listener.incoming() {
             let Ok(stream) = stream else { continue };
             let root = root.clone();
+            let source = self.source.clone();
 
             thread::spawn(move || {
-                let _ = Self::handle(stream, &root);
+                let _ = Self::handle(stream, &root, source);
             });
         }
 
         Ok(())
     }
 
-    fn handle(mut stream: TcpStream, root: &Path) -> Result<(), Box<dyn Error>> {
+    fn handle(mut stream: TcpStream, root: &Path, source: Option<Arc<(String, String)>>) -> Result<(), Box<dyn Error>> {
         let stream_instance = Stream;
         let mut reader = BufReader::new(stream.try_clone()?);
         let mut request_line = String::new();
@@ -120,8 +130,14 @@ impl Serve {
         let target = raw_target.split('?').next().unwrap_or("/");
         let decoded = Misc.percent_decode(target);
 
-        if decoded == Server::LOGO_ROUTE {
-            return stream_instance.respond(&mut stream, 200, "OK", "image/png", Server::LOGO_PNG);
+        if decoded == Server::SOURCE_ROUTE {
+            if let Some(source) = &source {
+                Logs.print(method, target, 200);
+                return stream_instance.respond(&mut stream, 200, "OK", "text/plain; charset=utf-8", source.1.as_bytes());
+            }
+
+            Logs.print(method, target, 404);
+            return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
         let files_instance = Files;
@@ -142,7 +158,8 @@ impl Serve {
         };
 
         if path.is_dir() {
-            let body = files_instance.directory_listing(&path, &decoded, root);
+            let source_name = source.as_ref().map(|s| s.0.as_str());
+            let body = files_instance.directory_listing(&path, &decoded, root, source_name);
             Logs.print(method, target, 200);
             return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
         }

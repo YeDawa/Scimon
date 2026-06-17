@@ -2,8 +2,9 @@ pub struct Server;
 
 impl Server {
 
-    pub const LOGO_PNG: &[u8] = include_bytes!("../../assets/logo.png");
-    pub const LOGO_ROUTE: &str = "/__scimon/logo.png";
+    pub const LOGO_PNG: &str = "https://static.monlib.net/scimon.png";
+
+    pub const SOURCE_ROUTE: &str = "/__scimon/source.mon";
 
     pub const THEME_EARLY: &'static str = "<script>(function(){try{\
         var t=localStorage.getItem('scimon-theme');\
@@ -53,6 +54,7 @@ impl Server {
         li{padding:.2rem 0;}
         a{text-decoration:none;color:var(--link);}
         a:hover{text-decoration:underline;}
+        .source{margin:.2rem 0 1rem;font-size:.9rem;}
         .theme-toggle{position:fixed;top:1rem;right:1rem;background:transparent;
             border:1px solid var(--muted);color:var(--fg);border-radius:6px;
             padding:.3rem .55rem;cursor:pointer;font-size:1rem;line-height:1;}

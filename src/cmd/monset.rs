@@ -122,7 +122,15 @@ impl Monset {
             let path = Vars.get_path(&contents);
             let path = if path.is_empty() { None } else { Some(path) };
 
-            Serve::new(path, port).run()?;
+            let name = self.run
+                .rsplit(|c| c == '/' || c == '\\')
+                .next()
+                .unwrap_or("list.mon")
+                .to_string();
+
+            Serve::new(path, port)
+                .with_source(name, contents.clone())
+                .run()?;
         }
 
         Ok(())

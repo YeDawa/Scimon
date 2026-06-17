@@ -6,10 +6,14 @@ use std::{
     net::TcpStream,
 };
 
-use crate::server::{
-    misc::Misc,
-    logs::Logs,
-    components::Components,
+use crate::{
+    consts::server::Server,
+
+    server::{
+        misc::Misc,
+        logs::Logs,
+        components::Components,
+    },
 };
 
 pub struct Files;
@@ -64,7 +68,7 @@ impl Files {
         Ok(())
     }
 
-    pub fn directory_listing(&self, dir: &Path, url_path: &str, root: &Path) -> String {
+    pub fn directory_listing(&self, dir: &Path, url_path: &str, root: &Path, source_name: Option<&str>) -> String {
         let misc = Misc;
         let mut entries: Vec<(String, bool)> = read_dir(dir)
             .into_iter()
@@ -124,6 +128,15 @@ impl Files {
         html.push_str(&components.theme_toggle());
         html.push_str(&format!("<a class=\"logo\" href=\"/\">{}</a>", components.logo()));
         html.push_str(&format!("<h1>Index of {}</h1>", escaped_base));
+
+        if let Some(name) = source_name {
+            html.push_str(&format!(
+                "<p class=\"source\"><a class=\"lb\" data-type=\"text\" href=\"{}\">📄 {}</a></p>",
+                Server::SOURCE_ROUTE,
+                misc.html_escape(name)
+            ));
+        }
+
         html.push_str("<ul>");
         html.push_str(&items);
         html.push_str("</ul>");

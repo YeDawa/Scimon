@@ -5,7 +5,7 @@ pub struct Components;
 impl Components {
 
     pub fn logo(&self) -> String {
-        format!("<img src=\"{}\" alt=\"SciMon\" height=\"40\">", Server::LOGO_ROUTE)
+        format!("<img src=\"{}\" alt=\"SciMon\" height=\"40\">", Server::LOGO_PNG)
     }
     
     pub fn theme_toggle(&self) -> String {
