@@ -43,12 +43,8 @@ use crate::{
 pub struct Serve {
     port: u16,
     root: PathBuf,
-    // The reference `.mon` that started the server: (display name, contents).
     source: Option<Arc<(String, String)>>,
-    // Files produced during the run (relative to root); when set, the root page
-    // lists only these instead of browsing the whole directory.
     files: Option<Arc<Vec<String>>>,
-    // A generated archive (compress block): (display name, absolute path).
     archive: Option<Arc<(String, PathBuf)>>,
 }
 
@@ -63,19 +59,16 @@ impl Serve {
         Self { root, port, source: None, files: None, archive: None }
     }
 
-    // Attaches the reference `.mon` so it can be viewed from the server.
     pub fn with_source(mut self, name: String, body: String) -> Self {
         self.source = Some(Arc::new((name, body)));
         self
     }
 
-    // Restricts the root listing to the files produced during the run.
     pub fn with_files(mut self, files: Vec<String>) -> Self {
         self.files = Some(Arc::new(files));
         self
     }
 
-    // Attaches a generated archive (zip) to be downloadable from the server.
     pub fn with_archive(mut self, name: String, path: PathBuf) -> Self {
         self.archive = Some(Arc::new((name, path)));
         self
@@ -159,7 +152,6 @@ impl Serve {
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
-        // The generated archive (compress block), served from its real location.
         if decoded == Server::ARCHIVE_ROUTE {
             if let Some(archive) = &archive {
                 if let Ok(bytes) = read(&archive.1) {
@@ -191,19 +183,16 @@ impl Serve {
 
         if path.is_dir() {
             let source_name = source.as_ref().map(|s| s.0.as_str());
-
-            // With a produced-files list, show that virtual tree (folders are the
-            // entries' path segments); otherwise browse the directory.
-            let archive_name = archive.as_ref().map(|a| a.0.as_str());
-
+            let archive_ref = archive.as_ref().map(|a| (a.0.as_str(), a.1.as_path()));
             let body = match &files {
                 Some(files) => {
                     let prefix = path.strip_prefix(root)
                         .map(|p| p.to_string_lossy().replace('\\', "/"))
                         .unwrap_or_default();
 
-                    files_instance.produced_listing(files, &prefix, source_name, archive_name)
+                    files_instance.produced_listing(root, files, &prefix, source_name, archive_ref)
                 }
+
                 None => files_instance.directory_listing(&path, &decoded, root, source_name),
             };
 

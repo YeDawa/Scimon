@@ -1,10 +1,14 @@
 use std::{
     io::Write,
     path::Path,
-    fs::read_dir,
     error::Error,
     net::TcpStream,
     collections::BTreeSet,
+
+    fs::{
+        metadata,
+        read_dir,
+    },
 };
 
 use crate::{
@@ -13,6 +17,7 @@ use crate::{
     server::{
         misc::Misc,
         logs::Logs,
+        icons::Icons,
         components::Components,
     },
 };
@@ -95,7 +100,7 @@ impl Files {
         if dir.canonicalize().ok().as_deref() != Some(root) {
             items.push_str(&format!(
                 "<li>{}<a href=\"../\">../</a></li>",
-                Self::icon("corner-up-left")
+                Icons.icon("corner-up-left")
             ));
         }
 
@@ -105,7 +110,7 @@ impl Files {
             let href = if is_dir { format!("{}/", href) } else { href };
 
             let kind = misc.lightbox_kind(&name);
-            let icon = if is_dir { "folder" } else { Self::file_icon(kind) };
+            let icon = if is_dir { "folder" } else { Icons.file_icon(kind) };
 
             let attrs = match (is_dir, kind) {
                 (false, Some(kind)) => format!(" class=\"lb\" data-type=\"{}\"", kind),
@@ -114,7 +119,7 @@ impl Files {
 
             items.push_str(&format!(
                 "<li>{}<a{} href=\"{}\">{}</a></li>",
-                Self::icon(icon),
+                Icons.icon(icon),
                 attrs,
                 href,
                 misc.html_escape(&display)
@@ -122,62 +127,39 @@ impl Files {
         }
 
         let escaped_base = misc.html_escape(&base);
-        self.render_page(&format!("Index of {}", escaped_base), &items, source_name)
+        self.render_page(&format!("Index of {}", escaped_base), &format!("<ul>{}</ul>", items), source_name, "")
     }
 
-    // Lists the files produced during the run as a virtual tree: entries with a
-    // `/` become navigable folders. `prefix` is the folder being viewed (empty at
-    // root), relative to the served root.
-    pub fn produced_listing(&self, entries: &[String], prefix: &str, source_name: Option<&str>, archive_name: Option<&str>) -> String {
+    pub fn produced_listing(&self, root: &Path, entries: &[String], prefix: &str, source_name: Option<&str>, archive: Option<(&str, &Path)>) -> String {
         let misc = Misc;
         let prefix = prefix.trim_matches('/');
 
-        let mut folders: BTreeSet<String> = BTreeSet::new();
         let mut files: Vec<&String> = Vec::new();
-
         for entry in entries {
-            // The part of the entry inside the current folder, or skip it.
             let rel = if prefix.is_empty() {
                 Some(entry.as_str())
             } else {
                 entry.strip_prefix(&format!("{}/", prefix))
             };
 
-            let Some(rel) = rel else { continue };
-
-            match rel.split_once('/') {
-                Some((dir, _)) => { folders.insert(dir.to_string()); }
-                None => files.push(entry),
+            if let Some(rel) = rel {
+                if !rel.contains('/') {
+                    files.push(entry);
+                }
             }
         }
 
-        let mut items = String::new();
-
-        if !prefix.is_empty() {
-            items.push_str(&format!(
-                "<li>{}<a href=\"../\">../</a></li>",
-                Self::icon("corner-up-left")
-            ));
+        let mut all_folders: BTreeSet<String> = BTreeSet::new();
+        for entry in entries {
+            let parts: Vec<&str> = entry.split('/').collect();
+            for i in 1..parts.len() {
+                all_folders.insert(parts[..i].join("/"));
+            }
         }
 
-        if folders.is_empty() && files.is_empty() {
-            items.push_str("<li>No files were generated.</li>");
-        }
+        let mut rows = String::new();
+        let sidebar = Components.folder_nav(&misc, &all_folders, prefix);
 
-        // Folders first.
-        for dir in &folders {
-            let parent = if prefix.is_empty() { String::new() } else { format!("{}/", prefix) };
-            let href = format!("/{}{}/", parent, misc.percent_encode(dir));
-
-            items.push_str(&format!(
-                "<li>{}<a href=\"{}\">{}/</a></li>",
-                Self::icon("folder"),
-                href,
-                misc.html_escape(dir)
-            ));
-        }
-
-        // Then files in this folder.
         for entry in files {
             let kind = misc.lightbox_kind(entry);
 
@@ -196,27 +178,95 @@ impl Files {
                 None => String::new(),
             };
 
-            items.push_str(&format!(
-                "<li>{}<a{} href=\"{}\">{}</a></li>",
-                Self::icon(Self::file_icon(kind)),
+            let meta = metadata(root.join(entry));
+            let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+            let mtime = meta.as_ref().ok().and_then(|m| m.modified().ok());
+
+            rows.push_str(&format!(
+                "<tr data-dir=\"0\" data-name=\"{0}\" data-size=\"{1}\" data-mtime=\"{2}\">\
+                 <td class=\"name\"><a{3} href=\"{4}\">{5}{0}</a></td>\
+                 <td class=\"meta\">{6}</td><td class=\"meta num\">{7}</td></tr>",
+                misc.html_escape(&display),
+                size,
+                misc.epoch(mtime),
                 attrs,
                 href,
-                misc.html_escape(&display)
+                Icons.icon(Icons.file_icon(kind)),
+                mtime.map(|t| misc.format_mtime(t)).unwrap_or_default(),
+                misc.human_size(size),
             ));
         }
 
-        // The generated archive, only at the root.
         if prefix.is_empty() {
-            if let Some(name) = archive_name {
-                items.push_str(&format!(
-                    "<li>{}<a href=\"{}\" download=\"{}\">{}</a></li>",
-                    Self::icon("file-archive"),
-                    Server::ARCHIVE_ROUTE,
+            if let Some((name, apath)) = archive {
+                let meta = metadata(apath);
+                let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+                let mtime = meta.as_ref().ok().and_then(|m| m.modified().ok());
+
+                rows.push_str(&format!(
+                    "<tr data-dir=\"0\" data-name=\"{0}\" data-size=\"{1}\" data-mtime=\"{2}\">\
+                     <td class=\"name\"><a href=\"{3}\" download=\"{0}\">{4}{0}</a></td>\
+                     <td class=\"meta\">{5}</td><td class=\"meta num\">{6}</td></tr>",
                     misc.html_escape(name),
-                    misc.html_escape(name)
+                    size,
+                    misc.epoch(mtime),
+                    Server::ARCHIVE_ROUTE,
+                    Icons.icon("file-archive"),
+                    mtime.map(|t| misc.format_mtime(t)).unwrap_or_default(),
+                    misc.human_size(size),
                 ));
             }
         }
+
+        let body = if entries.is_empty() {
+            "<p>No files were generated.</p>".to_string()
+        } else {
+            let index: Vec<serde_json::Value> = entries.iter().map(|entry| {
+                let meta = metadata(root.join(entry));
+                let size = meta.as_ref().map(|m| m.len()).unwrap_or(0);
+                let mtime = meta.as_ref().ok().and_then(|m| m.modified().ok());
+                let kind = misc.lightbox_kind(entry);
+                let href = format!(
+                    "/{}",
+                    entry.split('/').map(|s| misc.percent_encode(s)).collect::<Vec<_>>().join("/")
+                );
+
+                serde_json::json!({
+                    "p": entry,
+                    "h": href,
+                    "s": misc.human_size(size),
+                    "m": mtime.map(|t| misc.format_mtime(t)).unwrap_or_default(),
+                    "t": kind.unwrap_or(""),
+                    "i": Icons.file_icon(kind),
+                    "size": size,
+                    "mtime": misc.epoch(mtime),
+                })
+            }).collect();
+
+            let index_json = serde_json::to_string(&index).unwrap_or_else(|_| "[]".to_string());
+
+            let tbody = if rows.is_empty() {
+                "<tr><td colspan=\"3\" class=\"meta\">No files in this folder.</td></tr>".to_string()
+            } else {
+                rows
+            };
+
+            let mut body = String::new();
+            body.push_str("<script>window.__scimonFiles=");
+            body.push_str(&index_json);
+            body.push_str(";</script>");
+            body.push_str("<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Search files…\" autocomplete=\"off\">");
+            body.push_str(
+                "<table class=\"files\"><thead><tr>\
+                 <th data-key=\"name\">Name<span class=\"arrow\"></span></th>\
+                 <th data-key=\"mtime\">Modified<span class=\"arrow\"></span></th>\
+                 <th class=\"num\" data-key=\"size\">Size<span class=\"arrow\"></span></th>\
+                 </tr></thead><tbody>"
+            );
+            body.push_str(&tbody);
+            body.push_str("</tbody></table>");
+            body
+        };
 
         let heading = if prefix.is_empty() {
             "Generated files".to_string()
@@ -224,10 +274,10 @@ impl Files {
             format!("Generated files: {}", misc.html_escape(prefix))
         };
 
-        self.render_page(&heading, &items, source_name)
+        self.render_page(&heading, &body, source_name, &sidebar)
     }
 
-    fn render_page(&self, heading: &str, items: &str, source_name: Option<&str>) -> String {
+    fn render_page(&self, heading: &str, body: &str, source_name: Option<&str>, sidebar: &str) -> String {
         let misc = Misc;
         let components = Components;
 
@@ -241,44 +291,40 @@ impl Files {
         html.push_str(&components.theme_early());
         html.push_str("</head><body>");
         html.push_str(&components.theme_toggle());
+        html.push_str("<div class=\"layout\">");
+
+        html.push_str("<aside class=\"sidebar\">");
         html.push_str(&format!("<a class=\"logo\" href=\"/\">{}</a>", components.logo()));
-        html.push_str(&format!("<h1>{}</h1>", heading));
 
         if let Some(name) = source_name {
             html.push_str(&format!(
-                "<p class=\"source\"><a class=\"lb\" data-type=\"text\" href=\"{}\">{} {}</a></p>",
+                "<a class=\"item lb\" data-type=\"text\" href=\"{}\">{} {}</a>",
                 Server::SOURCE_ROUTE,
-                Self::icon("file-code"),
+                Icons.icon("file-code"),
                 misc.html_escape(name)
             ));
         }
 
-        html.push_str("<ul>");
-        html.push_str(items);
-        html.push_str("</ul>");
+        html.push_str(sidebar);
+        html.push_str("</aside>");
+
+        html.push_str("<main class=\"main\">");
+        html.push_str(&format!("<h1>{}</h1>", heading));
+        html.push_str(body);
+        html.push_str("</main></div>");
+
         html.push_str(&components.lightbox());
         html.push_str("<script>");
         html.push_str(&components.theme_js());
         html.push_str(&components.lightbox_js());
+        html.push_str(&components.table_js());
+        html.push_str(&components.search_js());
         html.push_str("</script>");
         html.push_str("<script src=\"https://unpkg.com/lucide@latest\"></script>");
         html.push_str("<script>lucide.createIcons();</script>");
         html.push_str("</body></html>");
 
         html
-    }
-
-    // A Lucide icon placeholder; replaced with an SVG by lucide.createIcons().
-    fn icon(name: &str) -> String {
-        format!("<span class=\"icon\"><i data-lucide=\"{}\"></i></span>", name)
-    }
-
-    fn file_icon(kind: Option<&str>) -> &'static str {
-        match kind {
-            Some("image") => "image",
-            Some("pdf") => "file-text",
-            _ => "file",
-        }
     }
 
 }

@@ -1,4 +1,5 @@
 pub mod misc;
+pub mod icons;
 pub mod stream;
 
 pub mod logs;

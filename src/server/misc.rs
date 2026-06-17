@@ -1,4 +1,12 @@
-use std::path::Path;
+use std::{
+    path::Path, 
+    time::SystemTime
+};
+
+use chrono::{
+    Local,
+    DateTime, 
+};
 
 pub struct Misc;
 
@@ -118,6 +126,34 @@ impl Misc {
         };
 
         (start <= end).then_some((start, end))
+    }
+
+    pub fn epoch(&self, time: Option<SystemTime>) -> i64 {
+        time.and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0)
+    }
+
+    pub fn format_mtime(&self, time: SystemTime) -> String {
+        let dt: DateTime<Local> = time.into();
+        dt.format("%Y-%m-%d %H:%M:%S").to_string()
+    }
+
+    pub fn human_size(&self, bytes: u64) -> String {
+        let units = ["b", "k", "M", "G", "T"];
+        let mut size = bytes as f64;
+        let mut unit = 0;
+
+        while size >= 1024.0 && unit < units.len() - 1 {
+            size /= 1024.0;
+            unit += 1;
+        }
+
+        if unit == 0 {
+            format!("{}b", bytes)
+        } else {
+            format!("{}{}", format!("{:.1}", size).trim_end_matches(".0"), units[unit])
+        }
     }
 
 }
