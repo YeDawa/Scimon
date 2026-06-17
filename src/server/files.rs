@@ -92,7 +92,7 @@ impl Files {
         let mut items = String::new();
 
         if dir.canonicalize().ok().as_deref() != Some(root) {
-            items.push_str("<li><a href=\"../\">../</a></li>");
+            items.push_str("<li><span class=\"icon\">📁</span><a href=\"../\">../</a></li>");
         }
 
         for (name, is_dir) in entries {
@@ -100,13 +100,26 @@ impl Files {
             let href = format!("{}{}", base, misc.percent_encode(&name));
             let href = if is_dir { format!("{}/", href) } else { href };
 
-            let attrs = match (is_dir, misc.lightbox_kind(&name)) {
+            let kind = misc.lightbox_kind(&name);
+
+            let icon = if is_dir {
+                "📁"
+            } else {
+                match kind {
+                    Some("image") => "🖼️",
+                    Some("pdf") => "📕",
+                    _ => "📄",
+                }
+            };
+
+            let attrs = match (is_dir, kind) {
                 (false, Some(kind)) => format!(" class=\"lb\" data-type=\"{}\"", kind),
                 _ => String::new(),
             };
 
             items.push_str(&format!(
-                "<li><a{} href=\"{}\">{}</a></li>",
+                "<li><span class=\"icon\">{}</span><a{} href=\"{}\">{}</a></li>",
+                icon,
                 attrs,
                 href,
                 misc.html_escape(&display)

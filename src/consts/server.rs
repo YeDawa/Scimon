@@ -52,6 +52,7 @@ impl Server {
         h1{font-size:1.2rem;}
         ul{list-style:none;padding:0;}
         li{padding:.2rem 0;}
+        .icon{display:inline-block;width:1.5em;}
         a{text-decoration:none;color:var(--link);}
         a:hover{text-decoration:underline;}
         .source{margin:.2rem 0 1rem;font-size:.9rem;}
