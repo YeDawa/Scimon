@@ -24,10 +24,7 @@ use crate::{
         chatgpt::ChatGPT,
     },
     
-    ui::{
-        ui_base::UI,
-        success_alerts::SuccessAlerts,
-    },
+    ui::ui_base::UI,
 
     utils::{
         file::FileUtils,
@@ -107,7 +104,6 @@ impl Tasks {
                         let file_path = format!("{}{}", qrcode_path, name_pdf);
                         
                         GenQrCode::new(&url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
-                        SuccessAlerts::qrcode(file_path.as_str());
                     }
                 }
             }
