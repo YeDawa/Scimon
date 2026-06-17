@@ -12,6 +12,7 @@ use crate::{
     },
 
     cmd::{
+        serve::Serve,
         monset::Monset,
         compile::Compile,
     },
@@ -124,6 +125,12 @@ impl Scimon {
 
                 Commands::Compile { file, output } => {
                     if let Err(err) = Compile::new(&file, output).compile().await {
+                        ErrorsAlerts::generic(&err.to_string());
+                    }
+                },
+
+                Commands::Serve { path, port } => {
+                    if let Err(err) = Serve::new(path, port).run() {
                         ErrorsAlerts::generic(&err.to_string());
                     }
                 },

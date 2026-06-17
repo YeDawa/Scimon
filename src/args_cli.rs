@@ -80,4 +80,14 @@ pub enum Commands {
         #[arg(short, long)]
         output: Option<String>,
     },
+
+    /// Serve generated files over HTTP
+    Serve {
+        /// Directory to serve (defaults to the Scimon downloads folder)
+        path: Option<String>,
+
+        /// Port to listen on
+        #[arg(short, long, default_value_t = 8080)]
+        port: u16,
+    },
 }
