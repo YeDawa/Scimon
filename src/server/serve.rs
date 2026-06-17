@@ -1,0 +1,168 @@
+use std::{
+    thread,
+    fs::read,
+    error::Error,
+
+    io::{
+        BufRead,
+        BufReader,
+    },
+
+    net::{
+        TcpStream,
+        TcpListener,
+    },
+
+    path::{
+        Path, 
+        PathBuf
+    },
+};
+
+use crate::{
+    ui::{
+        ui_base::UI,
+        server_alerts::ServerAlerts,
+    },
+    
+    consts::{
+        server::Server,
+        folders::Folders,
+    },
+
+    server::{
+        misc::Misc,
+        logs::Logs,
+        pages::Pages,
+        files::Files,
+        stream::Stream,
+    },
+};
+
+pub struct Serve {
+    port: u16,
+    root: PathBuf,
+}
+
+impl Serve {
+
+    pub fn new(path: Option<String>, port: u16) -> Self {
+        let root = match path {
+            Some(path) => PathBuf::from(path),
+            None => Folders::DOWNLOAD_FOLDER.clone(),
+        };
+
+        Self { root, port }
+    }
+
+    pub fn run(&self) -> Result<(), Box<dyn Error>> {
+        UI::section_header("Web Server", "info");
+
+        if !self.root.is_dir() {
+            return Err(
+                format!("Directory not found: {}", self.root.display()).into()
+            );
+        }
+
+        let root = self.root.canonicalize()?;
+        let addr = format!("127.0.0.1:{}", self.port);
+        let listener = TcpListener::bind(&addr)?;
+
+        let url = &format!("http://{}", addr);
+        ServerAlerts::started(self.port, &url);
+        ServerAlerts::to_quit();
+
+        for stream in listener.incoming() {
+            let Ok(stream) = stream else { continue };
+            let root = root.clone();
+
+            thread::spawn(move || {
+                let _ = Self::handle(stream, &root);
+            });
+        }
+
+        Ok(())
+    }
+
+    fn handle(mut stream: TcpStream, root: &Path) -> Result<(), Box<dyn Error>> {
+        let stream_instance = Stream;
+        let mut reader = BufReader::new(stream.try_clone()?);
+        let mut request_line = String::new();
+        reader.read_line(&mut request_line)?;
+
+        let mut parts = request_line.split_whitespace();
+        let method = parts.next().unwrap_or("");
+        let raw_target = parts.next().unwrap_or("/");
+
+        let mut range: Option<String> = None;
+        loop {
+            let mut line = String::new();
+            if reader.read_line(&mut line)? == 0 {
+                break;
+            }
+
+            let line = line.trim_end();
+            if line.is_empty() {
+                break;
+            }
+
+            if let Some((name, value)) = line.split_once(':') {
+                if name.eq_ignore_ascii_case("range") {
+                    range = Some(value.trim().to_string());
+                }
+            }
+        }
+
+        if method != "GET" && method != "HEAD" {
+            return stream_instance.respond(&mut stream, 405, "Method Not Allowed", "text/plain; charset=utf-8", Pages.method_not_allowed().as_bytes());
+        }
+
+        let target = raw_target.split('?').next().unwrap_or("/");
+        let decoded = Misc.percent_decode(target);
+
+        if decoded == Server::LOGO_ROUTE {
+            return stream_instance.respond(&mut stream, 200, "OK", "image/png", Server::LOGO_PNG);
+        }
+
+        let files_instance = Files;
+        let stream_instance = Stream;
+        let Some(path) = stream_instance.resolve(root, &decoded) else {
+            Logs.print(method, target, 403);
+            return stream_instance.respond(&mut stream, 403, "Forbidden", "text/plain; charset=utf-8", Pages.forbiden().as_bytes());
+        };
+
+        if !path.exists() {
+            Logs.print(method, target, 404);
+            return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
+        }
+
+        let Some(path) = path.canonicalize().ok().filter(|p| p.starts_with(root)) else {
+            Logs.print(method, target, 403);
+            return stream_instance.respond(&mut stream, 403, "Forbidden", "text/plain; charset=utf-8", Pages.forbiden().as_bytes());
+        };
+
+        if path.is_dir() {
+            let body = files_instance.directory_listing(&path, &decoded, root);
+            Logs.print(method, target, 200);
+            return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
+        }
+
+        match read(&path) {
+            Ok(bytes) => {
+                let content_type = Misc.content_type(&path);
+                let filename = path.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("file")
+                    .replace('"', "");
+
+                files_instance.serve_file(&mut stream, method, target, &bytes, content_type, &filename, range.as_deref())
+            }
+
+            Err(_) => {
+                Logs.print(method, target, 500);
+                stream_instance.respond(&mut stream, 500, "Internal Server Error", "text/plain; charset=utf-8", Pages.internal_server_error().as_bytes())
+            }
+        }
+    }
+
+}

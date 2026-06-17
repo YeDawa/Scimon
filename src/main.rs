@@ -9,6 +9,7 @@ mod syntax;
 mod scimon;
 mod render;
 mod monlib;
+mod server;
 mod helpers;
 mod configs;
 mod security;

@@ -3,6 +3,7 @@ use std::error::Error;
 
 use crate::{
     args_cli::*,
+    server::serve::Serve,
     addons::scrape::Scrape,
     syntax::blocks::readme_block::ReadMeBlock,
 
@@ -12,7 +13,6 @@ use crate::{
     },
 
     cmd::{
-        serve::Serve,
         monset::Monset,
         compile::Compile,
     },
@@ -93,8 +93,6 @@ impl Scimon {
 
                     let contents = monset.raw_contents().await.unwrap_or_default();
 
-                    // The downloads block is optional (a list may only compress,
-                    // serve, etc.); running it when absent would abort the process.
                     if Monset::has_downloads_block(&contents) {
                         let _ = monset.downloads(&flags_clone).await;
                     }

@@ -14,11 +14,11 @@ use std::{
 use crate::{
     args_cli::Flags,
     syntax::vars::Vars,
+    server::serve::Serve,
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
 
     cmd::{
-        serve::Serve,
         tasks::Tasks,
         tasks_raw::TasksRaw,
     },
