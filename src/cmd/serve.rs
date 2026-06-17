@@ -68,6 +68,7 @@ impl Serve {
 
         ServerAlerts::started(self.port, &format!("http://{}", addr));
         ServerAlerts::to_quit();
+        
         for stream in listener.incoming() {
             let Ok(stream) = stream else { continue };
             let root = root.clone();
