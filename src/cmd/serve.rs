@@ -393,12 +393,16 @@ impl Serve {
     "#;
 
     const STYLE: &'static str = r#"
-        :root{--bg:#fff;--fg:#1a1a1a;--link:#2563eb;--muted:#777;--logo-filter:none;}
+        :root{--bg:#fff;--fg:#1a1a1a;--link:#2563eb;--muted:#777;--logo-filter:none;
+            --lb-img-bg:transparent;--lb-img-pad:0;}
         @media (prefers-color-scheme:dark){
-            :root{--bg:#0f1115;--fg:#e6e6e6;--link:#6ea8fe;--muted:#9aa0a6;--logo-filter:brightness(1.7);}
+            :root{--bg:#0f1115;--fg:#e6e6e6;--link:#6ea8fe;--muted:#9aa0a6;--logo-filter:brightness(1.7);
+                --lb-img-bg:#fff;--lb-img-pad:8px;}
         }
-        :root[data-theme="light"]{--bg:#fff;--fg:#1a1a1a;--link:#2563eb;--muted:#777;--logo-filter:none;}
-        :root[data-theme="dark"]{--bg:#0f1115;--fg:#e6e6e6;--link:#6ea8fe;--muted:#9aa0a6;--logo-filter:brightness(1.7);}
+        :root[data-theme="light"]{--bg:#fff;--fg:#1a1a1a;--link:#2563eb;--muted:#777;--logo-filter:none;
+            --lb-img-bg:transparent;--lb-img-pad:0;}
+        :root[data-theme="dark"]{--bg:#0f1115;--fg:#e6e6e6;--link:#6ea8fe;--muted:#9aa0a6;--logo-filter:brightness(1.7);
+            --lb-img-bg:#fff;--lb-img-pad:8px;}
         body{font-family:system-ui,sans-serif;margin:2rem;background:var(--bg);color:var(--fg);}
         .logo{display:inline-block;margin-bottom:1.2rem;}
         .logo img{display:block;filter:var(--logo-filter);}
@@ -417,7 +421,7 @@ impl Serve {
         #lb .figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:.7rem;}
         #lb .stage{display:flex;align-items:center;justify-content:center;}
         #lb img{max-width:90vw;max-height:82vh;border-radius:4px;
-            background:#fff;padding:8px;box-sizing:border-box;}
+            background:var(--lb-img-bg);padding:var(--lb-img-pad);box-sizing:border-box;}
         #lb iframe{width:90vw;height:82vh;border:0;border-radius:4px;background:#fff;}
         #lb pre{margin:0;background:#111;color:#eee;padding:1rem 1.2rem;border-radius:4px;
             max-width:90vw;max-height:82vh;overflow:auto;white-space:pre-wrap;
