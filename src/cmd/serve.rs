@@ -25,12 +25,14 @@ use std::{
 };
 
 use crate::{
-    ui::ui_base::UI,
     consts::folders::Folders,
+
+    ui::{
+        ui_base::UI,
+        server_alerts::ServerAlerts,
+    },
 };
 
-// The Scimon logo, embedded into the binary so the server is self-contained.
-// Replace `assets/logo.png` to change it — no code change needed.
 const LOGO_PNG: &[u8] = include_bytes!("../../assets/logo.png");
 const LOGO_ROUTE: &str = "/__scimon/logo.png";
 
@@ -64,14 +66,8 @@ impl Serve {
         let addr = format!("127.0.0.1:{}", self.port);
         let listener = TcpListener::bind(&addr)?;
 
-        println!(
-            "{} Serving {} at {}",
-            "→".green().bold(),
-            root.display().to_string().cyan(),
-            format!("http://{}", addr).blue().underline(),
-        );
-
-        println!("{}", "Press Ctrl+C to stop.".dimmed());
+        ServerAlerts::started(self.port, &format!("http://{}", addr));
+        ServerAlerts::to_quit();
         for stream in listener.incoming() {
             let Ok(stream) = stream else { continue };
             let root = root.clone();
