@@ -2,8 +2,6 @@
     <img src="https://i.imgur.com/jAE5DWn.png"/>
 </div>
 
-<p align='center'><b>Unleash your knowledge.</b></p>
-
 <p align='center'>
     <img src='https://i.imgur.com/RRPMQ2j.png' />
 </p>
