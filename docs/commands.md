@@ -30,6 +30,27 @@ scimon compile paper.tex -o build/final.pdf
 
 See the [LaTeX Compiler](./compile.md) page for the full feature list.
 
+## `serve`
+
+Start a built-in static web server to browse, preview, and download the files
+you've generated.
+
+```shell
+scimon serve                 # serve the Scimon downloads folder on port 8080
+scimon serve ./downloads     # serve a specific directory
+scimon serve ./downloads -p 9000
+```
+
+| Argument / flag    | Description                                                  |
+| ------------------ | ----------------------------------------------------------- |
+| `[path]`           | Directory to serve. Defaults to the Scimon downloads folder. |
+| `-p`, `--port`     | Port to listen on (default: `8080`).                         |
+
+The server binds to `127.0.0.1` (local only), shows a directory listing for
+folders, serves files with the right `Content-Type` (PDFs and images preview
+right in the browser), and blocks path traversal outside the served directory.
+Press `Ctrl+C` to stop it.
+
 ## `scrape`
 
 Discover downloadable documents on a page and fetch them.
