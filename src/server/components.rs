@@ -49,8 +49,10 @@ impl Components {
         Server::THEME_EARLY.to_string()
     }
 
-    // Sidebar navigation. `active` is the key of the current view: "" (root),
-    // a folder prefix, "scripts", or "checksum".
+    pub fn checksum_js(&self) -> String {
+        Server::CHECKSUM_JS.to_string()
+    }
+
     pub fn folder_nav(&self, misc: &Misc, folders: &BTreeSet<String>, active: &str, has_scripts: bool) -> String {
         let cls = |on: bool| if on { " class=\"active\"" } else { "" };
 
@@ -96,10 +98,6 @@ impl Components {
 
         nav.push_str("</nav>");
         nav
-    }
-
-    pub fn checksum_js(&self) -> String {
-        Server::CHECKSUM_JS.to_string()
     }
 
 }
