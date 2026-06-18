@@ -251,6 +251,14 @@ impl Server {
             var next=lb.querySelector('.next');
             var links=[];
             var i=0;
+            function langFor(name){
+                var ext=(name.split('.').pop()||'').toLowerCase();
+                var m={py:'python',js:'javascript',mjs:'javascript',cjs:'javascript',jsx:'jsx',
+                    ts:'typescript',tsx:'tsx',json:'json',sh:'bash',bash:'bash',rb:'ruby',rs:'rust',
+                    go:'go',java:'java',c:'c',h:'c',cpp:'cpp',cs:'csharp',php:'php',html:'markup',
+                    xml:'markup',css:'css',yml:'yaml',yaml:'yaml',toml:'toml',md:'markdown'};
+                return m[ext]||'';
+            }
             function show(n){
                 i=(n+links.length)%links.length;
                 var link=links[i];
@@ -267,11 +275,18 @@ impl Server {
                     stage.appendChild(frame);
                 }else{
                     var pre=document.createElement('pre');
-                    pre.textContent='Loading…';
+                    var code=document.createElement('code');
+                    var lang=langFor(link.textContent.trim());
+                    if(lang)code.className='language-'+lang;
+                    code.textContent='Loading…';
+                    pre.appendChild(code);
                     stage.appendChild(pre);
                     fetch(href).then(function(r){return r.text();})
-                        .then(function(t){pre.textContent=t;})
-                        .catch(function(){pre.textContent='Failed to load file.';});
+                        .then(function(t){
+                            code.textContent=t;
+                            if(window.Prism)Prism.highlightElement(code);
+                        })
+                        .catch(function(){code.textContent='Failed to load file.';});
                 }
                 cap.textContent=link.textContent.trim();
             }
