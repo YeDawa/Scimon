@@ -343,7 +343,8 @@ impl Files {
         html.push_str("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">");
         html.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
         html.push_str("<link rel=\"icon\" href=\"https://scimon.dev/favicon.ico\">");
-        html.push_str("<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css\">");
+        html.push_str("<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css\">");
+        html.push_str("<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css\">");
         html.push_str(&format!("<title>Scimon: {}</title>", heading));
         html.push_str("<style>");
         html.push_str(&components.style());
@@ -387,10 +388,10 @@ impl Files {
         html.push_str("</script>");
         html.push_str("<script src=\"https://unpkg.com/lucide@latest\"></script>");
         html.push_str("<script>lucide.createIcons();</script>");
-        html.push_str("<script>window.Prism=window.Prism||{};Prism.manual=true;</script>");
-        html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js\"></script>");
-        html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js\"></script>");
-        html.push_str("<script>if(window.Prism&&Prism.plugins&&Prism.plugins.autoloader){Prism.plugins.autoloader.languages_path='https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/';}</script>");
+        html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js\"></script>");
+        html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/meta.min.js\"></script>");
+        html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js\"></script>");
+        html.push_str("<script>if(window.CodeMirror)CodeMirror.modeURL='https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/%N/%N.min.js';</script>");
         html.push_str("</body></html>");
 
         html

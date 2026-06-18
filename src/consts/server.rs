@@ -129,9 +129,11 @@ impl Server {
         #lb img{max-width:90vw;max-height:82vh;border-radius:4px;
             background:var(--lb-img-bg);padding:var(--lb-img-pad);box-sizing:border-box;}
         #lb iframe{width:90vw;height:82vh;border:0;border-radius:4px;background:#fff;}
-        #lb pre{margin:0;background:#111;color:#eee;padding:1rem 1.2rem;border-radius:4px;
-            max-width:90vw;max-height:82vh;overflow:auto;white-space:pre-wrap;
-            word-break:break-all;font-family:ui-monospace,Consolas,monospace;font-size:.9rem;}
+        #lb .cm-box{width:90vw;max-width:1000px;}
+        #lb .CodeMirror{width:100%;height:82vh;border-radius:6px;font-size:.9rem;}
+        #lb .cm-box:not(:has(.CodeMirror)){background:#111;color:#eee;padding:1rem 1.2rem;
+            border-radius:4px;max-height:82vh;overflow:auto;white-space:pre-wrap;
+            word-break:break-all;font-family:ui-monospace,Consolas,monospace;}
         #lb .cap{color:#eee;font-size:.95rem;max-width:90vw;text-align:center;
             overflow-wrap:anywhere;}
         #lb .btn{position:absolute;color:#fff;cursor:pointer;user-select:none;
@@ -251,14 +253,6 @@ impl Server {
             var next=lb.querySelector('.next');
             var links=[];
             var i=0;
-            function langFor(name){
-                var ext=(name.split('.').pop()||'').toLowerCase();
-                var m={py:'python',js:'javascript',mjs:'javascript',cjs:'javascript',jsx:'jsx',
-                    ts:'typescript',tsx:'tsx',json:'json',sh:'bash',bash:'bash',rb:'ruby',rs:'rust',
-                    go:'go',java:'java',c:'c',h:'c',cpp:'cpp',cs:'csharp',php:'php',html:'markup',
-                    xml:'markup',css:'css',yml:'yaml',yaml:'yaml',toml:'toml',md:'markdown'};
-                return m[ext]||'';
-            }
             function show(n){
                 i=(n+links.length)%links.length;
                 var link=links[i];
@@ -274,19 +268,24 @@ impl Server {
                     frame.src=href;
                     stage.appendChild(frame);
                 }else{
-                    var pre=document.createElement('pre');
-                    var code=document.createElement('code');
-                    var lang=langFor(link.textContent.trim());
-                    if(lang)code.className='language-'+lang;
-                    code.textContent='Loading…';
-                    pre.appendChild(code);
-                    stage.appendChild(pre);
+                    var box=document.createElement('div');
+                    box.className='cm-box';
+                    stage.appendChild(box);
                     fetch(href).then(function(r){return r.text();})
                         .then(function(t){
-                            code.textContent=t;
-                            if(window.Prism)Prism.highlightElement(code);
+                            if(!window.CodeMirror){box.textContent=t;return;}
+                            var info=CodeMirror.findModeByFileName?CodeMirror.findModeByFileName(link.textContent.trim()):null;
+                            var cm=CodeMirror(box,{
+                                value:t,
+                                readOnly:true,
+                                lineNumbers:true,
+                                theme:'material-darker',
+                                mode:info?info.mode:null,
+                                viewportMargin:Infinity
+                            });
+                            if(info&&CodeMirror.autoLoadMode)CodeMirror.autoLoadMode(cm,info.mode);
                         })
-                        .catch(function(){code.textContent='Failed to load file.';});
+                        .catch(function(){box.textContent='Failed to load file.';});
                 }
                 cap.textContent=link.textContent.trim();
             }
