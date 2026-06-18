@@ -62,10 +62,7 @@ impl FileUtils {
         } else {
             let uuid_v4 = Uuid::new([0u8; 16]);
             let generated_uuid = uuid_v4.v4();
-
-            format!(
-                "{}.pdf", generated_uuid
-            )
+            format!("{}.pdf", generated_uuid)
         }
     }
 
