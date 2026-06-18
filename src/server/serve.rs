@@ -33,7 +33,6 @@ use crate::{
 
     server::{
         misc::Misc,
-        logs::Logs,
         pages::Pages,
         files::Files,
         stream::Stream,
@@ -151,11 +150,11 @@ impl Serve {
 
         if decoded == Server::SOURCE_ROUTE {
             if let Some(source) = &source {
-                Logs.print(method, target, 200);
+                ServerAlerts::logs(method, target, 200);
                 return stream_instance.respond(&mut stream, 200, "OK", "text/plain; charset=utf-8", source.1.as_bytes());
             }
 
-            Logs.print(method, target, 404);
+            ServerAlerts::logs(method, target, 404);
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
@@ -167,56 +166,54 @@ impl Serve {
                 }
             }
 
-            Logs.print(method, target, 404);
+            ServerAlerts::logs(method, target, 404);
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
-        // A single script's content, fetched remotely and proxied as text.
         if let Some(rest) = decoded.strip_prefix(Server::SCRIPT_ROUTE) {
             if let (Some(scripts), Ok(idx)) = (&scripts, rest.parse::<usize>()) {
                 if let Some(url) = scripts.get(idx) {
                     match Self::fetch_remote(url) {
                         Ok(text) => {
-                            Logs.print(method, target, 200);
+                            ServerAlerts::logs(method, target, 200);
                             return stream_instance.respond(&mut stream, 200, "OK", "text/plain; charset=utf-8", text.as_bytes());
                         }
                         Err(_) => {
-                            Logs.print(method, target, 502);
+                            ServerAlerts::logs(method, target, 502);
                             return stream_instance.respond(&mut stream, 502, "Bad Gateway", "text/plain; charset=utf-8", b"Failed to fetch script.");
                         }
                     }
                 }
             }
 
-            Logs.print(method, target, 404);
+            ServerAlerts::logs(method, target, 404);
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
-        // The scripts page: lists the commands-block scripts, opened in a lightbox.
         if decoded == Server::SCRIPTS_ROUTE {
             let source_name = source.as_ref().map(|s| s.0.as_str());
             let files_vec: &[String] = files.as_deref().map(|f| f.as_slice()).unwrap_or(&[]);
             let scripts_vec: &[String] = scripts.as_deref().map(|s| s.as_slice()).unwrap_or(&[]);
 
             let body = Files.scripts_listing(files_vec, scripts_vec, source_name);
-            Logs.print(method, target, 200);
+            ServerAlerts::logs(method, target, 200);
             return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
         }
 
         let files_instance = Files;
         let stream_instance = Stream;
         let Some(path) = stream_instance.resolve(root, &decoded) else {
-            Logs.print(method, target, 403);
+            ServerAlerts::logs(method, target, 403);
             return stream_instance.respond(&mut stream, 403, "Forbidden", "text/plain; charset=utf-8", Pages.forbiden().as_bytes());
         };
 
         if !path.exists() {
-            Logs.print(method, target, 404);
+            ServerAlerts::logs(method, target, 404);
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
         let Some(path) = path.canonicalize().ok().filter(|p| p.starts_with(root)) else {
-            Logs.print(method, target, 403);
+            ServerAlerts::logs(method, target, 403);
             return stream_instance.respond(&mut stream, 403, "Forbidden", "text/plain; charset=utf-8", Pages.forbiden().as_bytes());
         };
 
@@ -237,7 +234,7 @@ impl Serve {
                 None => files_instance.directory_listing(&path, &decoded, root, source_name),
             };
 
-            Logs.print(method, target, 200);
+            ServerAlerts::logs(method, target, 200);
             return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
         }
 
@@ -253,13 +250,12 @@ impl Serve {
             }
 
             Err(_) => {
-                Logs.print(method, target, 500);
+                ServerAlerts::logs(method, target, 500);
                 stream_instance.respond(&mut stream, 500, "Internal Server Error", "text/plain; charset=utf-8", Pages.internal_server_error().as_bytes())
             }
         }
     }
 
-    // Fetches a remote script's text content (used to proxy commands-block scripts).
     fn fetch_remote(url: &str) -> Result<String, Box<dyn Error>> {
         let body = ureq::get(url).call()?.body_mut().read_to_string()?;
         Ok(body)
