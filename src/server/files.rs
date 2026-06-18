@@ -13,7 +13,7 @@ use std::{
 
 use crate::{
     ui::server_alerts::ServerAlerts,
-    
+
     consts::{
         global::Global,
         server::Server,
@@ -92,7 +92,6 @@ impl Files {
             .collect();
 
         entries.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.to_lowercase().cmp(&b.0.to_lowercase())));
-
         let base = if url_path.ends_with('/') {
             url_path.to_string()
         } else {
@@ -166,7 +165,7 @@ impl Files {
         let search = if entries.is_empty() {
             String::new()
         } else {
-            "<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Search files…\" autocomplete=\"on\">".to_string()
+            "<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Search files…\" autocomplete=\"off\">".to_string()
         };
 
         let sidebar = format!("{}{}", search, Components.folder_nav(&misc, &all_folders, prefix, has_scripts, false));
