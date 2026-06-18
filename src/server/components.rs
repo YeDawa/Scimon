@@ -53,8 +53,6 @@ impl Components {
         Server::CHECKSUM_JS.to_string()
     }
 
-    // The checksum modal, with one option per produced file (value = its index,
-    // matching the /checksum/{i} compute route).
     pub fn checksum_modal(&self, files: &[String]) -> String {
         if files.is_empty() {
             return String::new();
