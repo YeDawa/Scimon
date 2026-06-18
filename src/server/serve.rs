@@ -21,6 +21,7 @@ use std::{
 };
 
 use crate::{
+    utils::file::FileUtils,
     generator::checksum::Checksum,
 
     ui::{
@@ -260,7 +261,7 @@ impl Serve {
 
         match read(&path) {
             Ok(bytes) => {
-                let content_type = Misc.content_type(&path);
+                let content_type = FileUtils.content_type(&path);
                 let filename = path.file_name()
                     .and_then(|n| n.to_str())
                     .unwrap_or("file")

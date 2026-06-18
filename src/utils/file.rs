@@ -135,4 +135,26 @@ impl FileUtils {
         }
     }
 
+    pub fn content_type(&self, path: &Path) -> &'static str {
+        match path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase().as_str() {
+            "pdf" => "application/pdf",
+            "html" | "htm" => "text/html; charset=utf-8",
+            "css" => "text/css; charset=utf-8",
+            "js" => "text/javascript; charset=utf-8",
+            "json" => "application/json; charset=utf-8",
+            "txt" | "md" | "sha256" | "sha1" | "sha512" | "md5" | "crc32" => "text/plain; charset=utf-8",
+            "png" => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            "svg" => "image/svg+xml",
+            "webp" => "image/webp",
+            "ico" => "image/x-icon",
+            "zip" => "application/zip",
+            "gz" | "tgz" => "application/gzip",
+            "tar" => "application/x-tar",
+            "epub" => "application/epub+zip",
+            _ => "application/octet-stream",
+        }
+    }
+
 }
