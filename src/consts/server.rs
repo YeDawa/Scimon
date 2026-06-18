@@ -67,6 +67,7 @@ impl Server {
             border-radius:6px;color:var(--fg);font-size:.9rem;}
         .sidebar .folders a:hover{background:var(--hover);text-decoration:none;}
         .sidebar .folders a.active{background:var(--hover);font-weight:600;}
+        .sidebar .separator{height:1px;background:var(--border);margin:.5rem 0;}
         .logo{align-self:center;}
         .brand-meta{align-self:center;margin-top:.5rem;font-size:.8rem;color:var(--muted);}
         .brand-meta a{color:var(--muted);}

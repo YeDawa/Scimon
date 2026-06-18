@@ -62,12 +62,13 @@ impl Components {
         for folder in folders {
             let depth = folder.matches('/').count();
             let name = folder.rsplit('/').next().unwrap_or(folder);
+            
             let href = format!(
                 "/{}/",
                 folder.split('/').map(|s| misc.percent_encode(s)).collect::<Vec<_>>().join("/")
             );
-            let active = if prefix == folder && !scripts_active { " class=\"active\"" } else { "" };
 
+            let active = if prefix == folder && !scripts_active { " class=\"active\"" } else { "" };
             nav.push_str(&format!(
                 "<a{} style=\"padding-left:{:.1}rem\" href=\"{}\">{} {}/</a>",
                 active,
@@ -81,7 +82,7 @@ impl Components {
         if has_scripts {
             let active = if scripts_active { " class=\"active\"" } else { "" };
             nav.push_str(&format!(
-                "<a{} href=\"{}\">{} scripts</a>",
+                "<div class=\"separator\"></div><a{} href=\"{}\">{} scripts</a>",
                 active,
                 Server::SCRIPTS_ROUTE,
                 Icons.icon("file-code")
