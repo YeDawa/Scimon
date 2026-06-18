@@ -26,7 +26,10 @@ impl Server {
                 if(t)return t==='dark';
                 return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
             }
-            function refresh(){btn.textContent=isDark()?'☀️':'🌙';}
+            function refresh(){
+                btn.innerHTML='<i data-lucide="'+(isDark()?'sun':'moon')+'"></i>';
+                if(window.lucide)lucide.createIcons();
+            }
             refresh();
             btn.addEventListener('click',function(){
                 var next=isDark()?'light':'dark';
@@ -90,6 +93,7 @@ impl Server {
             background:transparent;color:var(--fg);border:1px solid var(--border);border-radius:8px;
             padding:.45rem .7rem;cursor:pointer;font-size:1rem;line-height:1;}
         .theme-toggle:hover{background:var(--hover);}
+        .theme-toggle svg{width:18px;height:18px;}
         #lb{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
             align-items:center;justify-content:center;z-index:1000;}
         #lb.open{display:flex;}
