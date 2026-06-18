@@ -297,7 +297,7 @@ impl Server {
                             var info=(!isMon&&CodeMirror.findModeByFileName)?CodeMirror.findModeByFileName(name):null;
                             var cm=CodeMirror(box,{
                                 value:t,
-                                readOnly:true,
+                                readOnly:'nocursor',
                                 lineNumbers:true,
                                 lineWrapping:true,
                                 theme:'material-darker',
