@@ -49,14 +49,14 @@ impl Components {
         Server::THEME_EARLY.to_string()
     }
 
-    pub fn folder_nav(&self, misc: &Misc, folders: &BTreeSet<String>, prefix: &str) -> String {
-        if folders.is_empty() {
+    pub fn folder_nav(&self, misc: &Misc, folders: &BTreeSet<String>, prefix: &str, has_scripts: bool, scripts_active: bool) -> String {
+        if folders.is_empty() && !has_scripts {
             return String::new();
         }
 
         let mut nav = String::from("<nav class=\"folders\">");
 
-        let root_active = if prefix.is_empty() { " class=\"active\"" } else { "" };
+        let root_active = if prefix.is_empty() && !scripts_active { " class=\"active\"" } else { "" };
         nav.push_str(&format!("<a{} href=\"/\">{} root</a>", root_active, Icons.icon("home")));
 
         for folder in folders {
@@ -66,7 +66,7 @@ impl Components {
                 "/{}/",
                 folder.split('/').map(|s| misc.percent_encode(s)).collect::<Vec<_>>().join("/")
             );
-            let active = if prefix == folder { " class=\"active\"" } else { "" };
+            let active = if prefix == folder && !scripts_active { " class=\"active\"" } else { "" };
 
             nav.push_str(&format!(
                 "<a{} style=\"padding-left:{:.1}rem\" href=\"{}\">{} {}/</a>",
@@ -75,6 +75,16 @@ impl Components {
                 href,
                 Icons.icon("folder"),
                 misc.html_escape(name)
+            ));
+        }
+
+        if has_scripts {
+            let active = if scripts_active { " class=\"active\"" } else { "" };
+            nav.push_str(&format!(
+                "<a{} href=\"{}\">{} scripts</a>",
+                active,
+                Server::SCRIPTS_ROUTE,
+                Icons.icon("file-code")
             ));
         }
 

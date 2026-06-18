@@ -1,19 +1,19 @@
 use reqwest;
-use walkdir::WalkDir;
 use is_url::is_url;
+use walkdir::WalkDir;
 
 use std::{
     fs::File,
     error::Error,
 
-    path::{
-        Path,
-        PathBuf,
-    },
-
     io::{
         Read,
         Cursor
+    },
+
+    path::{
+        Path,
+        PathBuf,
     },
 };
 
@@ -115,9 +115,6 @@ impl Monset {
         contents.contains("downloads {") || contents.contains("downloads{")
     }
 
-    // Starts the built-in web server when the list declares `server "PORT"`,
-    // serving the files in the list's output `path` (downloads + generated).
-    // Blocks until interrupted, so it must run after every other step.
     pub async fn server(&self) -> Result<(), Box<dyn Error>> {
         let contents = self.raw_contents().await?;
 
@@ -139,11 +136,7 @@ impl Monset {
                 .map(Self::produced_files)
                 .unwrap_or_default();
 
-            // The zip from the `compress` block, if it exists.
             let archive = Self::produced_archive(&contents);
-
-            // If the archive lives inside the served path, don't also list it as
-            // a regular file — it's shown as the dedicated archive entry.
             if let (Some(root), Some((_, apath))) = (path.as_deref(), &archive) {
                 if let Ok(rel) = apath.strip_prefix(Path::new(root)) {
                     let rel = rel.to_string_lossy().replace('\\', "/");
@@ -151,9 +144,12 @@ impl Monset {
                 }
             }
 
+            let scripts = Self::commands_scripts(&contents);
+
             let mut serve = Serve::new(path, port)
                 .with_source(name, contents.clone())
-                .with_files(files);
+                .with_files(files)
+                .with_scripts(scripts);
 
             if let Some((archive_name, archive_path)) = archive {
                 serve = serve.with_archive(archive_name, archive_path);
@@ -165,8 +161,32 @@ impl Monset {
         Ok(())
     }
 
-    // The archive declared by `compress "..."`, if the file exists:
-    // (display name, path).
+    fn commands_scripts(contents: &str) -> Vec<String> {
+        let mut scripts = Vec::new();
+        let mut in_block = false;
+
+        for line in contents.lines() {
+            let trimmed = line.trim();
+
+            if trimmed.starts_with("commands {") || trimmed.starts_with("commands{") {
+                in_block = true;
+                continue;
+            }
+
+            if in_block {
+                if trimmed.starts_with('}') {
+                    break;
+                }
+
+                if trimmed.starts_with("http") {
+                    scripts.push(trimmed.to_string());
+                }
+            }
+        }
+
+        scripts
+    }
+
     fn produced_archive(contents: &str) -> Option<(String, PathBuf)> {
         let zip = Vars.get_compress(contents)?;
         let path = PathBuf::from(&zip);
@@ -182,8 +202,6 @@ impl Monset {
         }
     }
 
-    // Collects every file under `root` (the list's output folder), as paths
-    // relative to `root` with forward slashes.
     fn produced_files(root: &str) -> Vec<String> {
         let root_path = Path::new(root);
         let mut files: Vec<String> = WalkDir::new(root_path)

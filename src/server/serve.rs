@@ -46,6 +46,7 @@ pub struct Serve {
     source: Option<Arc<(String, String)>>,
     files: Option<Arc<Vec<String>>>,
     archive: Option<Arc<(String, PathBuf)>>,
+    scripts: Option<Arc<Vec<String>>>,
 }
 
 impl Serve {
@@ -56,7 +57,7 @@ impl Serve {
             None => Folders::DOWNLOAD_FOLDER.clone(),
         };
 
-        Self { root, port, source: None, files: None, archive: None }
+        Self { root, port, source: None, files: None, archive: None, scripts: None }
     }
 
     pub fn with_source(mut self, name: String, body: String) -> Self {
@@ -71,6 +72,11 @@ impl Serve {
 
     pub fn with_archive(mut self, name: String, path: PathBuf) -> Self {
         self.archive = Some(Arc::new((name, path)));
+        self
+    }
+
+    pub fn with_scripts(mut self, scripts: Vec<String>) -> Self {
+        self.scripts = Some(Arc::new(scripts));
         self
     }
 
@@ -97,16 +103,17 @@ impl Serve {
             let source = self.source.clone();
             let files = self.files.clone();
             let archive = self.archive.clone();
+            let scripts = self.scripts.clone();
 
             thread::spawn(move || {
-                let _ = Self::handle(stream, &root, source, files, archive);
+                let _ = Self::handle(stream, &root, source, files, archive, scripts);
             });
         }
 
         Ok(())
     }
 
-    fn handle(mut stream: TcpStream, root: &Path, source: Option<Arc<(String, String)>>, files: Option<Arc<Vec<String>>>, archive: Option<Arc<(String, PathBuf)>>) -> Result<(), Box<dyn Error>> {
+    fn handle(mut stream: TcpStream, root: &Path, source: Option<Arc<(String, String)>>, files: Option<Arc<Vec<String>>>, archive: Option<Arc<(String, PathBuf)>>, scripts: Option<Arc<Vec<String>>>) -> Result<(), Box<dyn Error>> {
         let stream_instance = Stream;
         let mut reader = BufReader::new(stream.try_clone()?);
         let mut request_line = String::new();
@@ -164,6 +171,38 @@ impl Serve {
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
+        // A single script's content, fetched remotely and proxied as text.
+        if let Some(rest) = decoded.strip_prefix(Server::SCRIPT_ROUTE) {
+            if let (Some(scripts), Ok(idx)) = (&scripts, rest.parse::<usize>()) {
+                if let Some(url) = scripts.get(idx) {
+                    match Self::fetch_remote(url) {
+                        Ok(text) => {
+                            Logs.print(method, target, 200);
+                            return stream_instance.respond(&mut stream, 200, "OK", "text/plain; charset=utf-8", text.as_bytes());
+                        }
+                        Err(_) => {
+                            Logs.print(method, target, 502);
+                            return stream_instance.respond(&mut stream, 502, "Bad Gateway", "text/plain; charset=utf-8", b"Failed to fetch script.");
+                        }
+                    }
+                }
+            }
+
+            Logs.print(method, target, 404);
+            return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
+        }
+
+        // The scripts page: lists the commands-block scripts, opened in a lightbox.
+        if decoded == Server::SCRIPTS_ROUTE {
+            let source_name = source.as_ref().map(|s| s.0.as_str());
+            let files_vec: &[String] = files.as_deref().map(|f| f.as_slice()).unwrap_or(&[]);
+            let scripts_vec: &[String] = scripts.as_deref().map(|s| s.as_slice()).unwrap_or(&[]);
+
+            let body = Files.scripts_listing(files_vec, scripts_vec, source_name);
+            Logs.print(method, target, 200);
+            return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
+        }
+
         let files_instance = Files;
         let stream_instance = Stream;
         let Some(path) = stream_instance.resolve(root, &decoded) else {
@@ -184,13 +223,15 @@ impl Serve {
         if path.is_dir() {
             let source_name = source.as_ref().map(|s| s.0.as_str());
             let archive_ref = archive.as_ref().map(|a| (a.0.as_str(), a.1.as_path()));
+            let has_scripts = scripts.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
+
             let body = match &files {
                 Some(files) => {
                     let prefix = path.strip_prefix(root)
                         .map(|p| p.to_string_lossy().replace('\\', "/"))
                         .unwrap_or_default();
 
-                    files_instance.produced_listing(root, files, &prefix, source_name, archive_ref)
+                    files_instance.produced_listing(root, files, &prefix, source_name, archive_ref, has_scripts)
                 }
 
                 None => files_instance.directory_listing(&path, &decoded, root, source_name),
@@ -216,6 +257,12 @@ impl Serve {
                 stream_instance.respond(&mut stream, 500, "Internal Server Error", "text/plain; charset=utf-8", Pages.internal_server_error().as_bytes())
             }
         }
+    }
+
+    // Fetches a remote script's text content (used to proxy commands-block scripts).
+    fn fetch_remote(url: &str) -> Result<String, Box<dyn Error>> {
+        let body = ureq::get(url).call()?.body_mut().read_to_string()?;
+        Ok(body)
     }
 
 }

@@ -133,7 +133,7 @@ impl Files {
         self.render_page(&format!("Index of {}", escaped_base), &format!("<ul>{}</ul>", items), source_name, "")
     }
 
-    pub fn produced_listing(&self, root: &Path, entries: &[String], prefix: &str, source_name: Option<&str>, archive: Option<(&str, &Path)>) -> String {
+    pub fn produced_listing(&self, root: &Path, entries: &[String], prefix: &str, source_name: Option<&str>, archive: Option<(&str, &Path)>, has_scripts: bool) -> String {
         let misc = Misc;
         let prefix = prefix.trim_matches('/');
 
@@ -168,7 +168,7 @@ impl Files {
             "<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Search files…\" autocomplete=\"on\">".to_string()
         };
 
-        let sidebar = format!("{}{}", search, Components.folder_nav(&misc, &all_folders, prefix));
+        let sidebar = format!("{}{}", search, Components.folder_nav(&misc, &all_folders, prefix, has_scripts, false));
 
         for entry in files {
             let kind = misc.lightbox_kind(entry);
@@ -284,6 +284,48 @@ impl Files {
         };
 
         self.render_page(&heading, &body, source_name, &sidebar)
+    }
+
+    // Lists the commands-block scripts; each opens (fetched remotely) in a lightbox.
+    pub fn scripts_listing(&self, files: &[String], scripts: &[String], source_name: Option<&str>) -> String {
+        let misc = Misc;
+
+        let mut all_folders: BTreeSet<String> = BTreeSet::new();
+        for entry in files {
+            let parts: Vec<&str> = entry.split('/').collect();
+            for i in 1..parts.len() {
+                all_folders.insert(parts[..i].join("/"));
+            }
+        }
+
+        let sidebar = Components.folder_nav(&misc, &all_folders, "", true, true);
+
+        let mut rows = String::new();
+        for (i, url) in scripts.iter().enumerate() {
+            let name = url.rsplit('/').find(|s| !s.is_empty()).unwrap_or(url);
+
+            rows.push_str(&format!(
+                "<tr data-name=\"{0}\">\
+                 <td class=\"name\"><a class=\"lb\" data-type=\"text\" href=\"{1}{2}\">{3}{0}</a></td>\
+                 <td class=\"meta\">{4}</td></tr>",
+                misc.html_escape(name),
+                Server::SCRIPT_ROUTE,
+                i,
+                Icons.icon("file-code"),
+                misc.html_escape(url),
+            ));
+        }
+
+        let body = if scripts.is_empty() {
+            "<p>No scripts.</p>".to_string()
+        } else {
+            format!(
+                "<table class=\"files\"><thead><tr><th>Name</th><th>Source</th></tr></thead><tbody>{}</tbody></table>",
+                rows
+            )
+        };
+
+        self.render_page("Scripts", &body, source_name, &sidebar)
     }
 
     fn render_page(&self, heading: &str, body: &str, source_name: Option<&str>, sidebar: &str) -> String {

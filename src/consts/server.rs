@@ -6,7 +6,10 @@ impl Server {
 
     pub const SOURCE_ROUTE: &str = "/__scimon/source.mon";
 
-    pub const ARCHIVE_ROUTE: &str = "/__scimon/archive";
+    pub const ARCHIVE_ROUTE: &str = "/archive";
+
+    pub const SCRIPTS_ROUTE: &str = "/scripts";
+    pub const SCRIPT_ROUTE: &str = "/script/";
 
     pub const THEME_EARLY: &'static str = "<script>(function(){try{\
         var t=localStorage.getItem('scimon-theme');\
