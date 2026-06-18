@@ -327,8 +327,6 @@ impl Files {
         self.render_page("Scripts", &body, source_name, &sidebar)
     }
 
-    // A tool to compute a produced file's SHA-256 and compare it with an
-    // expected hash.
     pub fn checksum_tool(&self, files: &[String], source_name: Option<&str>, has_scripts: bool) -> String {
         let misc = Misc;
 
