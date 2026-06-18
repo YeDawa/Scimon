@@ -81,7 +81,7 @@ impl Components {
         if has_scripts {
             let active = if scripts_active { " class=\"active\"" } else { "" };
             nav.push_str(&format!(
-                "<div class=\"separator\"></div><a{} href=\"{}\">{} scripts</a>",
+                "<div class=\"separator\"></div><a{} href=\"{}\">{} Scripts</a>",
                 active,
                 Server::SCRIPTS_ROUTE,
                 Icons.icon("file-code")
