@@ -12,6 +12,7 @@ use std::{
 };
 
 use crate::{
+    utils::file::FileUtils,
     ui::server_alerts::ServerAlerts,
 
     consts::{
@@ -203,7 +204,7 @@ impl Files {
                 href,
                 Icons.icon(Icons.file_icon(kind)),
                 mtime.map(|t| misc.format_mtime(t)).unwrap_or_default(),
-                misc.human_size(size),
+                FileUtils.human_size(size),
             ));
         }
 
@@ -223,7 +224,7 @@ impl Files {
                     Server::ARCHIVE_ROUTE,
                     Icons.icon("file-archive"),
                     mtime.map(|t| misc.format_mtime(t)).unwrap_or_default(),
-                    misc.human_size(size),
+                    FileUtils.human_size(size),
                 ));
             }
         }
@@ -244,7 +245,7 @@ impl Files {
                 serde_json::json!({
                     "p": entry,
                     "h": href,
-                    "s": misc.human_size(size),
+                    "s": FileUtils.human_size(size),
                     "m": mtime.map(|t| misc.format_mtime(t)).unwrap_or_default(),
                     "t": kind.unwrap_or(""),
                     "i": Icons.file_icon(kind),

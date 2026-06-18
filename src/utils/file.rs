@@ -118,4 +118,21 @@ impl FileUtils {
         path.to_string_lossy().to_string()
     }
 
+    pub fn human_size(&self, bytes: u64) -> String {
+        let units = ["b", "k", "M", "G", "T"];
+        let mut size = bytes as f64;
+        let mut unit = 0;
+
+        while size >= 1024.0 && unit < units.len() - 1 {
+            size /= 1024.0;
+            unit += 1;
+        }
+
+        if unit == 0 {
+            format!("{}b", bytes)
+        } else {
+            format!("{}{}", format!("{:.1}", size).trim_end_matches(".0"), units[unit])
+        }
+    }
+
 }
