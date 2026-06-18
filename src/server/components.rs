@@ -49,28 +49,26 @@ impl Components {
         Server::THEME_EARLY.to_string()
     }
 
-    pub fn folder_nav(&self, misc: &Misc, folders: &BTreeSet<String>, prefix: &str, has_scripts: bool, scripts_active: bool) -> String {
-        if folders.is_empty() && !has_scripts {
-            return String::new();
-        }
+    // Sidebar navigation. `active` is the key of the current view: "" (root),
+    // a folder prefix, "scripts", or "checksum".
+    pub fn folder_nav(&self, misc: &Misc, folders: &BTreeSet<String>, active: &str, has_scripts: bool) -> String {
+        let cls = |on: bool| if on { " class=\"active\"" } else { "" };
 
         let mut nav = String::from("<nav class=\"folders\">");
-        let root_active = if prefix.is_empty() && !scripts_active { " class=\"active\"" } else { "" };
-        nav.push_str(&format!("<a{} href=\"/\">{} root</a>", root_active, Icons.icon("home")));
+        nav.push_str(&format!("<a{} href=\"/\">{} root</a>", cls(active.is_empty()), Icons.icon("home")));
 
         for folder in folders {
             let depth = folder.matches('/').count();
             let name = folder.rsplit('/').next().unwrap_or(folder);
-            
+
             let href = format!(
                 "/{}/",
                 folder.split('/').map(|s| misc.percent_encode(s)).collect::<Vec<_>>().join("/")
             );
 
-            let active = if prefix == folder && !scripts_active { " class=\"active\"" } else { "" };
             nav.push_str(&format!(
                 "<a{} style=\"padding-left:{:.1}rem\" href=\"{}\">{} {}/</a>",
-                active,
+                cls(active == folder),
                 0.6 + depth as f64 * 0.9,
                 href,
                 Icons.icon("folder"),
@@ -78,18 +76,30 @@ impl Components {
             ));
         }
 
+        nav.push_str("<div class=\"separator\"></div>");
+
         if has_scripts {
-            let active = if scripts_active { " class=\"active\"" } else { "" };
             nav.push_str(&format!(
-                "<div class=\"separator\"></div><a{} href=\"{}\">{} Scripts</a>",
-                active,
+                "<a{} href=\"{}\">{} Scripts</a>",
+                cls(active == "scripts"),
                 Server::SCRIPTS_ROUTE,
                 Icons.icon("file-code")
             ));
         }
 
+        nav.push_str(&format!(
+            "<a{} href=\"{}\">{} Checksum</a>",
+            cls(active == "checksum"),
+            Server::CHECKSUM_ROUTE,
+            Icons.icon("shield-check")
+        ));
+
         nav.push_str("</nav>");
         nav
+    }
+
+    pub fn checksum_js(&self) -> String {
+        Server::CHECKSUM_JS.to_string()
     }
 
 }

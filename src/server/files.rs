@@ -168,7 +168,7 @@ impl Files {
             "<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Search files…\" autocomplete=\"off\">".to_string()
         };
 
-        let sidebar = format!("{}{}", search, Components.folder_nav(&misc, &all_folders, prefix, has_scripts, false));
+        let sidebar = format!("{}{}", search, Components.folder_nav(&misc, &all_folders, prefix, has_scripts));
 
         for entry in files {
             let kind = misc.lightbox_kind(entry);
@@ -297,7 +297,7 @@ impl Files {
             }
         }
 
-        let sidebar = Components.folder_nav(&misc, &all_folders, "", true, true);
+        let sidebar = Components.folder_nav(&misc, &all_folders, "scripts", true);
 
         let mut rows = String::new();
         for (i, url) in scripts.iter().enumerate() {
@@ -325,6 +325,50 @@ impl Files {
         };
 
         self.render_page("Scripts", &body, source_name, &sidebar)
+    }
+
+    // A tool to compute a produced file's SHA-256 and compare it with an
+    // expected hash.
+    pub fn checksum_tool(&self, files: &[String], source_name: Option<&str>, has_scripts: bool) -> String {
+        let misc = Misc;
+
+        let mut all_folders: BTreeSet<String> = BTreeSet::new();
+        for entry in files {
+            let parts: Vec<&str> = entry.split('/').collect();
+            for i in 1..parts.len() {
+                all_folders.insert(parts[..i].join("/"));
+            }
+        }
+
+        let sidebar = Components.folder_nav(&misc, &all_folders, "checksum", has_scripts);
+
+        let body = if files.is_empty() {
+            "<p>No files to verify.</p>".to_string()
+        } else {
+            let mut options = String::new();
+            for (i, file) in files.iter().enumerate() {
+                options.push_str(&format!(
+                    "<option value=\"{}\">{}</option>",
+                    i,
+                    misc.html_escape(file)
+                ));
+            }
+
+            format!(
+                "<div class=\"cs-tool\">\
+                 <div class=\"cs-row\"><label for=\"cs-file\">File</label>\
+                 <select id=\"cs-file\">{}</select></div>\
+                 <button id=\"cs-compute\">Compute SHA-256</button>\
+                 <div class=\"cs-row\">Computed: <code id=\"cs-result\">—</code></div>\
+                 <div class=\"cs-row\"><label for=\"cs-expected\">Expected hash</label>\
+                 <input id=\"cs-expected\" type=\"text\" autocomplete=\"off\" placeholder=\"paste the expected SHA-256\"></div>\
+                 <div id=\"cs-status\"></div>\
+                 </div>",
+                options
+            )
+        };
+
+        self.render_page("Checksum", &body, source_name, &sidebar)
     }
 
     fn render_page(&self, heading: &str, body: &str, source_name: Option<&str>, sidebar: &str) -> String {
@@ -373,6 +417,7 @@ impl Files {
         html.push_str(&components.lightbox_js());
         html.push_str(&components.table_js());
         html.push_str(&components.search_js());
+        html.push_str(&components.checksum_js());
         html.push_str("</script>");
         html.push_str("<script src=\"https://unpkg.com/lucide@latest\"></script>");
         html.push_str("<script>lucide.createIcons();</script>");

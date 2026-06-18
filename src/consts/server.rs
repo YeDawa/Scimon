@@ -11,6 +11,9 @@ impl Server {
     pub const SCRIPTS_ROUTE: &str = "/scripts";
     pub const SCRIPT_ROUTE: &str = "/script/";
 
+    pub const CHECKSUM_ROUTE: &str = "/checksum";
+    pub const CHECKSUM_HASH_ROUTE: &str = "/checksum/";
+
     pub const THEME_EARLY: &'static str = "<script>(function(){try{\
         var t=localStorage.getItem('scimon-theme');\
         if(t)document.documentElement.setAttribute('data-theme',t);\
@@ -96,6 +99,15 @@ impl Server {
         table.files td.name a{display:inline-flex;align-items:center;gap:.5rem;}
         table.files td.meta{color:var(--muted);white-space:nowrap;}
         table.files .arrow{font-size:.7em;opacity:.6;margin-left:.25rem;}
+        .cs-tool{display:flex;flex-direction:column;gap:.9rem;max-width:560px;}
+        .cs-tool .cs-row{display:flex;flex-direction:column;gap:.3rem;font-size:.9rem;}
+        .cs-tool select,.cs-tool input{padding:.5rem .7rem;border:1px solid var(--border);
+            border-radius:8px;background:var(--bg);color:var(--fg);font-size:.9rem;}
+        .cs-tool button{align-self:flex-start;padding:.5rem .9rem;border:1px solid var(--border);
+            border-radius:8px;background:var(--hover);color:var(--fg);cursor:pointer;font-size:.9rem;}
+        .cs-tool code{word-break:break-all;font-family:ui-monospace,Consolas,monospace;color:var(--fg);}
+        .cs-ok{color:#16a34a;font-weight:600;}
+        .cs-bad{color:#dc2626;font-weight:600;}
         .theme-toggle{margin-top:auto;align-self:flex-start;display:flex;align-items:center;gap:.5rem;
             background:transparent;color:var(--fg);border:1px solid var(--border);border-radius:8px;
             padding:.45rem .7rem;cursor:pointer;font-size:1rem;line-height:1;}
@@ -120,6 +132,32 @@ impl Server {
         #lb .close{top:1rem;right:1.5rem;font-size:2.4rem;}
         #lb .prev{left:.5rem;top:50%;transform:translateY(-50%);}
         #lb .next{right:.5rem;top:50%;transform:translateY(-50%);}
+    "#;
+
+    pub const CHECKSUM_JS: &'static str = r#"
+        (function(){
+            var sel=document.getElementById('cs-file');
+            var btn=document.getElementById('cs-compute');
+            var res=document.getElementById('cs-result');
+            var exp=document.getElementById('cs-expected');
+            var status=document.getElementById('cs-status');
+            if(!sel||!btn)return;
+            function compare(){
+                var c=(res.textContent||'').trim().toLowerCase();
+                var e=(exp.value||'').trim().toLowerCase();
+                if(!c||c==='—'||c==='…'||!e){status.textContent='';status.className='';return;}
+                if(c===e){status.textContent='✓ Match';status.className='cs-ok';}
+                else{status.textContent='✗ No match';status.className='cs-bad';}
+            }
+            btn.addEventListener('click',function(){
+                res.textContent='…';status.textContent='';
+                fetch('/checksum/'+encodeURIComponent(sel.value))
+                    .then(function(r){return r.text();})
+                    .then(function(t){res.textContent=t.trim();compare();})
+                    .catch(function(){res.textContent='error';});
+            });
+            exp.addEventListener('input',compare);
+        })();
     "#;
 
     pub const SEARCH_JS: &'static str = r#"

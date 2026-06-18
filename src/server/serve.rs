@@ -31,6 +31,8 @@ use crate::{
         folders::Folders,
     },
 
+    generator::checksum::Checksum,
+
     server::{
         misc::Misc,
         pages::Pages,
@@ -197,6 +199,33 @@ impl Serve {
             let scripts_vec: &[String] = scripts.as_deref().map(|s| s.as_slice()).unwrap_or(&[]);
 
             let body = Files.scripts_listing(files_vec, scripts_vec, source_name);
+            ServerAlerts::logs(method, target, 200);
+            return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
+        }
+
+        // Compute a produced file's SHA-256 on demand.
+        if let Some(rest) = decoded.strip_prefix(Server::CHECKSUM_HASH_ROUTE) {
+            if let (Some(files), Ok(idx)) = (&files, rest.parse::<usize>()) {
+                if let Some(rel) = files.get(idx) {
+                    if let Some(full) = root.join(rel).to_str() {
+                        if let Ok(hash) = Checksum::new(None).hash(full) {
+                            ServerAlerts::logs(method, target, 200);
+                            return stream_instance.respond(&mut stream, 200, "OK", "text/plain; charset=utf-8", hash.as_bytes());
+                        }
+                    }
+                }
+            }
+
+            ServerAlerts::logs(method, target, 404);
+            return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
+        }
+
+        if decoded == Server::CHECKSUM_ROUTE {
+            let source_name = source.as_ref().map(|s| s.0.as_str());
+            let files_vec: &[String] = files.as_deref().map(|f| f.as_slice()).unwrap_or(&[]);
+            let has_scripts = scripts.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
+
+            let body = Files.checksum_tool(files_vec, source_name, has_scripts);
             ServerAlerts::logs(method, target, 200);
             return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
         }
