@@ -55,7 +55,6 @@ impl Components {
         }
 
         let mut nav = String::from("<nav class=\"folders\">");
-
         let root_active = if prefix.is_empty() && !scripts_active { " class=\"active\"" } else { "" };
         nav.push_str(&format!("<a{} href=\"/\">{} root</a>", root_active, Icons.icon("home")));
 
