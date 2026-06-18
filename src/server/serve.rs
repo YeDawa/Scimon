@@ -220,16 +220,6 @@ impl Serve {
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
-        if decoded == Server::CHECKSUM_ROUTE {
-            let source_name = source.as_ref().map(|s| s.0.as_str());
-            let files_vec: &[String] = files.as_deref().map(|f| f.as_slice()).unwrap_or(&[]);
-            let has_scripts = scripts.as_ref().map(|s| !s.is_empty()).unwrap_or(false);
-
-            let body = Files.checksum_tool(files_vec, source_name, has_scripts);
-            ServerAlerts::logs(method, target, 200);
-            return stream_instance.respond(&mut stream, 200, "OK", "text/html; charset=utf-8", body.as_bytes());
-        }
-
         let files_instance = Files;
         let stream_instance = Stream;
         let Some(path) = stream_instance.resolve(root, &decoded) else {

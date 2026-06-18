@@ -11,7 +11,6 @@ impl Server {
     pub const SCRIPTS_ROUTE: &str = "/scripts";
     pub const SCRIPT_ROUTE: &str = "/script/";
 
-    pub const CHECKSUM_ROUTE: &str = "/checksum";
     pub const CHECKSUM_HASH_ROUTE: &str = "/checksum/";
 
     pub const THEME_EARLY: &'static str = "<script>(function(){try{\
@@ -99,13 +98,22 @@ impl Server {
         table.files td.name a{display:inline-flex;align-items:center;gap:.5rem;}
         table.files td.meta{color:var(--muted);white-space:nowrap;}
         table.files .arrow{font-size:.7em;opacity:.6;margin-left:.25rem;}
-        .cs-tool{display:flex;flex-direction:column;gap:.9rem;max-width:560px;}
-        .cs-tool .cs-row{display:flex;flex-direction:column;gap:.3rem;font-size:.9rem;}
-        .cs-tool select,.cs-tool input{padding:.5rem .7rem;border:1px solid var(--border);
+        .cs-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
+            align-items:center;justify-content:center;z-index:1100;}
+        .cs-modal.open{display:flex;}
+        .cs-card{position:relative;background:var(--bg);color:var(--fg);border:1px solid var(--border);
+            border-radius:12px;padding:1.5rem;width:min(560px,92vw);
+            display:flex;flex-direction:column;gap:.9rem;box-shadow:0 10px 40px rgba(0,0,0,.4);}
+        .cs-card h2{margin:0;font-size:1.1rem;}
+        .cs-card .cs-row{display:flex;flex-direction:column;gap:.3rem;font-size:.9rem;}
+        .cs-card select,.cs-card input{padding:.5rem .7rem;border:1px solid var(--border);
             border-radius:8px;background:var(--bg);color:var(--fg);font-size:.9rem;}
-        .cs-tool button{align-self:flex-start;padding:.5rem .9rem;border:1px solid var(--border);
+        .cs-card button{align-self:flex-start;padding:.5rem .9rem;border:1px solid var(--border);
             border-radius:8px;background:var(--hover);color:var(--fg);cursor:pointer;font-size:.9rem;}
-        .cs-tool code{word-break:break-all;font-family:ui-monospace,Consolas,monospace;color:var(--fg);}
+        .cs-card code{word-break:break-all;font-family:ui-monospace,Consolas,monospace;color:var(--fg);}
+        .cs-card .cs-close{position:absolute;top:.7rem;right:1rem;cursor:pointer;font-size:1.6rem;
+            line-height:1;color:var(--muted);}
+        .cs-card .cs-close:hover{color:var(--fg);}
         .cs-ok{color:#16a34a;font-weight:600;}
         .cs-bad{color:#dc2626;font-weight:600;}
         .theme-toggle{margin-top:auto;align-self:flex-start;display:flex;align-items:center;gap:.5rem;
@@ -136,12 +144,13 @@ impl Server {
 
     pub const CHECKSUM_JS: &'static str = r#"
         (function(){
+            var modal=document.getElementById('cs-modal');
+            if(!modal)return;
             var sel=document.getElementById('cs-file');
             var btn=document.getElementById('cs-compute');
             var res=document.getElementById('cs-result');
             var exp=document.getElementById('cs-expected');
             var status=document.getElementById('cs-status');
-            if(!sel||!btn)return;
             function compare(){
                 var c=(res.textContent||'').trim().toLowerCase();
                 var e=(exp.value||'').trim().toLowerCase();
@@ -149,14 +158,25 @@ impl Server {
                 if(c===e){status.textContent='✓ Match';status.className='cs-ok';}
                 else{status.textContent='✗ No match';status.className='cs-bad';}
             }
-            btn.addEventListener('click',function(){
+            function open(){modal.classList.add('open');}
+            function close(){modal.classList.remove('open');}
+            document.querySelectorAll('.cs-open').forEach(function(a){
+                a.addEventListener('click',function(e){e.preventDefault();open();});
+            });
+            modal.addEventListener('click',function(e){
+                if(e.target===modal||e.target.classList.contains('cs-close'))close();
+            });
+            document.addEventListener('keydown',function(e){
+                if(e.key==='Escape'&&modal.classList.contains('open'))close();
+            });
+            if(btn)btn.addEventListener('click',function(){
                 res.textContent='…';status.textContent='';
                 fetch('/checksum/'+encodeURIComponent(sel.value))
                     .then(function(r){return r.text();})
                     .then(function(t){res.textContent=t.trim();compare();})
                     .catch(function(){res.textContent='error';});
             });
-            exp.addEventListener('input',compare);
+            if(exp)exp.addEventListener('input',compare);
         })();
     "#;
 

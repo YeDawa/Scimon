@@ -53,6 +53,35 @@ impl Components {
         Server::CHECKSUM_JS.to_string()
     }
 
+    // The checksum modal, with one option per produced file (value = its index,
+    // matching the /checksum/{i} compute route).
+    pub fn checksum_modal(&self, files: &[String]) -> String {
+        if files.is_empty() {
+            return String::new();
+        }
+
+        let misc = Misc;
+        let mut options = String::new();
+        for (i, file) in files.iter().enumerate() {
+            options.push_str(&format!("<option value=\"{}\">{}</option>", i, misc.html_escape(file)));
+        }
+
+        format!(
+            "<div id=\"cs-modal\" class=\"cs-modal\"><div class=\"cs-card\">\
+             <span class=\"cs-close\">&times;</span>\
+             <h2>Checksum (SHA-256)</h2>\
+             <div class=\"cs-row\"><label for=\"cs-file\">File</label>\
+             <select id=\"cs-file\">{}</select></div>\
+             <button id=\"cs-compute\">Compute</button>\
+             <div class=\"cs-row\">Computed: <code id=\"cs-result\">—</code></div>\
+             <div class=\"cs-row\"><label for=\"cs-expected\">Expected hash</label>\
+             <input id=\"cs-expected\" type=\"text\" autocomplete=\"off\" placeholder=\"paste the expected SHA-256\"></div>\
+             <div id=\"cs-status\"></div>\
+             </div></div>",
+            options
+        )
+    }
+
     pub fn folder_nav(&self, misc: &Misc, folders: &BTreeSet<String>, active: &str, has_scripts: bool) -> String {
         let cls = |on: bool| if on { " class=\"active\"" } else { "" };
 
@@ -90,9 +119,7 @@ impl Components {
         }
 
         nav.push_str(&format!(
-            "<a{} href=\"{}\">{} Checksum</a>",
-            cls(active == "checksum"),
-            Server::CHECKSUM_ROUTE,
+            "<a class=\"cs-open\" href=\"#\">{} Checksum</a>",
             Icons.icon("shield-check")
         ));
 

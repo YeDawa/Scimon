@@ -130,7 +130,7 @@ impl Files {
         }
 
         let escaped_base = misc.html_escape(&base);
-        self.render_page(&format!("Index of {}", escaped_base), &format!("<ul>{}</ul>", items), source_name, "")
+        self.render_page(&format!("Index of {}", escaped_base), &format!("<ul>{}</ul>", items), source_name, "", "")
     }
 
     pub fn produced_listing(&self, root: &Path, entries: &[String], prefix: &str, source_name: Option<&str>, archive: Option<(&str, &Path)>, has_scripts: bool) -> String {
@@ -283,7 +283,8 @@ impl Files {
             format!("/{}", misc.html_escape(prefix))
         };
 
-        self.render_page(&heading, &body, source_name, &sidebar)
+        let modal = Components.checksum_modal(entries);
+        self.render_page(&heading, &body, source_name, &sidebar, &modal)
     }
 
     pub fn scripts_listing(&self, files: &[String], scripts: &[String], source_name: Option<&str>) -> String {
@@ -324,52 +325,11 @@ impl Files {
             )
         };
 
-        self.render_page("Scripts", &body, source_name, &sidebar)
+        let modal = Components.checksum_modal(files);
+        self.render_page("Scripts", &body, source_name, &sidebar, &modal)
     }
 
-    pub fn checksum_tool(&self, files: &[String], source_name: Option<&str>, has_scripts: bool) -> String {
-        let misc = Misc;
-
-        let mut all_folders: BTreeSet<String> = BTreeSet::new();
-        for entry in files {
-            let parts: Vec<&str> = entry.split('/').collect();
-            for i in 1..parts.len() {
-                all_folders.insert(parts[..i].join("/"));
-            }
-        }
-
-        let sidebar = Components.folder_nav(&misc, &all_folders, "checksum", has_scripts);
-
-        let body = if files.is_empty() {
-            "<p>No files to verify.</p>".to_string()
-        } else {
-            let mut options = String::new();
-            for (i, file) in files.iter().enumerate() {
-                options.push_str(&format!(
-                    "<option value=\"{}\">{}</option>",
-                    i,
-                    misc.html_escape(file)
-                ));
-            }
-
-            format!(
-                "<div class=\"cs-tool\">\
-                 <div class=\"cs-row\"><label for=\"cs-file\">File</label>\
-                 <select id=\"cs-file\">{}</select></div>\
-                 <button id=\"cs-compute\">Compute SHA-256</button>\
-                 <div class=\"cs-row\">Computed: <code id=\"cs-result\">—</code></div>\
-                 <div class=\"cs-row\"><label for=\"cs-expected\">Expected hash</label>\
-                 <input id=\"cs-expected\" type=\"text\" autocomplete=\"off\" placeholder=\"paste the expected SHA-256\"></div>\
-                 <div id=\"cs-status\"></div>\
-                 </div>",
-                options
-            )
-        };
-
-        self.render_page("Checksum", &body, source_name, &sidebar)
-    }
-
-    fn render_page(&self, heading: &str, body: &str, source_name: Option<&str>, sidebar: &str) -> String {
+    fn render_page(&self, heading: &str, body: &str, source_name: Option<&str>, sidebar: &str, modal: &str) -> String {
         let misc = Misc;
         let components = Components;
 
@@ -409,6 +369,7 @@ impl Files {
         html.push_str(body);
         html.push_str("</main></div>");
 
+        html.push_str(modal);
         html.push_str(&components.lightbox());
         html.push_str("<script>");
         html.push_str(&components.theme_js());
