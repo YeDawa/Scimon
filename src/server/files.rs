@@ -294,18 +294,19 @@ impl Files {
 
     pub fn scripts_listing(&self, files: &[String], scripts: &[String], source_name: Option<&str>) -> String {
         let misc = Misc;
-
         let mut all_folders: BTreeSet<String> = BTreeSet::new();
+        
         for entry in files {
             let parts: Vec<&str> = entry.split('/').collect();
+
             for i in 1..parts.len() {
                 all_folders.insert(parts[..i].join("/"));
             }
         }
 
+        let mut rows = String::new();
         let sidebar = Components.folder_nav(&all_folders, "scripts", true);
 
-        let mut rows = String::new();
         for (i, url) in scripts.iter().enumerate() {
             let name = url.rsplit('/').find(|s| !s.is_empty()).unwrap_or(url);
 
