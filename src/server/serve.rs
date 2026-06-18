@@ -21,6 +21,8 @@ use std::{
 };
 
 use crate::{
+    generator::checksum::Checksum,
+
     ui::{
         ui_base::UI,
         server_alerts::ServerAlerts,
@@ -30,8 +32,6 @@ use crate::{
         server::Server,
         folders::Folders,
     },
-
-    generator::checksum::Checksum,
 
     server::{
         misc::Misc,
