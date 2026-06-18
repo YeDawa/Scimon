@@ -290,6 +290,7 @@ impl Files {
         let mut html = String::new();
         html.push_str("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">");
         html.push_str("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
+        html.push_str("<link rel=\"icon\" href=\"https://scimon.dev/favicon.ico\">");
         html.push_str(&format!("<title>Scimon: {}</title>", heading));
         html.push_str("<style>");
         html.push_str(&components.style());
