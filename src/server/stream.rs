@@ -1,3 +1,5 @@
+use ureq;
+
 use std::{
     io::Write,
     error::Error,
@@ -47,6 +49,11 @@ impl Stream {
         stream.flush()?;
 
         Ok(())
+    }
+
+    pub fn fetch_remote(&self, url: &str) -> Result<String, Box<dyn Error>> {
+        let body = ureq::get(url).call()?.body_mut().read_to_string()?;
+        Ok(body)
     }
 
 }

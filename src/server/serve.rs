@@ -173,11 +173,12 @@ impl Serve {
         if let Some(rest) = decoded.strip_prefix(Server::SCRIPT_ROUTE) {
             if let (Some(scripts), Ok(idx)) = (&scripts, rest.parse::<usize>()) {
                 if let Some(url) = scripts.get(idx) {
-                    match Self::fetch_remote(url) {
+                    match stream_instance.fetch_remote(url) {
                         Ok(text) => {
                             ServerAlerts::logs(method, target, 200);
                             return stream_instance.respond(&mut stream, 200, "OK", "text/plain; charset=utf-8", text.as_bytes());
                         }
+
                         Err(_) => {
                             ServerAlerts::logs(method, target, 502);
                             return stream_instance.respond(&mut stream, 502, "Bad Gateway", "text/plain; charset=utf-8", b"Failed to fetch script.");
@@ -254,11 +255,6 @@ impl Serve {
                 stream_instance.respond(&mut stream, 500, "Internal Server Error", "text/plain; charset=utf-8", Pages.internal_server_error().as_bytes())
             }
         }
-    }
-
-    fn fetch_remote(url: &str) -> Result<String, Box<dyn Error>> {
-        let body = ureq::get(url).call()?.body_mut().read_to_string()?;
-        Ok(body)
     }
 
 }

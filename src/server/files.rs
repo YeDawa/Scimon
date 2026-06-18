@@ -12,6 +12,8 @@ use std::{
 };
 
 use crate::{
+    ui::server_alerts::ServerAlerts,
+    
     consts::{
         global::Global,
         server::Server,
@@ -19,7 +21,6 @@ use crate::{
 
     server::{
         misc::Misc,
-        logs::Logs,
         icons::Icons,
         components::Components,
     },
@@ -65,7 +66,7 @@ impl Files {
 
         header.push_str("Connection: close\r\n\r\n");
 
-        Logs.print(method, target, status);
+        ServerAlerts::logs(method, target, status);
         stream.write_all(header.as_bytes())?;
 
         if method != "HEAD" {
@@ -286,7 +287,6 @@ impl Files {
         self.render_page(&heading, &body, source_name, &sidebar)
     }
 
-    // Lists the commands-block scripts; each opens (fetched remotely) in a lightbox.
     pub fn scripts_listing(&self, files: &[String], scripts: &[String], source_name: Option<&str>) -> String {
         let misc = Misc;
 
