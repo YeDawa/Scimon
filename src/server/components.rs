@@ -6,6 +6,7 @@ use crate::{
     server::{
         misc::Misc,
         icons::Icons,
+        encoders::Encoders,
     },
 };
 
@@ -80,7 +81,7 @@ impl Components {
         )
     }
 
-    pub fn folder_nav(&self, misc: &Misc, folders: &BTreeSet<String>, active: &str, has_scripts: bool) -> String {
+    pub fn folder_nav(&self, folders: &BTreeSet<String>, active: &str, has_scripts: bool) -> String {
         let cls = |on: bool| if on { " class=\"active\"" } else { "" };
 
         let mut nav = String::from("<nav class=\"folders\">");
@@ -92,7 +93,7 @@ impl Components {
 
             let href = format!(
                 "/{}/",
-                folder.split('/').map(|s| misc.percent_encode(s)).collect::<Vec<_>>().join("/")
+                folder.split('/').map(|s| Encoders.percent_encode(s)).collect::<Vec<_>>().join("/")
             );
 
             nav.push_str(&format!(
@@ -101,7 +102,7 @@ impl Components {
                 0.6 + depth as f64 * 0.9,
                 href,
                 Icons.icon("folder"),
-                misc.html_escape(name)
+                Misc.html_escape(name)
             ));
         }
 

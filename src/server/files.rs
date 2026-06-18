@@ -23,6 +23,7 @@ use crate::{
     server::{
         misc::Misc,
         icons::Icons,
+        encoders::Encoders,
         components::Components,
     },
 };
@@ -81,6 +82,8 @@ impl Files {
 
     pub fn directory_listing(&self, dir: &Path, url_path: &str, root: &Path, source_name: Option<&str>) -> String {
         let misc = Misc;
+        let encoders = Encoders;
+
         let mut entries: Vec<(String, bool)> = read_dir(dir)
             .into_iter()
             .flatten()
@@ -110,7 +113,7 @@ impl Files {
 
         for (name, is_dir) in entries {
             let display = if is_dir { format!("{}/", name) } else { name.clone() };
-            let href = format!("{}{}", base, misc.percent_encode(&name));
+            let href = format!("{}{}", base, encoders.percent_encode(&name));
             let href = if is_dir { format!("{}/", href) } else { href };
 
             let kind = misc.lightbox_kind(&name);
@@ -136,6 +139,7 @@ impl Files {
 
     pub fn produced_listing(&self, root: &Path, entries: &[String], prefix: &str, source_name: Option<&str>, archive: Option<(&str, &Path)>, has_scripts: bool) -> String {
         let misc = Misc;
+        let encoders = Encoders;
         let prefix = prefix.trim_matches('/');
 
         let mut files: Vec<&String> = Vec::new();
@@ -169,7 +173,7 @@ impl Files {
             "<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Search files…\" autocomplete=\"off\">".to_string()
         };
 
-        let sidebar = format!("{}{}", search, Components.folder_nav(&misc, &all_folders, prefix, has_scripts));
+        let sidebar = format!("{}{}", search, Components.folder_nav(&all_folders, prefix, has_scripts));
 
         for entry in files {
             let kind = misc.lightbox_kind(entry);
@@ -181,7 +185,7 @@ impl Files {
 
             let href = format!(
                 "/{}",
-                entry.split('/').map(|s| misc.percent_encode(s)).collect::<Vec<_>>().join("/")
+                entry.split('/').map(|s| encoders.percent_encode(s)).collect::<Vec<_>>().join("/")
             );
 
             let attrs = match kind {
@@ -239,7 +243,7 @@ impl Files {
                 let kind = misc.lightbox_kind(entry);
                 let href = format!(
                     "/{}",
-                    entry.split('/').map(|s| misc.percent_encode(s)).collect::<Vec<_>>().join("/")
+                    entry.split('/').map(|s| encoders.percent_encode(s)).collect::<Vec<_>>().join("/")
                 );
 
                 serde_json::json!({
@@ -299,7 +303,7 @@ impl Files {
             }
         }
 
-        let sidebar = Components.folder_nav(&misc, &all_folders, "scripts", true);
+        let sidebar = Components.folder_nav(&all_folders, "scripts", true);
 
         let mut rows = String::new();
         for (i, url) in scripts.iter().enumerate() {

@@ -35,10 +35,10 @@ use crate::{
     },
 
     server::{
-        misc::Misc,
         pages::Pages,
         files::Files,
         stream::Stream,
+        encoders::Encoders,
     },
 };
 
@@ -149,7 +149,7 @@ impl Serve {
         }
 
         let target = raw_target.split('?').next().unwrap_or("/");
-        let decoded = Misc.percent_decode(target);
+        let decoded = Encoders.percent_decode(target);
 
         if decoded == Server::SOURCE_ROUTE {
             if let Some(source) = &source {

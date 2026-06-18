@@ -1,6 +1,7 @@
 pub mod misc;
 pub mod icons;
 pub mod stream;
+pub mod encoders;
 
 pub mod files;
 pub mod serve;
