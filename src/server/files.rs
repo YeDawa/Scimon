@@ -278,9 +278,9 @@ impl Files {
         };
 
         let heading = if prefix.is_empty() {
-            "Generated files".to_string()
+            "/".to_string()
         } else {
-            format!("Generated files: {}", misc.html_escape(prefix))
+            format!("/{}", misc.html_escape(prefix))
         };
 
         self.render_page(&heading, &body, source_name, &sidebar)
