@@ -144,6 +144,24 @@ impl Server {
         #lb .next{right:.5rem;top:50%;transform:translateY(-50%);}
     "#;
 
+    pub const SCIMON_MODE_JS: &'static str = r#"
+        (function(){
+            if(!window.CodeMirror||!CodeMirror.defineSimpleMode)return;
+            CodeMirror.defineSimpleMode('scimon',{
+                start:[
+                    {regex:/@\w+/,token:'meta'},
+                    {regex:/\b(downloads|commands|readme)\b(?=\s*\{)/,token:'keyword'},
+                    {regex:/\b(path|open|compress|covers|qrcode|style|print|readme|math|server|as)\b/,token:'keyword'},
+                    {regex:/![a-zA-Z_]+/,token:'atom'},
+                    {regex:/"(?:[^"\\]|\\.)*"/,token:'string'},
+                    {regex:/https?:\/\/\S+/,token:'link'},
+                    {regex:/[{}]/,token:'bracket'},
+                    {regex:/>/,token:'operator'}
+                ]
+            });
+        })();
+    "#;
+
     pub const CHECKSUM_JS: &'static str = r#"
         (function(){
             var modal=document.getElementById('cs-modal');
@@ -274,13 +292,16 @@ impl Server {
                     fetch(href).then(function(r){return r.text();})
                         .then(function(t){
                             if(!window.CodeMirror){box.textContent=t;return;}
-                            var info=CodeMirror.findModeByFileName?CodeMirror.findModeByFileName(link.textContent.trim()):null;
+                            var name=link.textContent.trim();
+                            var isMon=/\.mon$/i.test(name);
+                            var info=(!isMon&&CodeMirror.findModeByFileName)?CodeMirror.findModeByFileName(name):null;
                             var cm=CodeMirror(box,{
                                 value:t,
                                 readOnly:true,
                                 lineNumbers:true,
+                                lineWrapping:true,
                                 theme:'material-darker',
-                                mode:info?info.mode:null,
+                                mode:isMon?'scimon':(info?info.mode:null),
                                 viewportMargin:Infinity
                             });
                             if(info&&CodeMirror.autoLoadMode)CodeMirror.autoLoadMode(cm,info.mode);

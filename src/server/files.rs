@@ -389,9 +389,11 @@ impl Files {
         html.push_str("<script src=\"https://unpkg.com/lucide@latest\"></script>");
         html.push_str("<script>lucide.createIcons();</script>");
         html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js\"></script>");
+        html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/simple.min.js\"></script>");
         html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/meta.min.js\"></script>");
         html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js\"></script>");
         html.push_str("<script>if(window.CodeMirror)CodeMirror.modeURL='https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/%N/%N.min.js';</script>");
+        html.push_str(&format!("<script>{}</script>", components.scimon_mode_js()));
         html.push_str("</body></html>");
 
         html

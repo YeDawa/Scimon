@@ -54,6 +54,10 @@ impl Components {
         Server::CHECKSUM_JS.to_string()
     }
 
+    pub fn scimon_mode_js(&self) -> String {
+        Server::SCIMON_MODE_JS.to_string()
+    }
+
     pub fn checksum_modal(&self, files: &[String]) -> String {
         if files.is_empty() {
             return String::new();
