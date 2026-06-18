@@ -51,7 +51,7 @@ impl Server {
         body{font-family:system-ui,sans-serif;margin:0;background:var(--bg);color:var(--fg);}
         .layout{display:flex;min-height:100vh;}
         .sidebar{width:240px;flex:none;box-sizing:border-box;padding:1.3rem;
-            border-right:1px solid var(--border);}
+            border-right:1px solid var(--border);display:flex;flex-direction:column;}
         .main{flex:1;min-width:0;box-sizing:border-box;padding:1.3rem 1.6rem;}
         .sidebar .item{display:flex;align-items:center;gap:.5rem;margin-top:1.2rem;
             padding:.5rem .7rem;border-radius:8px;background:var(--hover);color:var(--fg);}
@@ -72,7 +72,7 @@ impl Server {
         a:hover{text-decoration:underline;}
         .source{margin:.2rem 0 1rem;font-size:.9rem;}
         .source a{display:inline-flex;align-items:center;}
-        .search{width:100%;max-width:340px;margin-bottom:1rem;padding:.5rem .75rem;
+        .search{margin-top:1.5em;width:100%;max-width:340px;margin-bottom:1rem;padding:.5rem .75rem;
             border:1px solid var(--border);border-radius:8px;background:var(--bg);
             color:var(--fg);font-size:.9rem;box-sizing:border-box;}
         .search:focus{outline:none;border-color:var(--link);}
@@ -86,10 +86,10 @@ impl Server {
         table.files td.name a{display:inline-flex;align-items:center;gap:.5rem;}
         table.files td.meta{color:var(--muted);white-space:nowrap;}
         table.files .arrow{font-size:.7em;opacity:.6;margin-left:.25rem;}
-        .theme-toggle{position:fixed;top:1rem;right:1rem;background:transparent;
-            color:var(--fg);border:none;border-radius:6px;
-            padding:.3rem .55rem;cursor:pointer;font-size:1rem;line-height:1;}
-        .theme-toggle:hover{background:var(--fg);}
+        .theme-toggle{margin-top:auto;align-self:flex-start;display:flex;align-items:center;gap:.5rem;
+            background:transparent;color:var(--fg);border:1px solid var(--border);border-radius:8px;
+            padding:.45rem .7rem;cursor:pointer;font-size:1rem;line-height:1;}
+        .theme-toggle:hover{background:var(--hover);}
         #lb{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
             align-items:center;justify-content:center;z-index:1000;}
         #lb.open{display:flex;}

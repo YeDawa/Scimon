@@ -158,7 +158,14 @@ impl Files {
         }
 
         let mut rows = String::new();
-        let sidebar = Components.folder_nav(&misc, &all_folders, prefix);
+
+        let search = if entries.is_empty() {
+            String::new()
+        } else {
+            "<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Search files…\" autocomplete=\"on\">".to_string()
+        };
+
+        let sidebar = format!("{}{}", search, Components.folder_nav(&misc, &all_folders, prefix));
 
         for entry in files {
             let kind = misc.lightbox_kind(entry);
@@ -255,7 +262,6 @@ impl Files {
             body.push_str("<script>window.__scimonFiles=");
             body.push_str(&index_json);
             body.push_str(";</script>");
-            body.push_str("<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Search files…\" autocomplete=\"off\">");
             body.push_str(
                 "<table class=\"files\"><thead><tr>\
                  <th data-key=\"name\">Name<span class=\"arrow\"></span></th>\
@@ -290,7 +296,6 @@ impl Files {
         html.push_str("</style>");
         html.push_str(&components.theme_early());
         html.push_str("</head><body>");
-        html.push_str(&components.theme_toggle());
         html.push_str("<div class=\"layout\">");
 
         html.push_str("<aside class=\"sidebar\">");
@@ -306,10 +311,10 @@ impl Files {
         }
 
         html.push_str(sidebar);
+        html.push_str(&components.theme_toggle());
         html.push_str("</aside>");
 
         html.push_str("<main class=\"main\">");
-        html.push_str(&format!("<h1>{}</h1>", heading));
         html.push_str(body);
         html.push_str("</main></div>");
 
