@@ -64,7 +64,10 @@ impl Server {
             border-radius:6px;color:var(--fg);font-size:.9rem;}
         .sidebar .folders a:hover{background:var(--hover);text-decoration:none;}
         .sidebar .folders a.active{background:var(--hover);font-weight:600;}
-        .logo{display:inline-block;}
+        .logo{align-self:center;}
+        .brand-meta{align-self:center;margin-top:.5rem;font-size:.8rem;color:var(--muted);}
+        .brand-meta a{color:var(--muted);}
+        .brand-meta a:hover{color:var(--link);}
         .logo img{display:block;filter:var(--logo-filter);}
         h1{font-size:1.2rem;}
         ul{list-style:none;padding:0;}

@@ -12,7 +12,10 @@ use std::{
 };
 
 use crate::{
-    consts::server::Server,
+    consts::{
+        global::Global,
+        server::Server,
+    },
 
     server::{
         misc::Misc,
@@ -301,6 +304,10 @@ impl Files {
 
         html.push_str("<aside class=\"sidebar\">");
         html.push_str(&format!("<a class=\"logo\" href=\"/\">{}</a>", components.logo()));
+        html.push_str(&format!(
+            "<div class=\"brand-meta\">v{} | <a href=\"https://scimon.dev\">Home</a> - <a href=\"https://docs.scimon.dev\">Docs</a></div>",
+            Global::APP_VERSION
+        ));
 
         if let Some(name) = source_name {
             html.push_str(&format!(
