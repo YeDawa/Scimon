@@ -18,6 +18,7 @@ scimon options open-env
 
 ### Environments of system
 
-| Name           | Description                                                   |
-| -------------- | ------------------------------------------------------------- |
-| MONLIB_API_KEY | Your API key for access Scimon (*`Under in development`*) |
+| Name               | Description                                                   |
+| ------------------ | ------------------------------------------------------------- |
+| MONLIB_API_KEY     | Your API key for access Scimon (*`Under in development`*) |
+| OPENROUTER_API_KEY | Your [OpenRouter](https://openrouter.ai) API key, used by the [`ai` block](../syntax/ai-block.md) |

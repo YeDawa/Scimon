@@ -48,6 +48,10 @@ downloads {
 commands {
     https://gist.githubusercontent.com/Kremilly/e0e0db11e43269da179adab610f38bb1/raw/6820be26a936a54bac713d03deb49edf804d0b6b/index.py
 }
+
+ai {
+    "Write a short article about the Rust programming language" as "rust.md"
+}
 ```
 
 > Save as `scimon.mon`

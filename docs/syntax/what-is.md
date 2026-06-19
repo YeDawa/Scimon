@@ -12,6 +12,7 @@ The key strength of the language is its user-friendly design. The syntax is intu
 - [Downloads Block](./download-block.md)
 - [Readme Block](./readme-block.md)
 - [Commands Block](./commands-block.md)
+- [AI Block](./ai-block.md)
 - [Compress folder](./compress.md)
 - [Open links](./open-links.md)
 - [Style](./style.md)

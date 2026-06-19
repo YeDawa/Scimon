@@ -152,6 +152,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
   - [Downloads Block](https://docs.scimon.dev/syntax/download-block)
   - [Readme Block](https://docs.scimon.dev/syntax/readme-block)
   - [Commands Block](https://docs.scimon.dev/syntax/commands-block)
+  - [AI Block](https://docs.scimon.dev/syntax/ai-block)
   - [Compress folder](https://docs.scimon.dev/syntax/compress)
   - [Open links](https://docs.scimon.dev/syntax/open-links)
   - [Style](https://docs.scimon.dev/syntax/style)
