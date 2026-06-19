@@ -70,7 +70,7 @@ impl ReadMeBlock {
             if let Some(markdown_html) = self.render(run) {
                 let path = Markdown.get_filename_rendered(run);
                 
-                if let Ok(contents) = Render.render_content(&run, markdown_html).await {
+                if let Ok(contents) = Render.render_content(run, markdown_html).await {
                     FileUtils.write_file(&path, contents);
                     Markdown.open_file(&path, flags.no_open_link);
                     
@@ -92,7 +92,7 @@ impl ReadMeBlock {
                 let markdown_content = Remote.content(&url).await?;
                 let contents_extras = Markdown.append_extras_and_render(&markdown_content);
 
-                if let Ok(contents) = Render.render_content(&get_last_part, contents_extras).await {
+                if let Ok(contents) = Render.render_content(get_last_part, contents_extras).await {
                     FileUtils.write_file(&path, contents);
                     Markdown.open_file(&path, flags.no_open_link);
                     

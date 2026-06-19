@@ -14,7 +14,7 @@ impl MonlibHandlers {
     
         BlocksRegExp::GET_PATTERNS_MONLIB_VARS.iter().any(|pattern| {
             let re = Regex::new(pattern).expect("Error compiling regex");
-            re.is_match(&content)
+            re.is_match(content)
         })
     }
 

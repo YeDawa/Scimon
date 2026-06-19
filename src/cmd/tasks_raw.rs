@@ -34,7 +34,7 @@ impl TasksRaw {
         let contents = content.to_string();
 
         for line in contents.lines() {
-            Vars.get_print(&line);
+            Vars.get_print(line);
         }
 
         Ok(())
@@ -45,26 +45,26 @@ impl TasksRaw {
             UI::section_header("QR Codes", "normal");
 
             for line in contents.lines() {
-                let url = line.trim().split_whitespace().next().unwrap_or("");
+                let url = line.split_whitespace().next().unwrap_or("");
 
                 if line.trim().starts_with("downloads {") || line.trim().starts_with("}") {
                     continue;
                 }
 
-                if !MacroHandler::handle_check_macro_line(&line, "ignore") {
-                    if !url.is_empty() && is_url(&url) {
+                if !MacroHandler::handle_check_macro_line(line, "ignore")
+                    && !url.is_empty() && is_url(url) {
                         FileUtils.create_path(&qrcode_path);
             
                         let value = Settings.get("general.qrcode_size", "INT");
                         let qrcode_size = value.as_i64().expect("Invalid qrcode_size value. Must be an integer.") as usize;
             
                         let name = FileNameRemote::new(url).get();
-                        let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-                            ChatGPT::new(&url, "", custom_name).title().await
+                        let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[6]) {
+                            ChatGPT::new(url, "", custom_name).title().await
                                 .map(|t| t.to_string().replace(" ", "_"))
                                 .unwrap_or_else(|_| name.clone())
-                        } else if url.contains(Uris::PROVIDERS_DOMAINS[8]) {
-                            Gemini::new(&url, "", custom_name).title().await
+                        } else if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
+                            Gemini::new(url, "", custom_name).title().await
                                 .map(|t| t.to_string().replace(" ", "_"))
                                 .unwrap_or_else(|_| name.clone())
                         } else {
@@ -74,9 +74,8 @@ impl TasksRaw {
                         let name_pdf = FileUtils.replace_extension(&qr_code_name, "png");
                         let file_path = format!("{}{}", qrcode_path, name_pdf);
                         
-                        GenQrCode::new(&url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
+                        GenQrCode::new(url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
                     }
-                }
             }
         }
 

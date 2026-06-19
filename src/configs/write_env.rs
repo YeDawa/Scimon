@@ -52,7 +52,7 @@ impl WriteEnv {
         let env_path: PathBuf = app_folder.join(".env");
 
         let mut file = OpenOptions::new()
-            .write(true)
+            
             .append(true)
             .create(true)
             .open(env_path)?;

@@ -60,7 +60,7 @@ impl DownloadConfigsFiles {
             let file_path = output_directory.join(".env");
             self.force_mode(file_path, force_mode, response).await?;
     
-            if print == true {
+            if print {
                 SuccessAlerts::env();
             }
         } else {
@@ -89,7 +89,7 @@ impl DownloadConfigsFiles {
 
             self.force_mode(file_path, force_mode, response).await?;
     
-            if print == true {
+            if print {
                 SuccessAlerts::settings();
             }
         } else {

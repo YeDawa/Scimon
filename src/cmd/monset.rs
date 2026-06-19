@@ -77,8 +77,8 @@ impl Monset {
         let mut reader = self.read_file().await?;
         let reader_clone = reader.clone();
         
-        let _ = Tasks.prints(reader_clone).await?;
-        let _ = DownloadsBlock.read_lines(&mut reader, &flags).await?;
+        Tasks.prints(reader_clone).await?;
+        DownloadsBlock.read_lines(&mut reader, flags).await?;
 
         Ok(())
     }
@@ -86,8 +86,8 @@ impl Monset {
     pub async fn downloads_raw(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
         let content = self.run.clone();
 
-        let _ = TasksRaw.prints(&content).await?;
-        let _ = DownloadsBlock.read_lines_raw(&content, &flags).await?;
+        TasksRaw.prints(&content).await?;
+        DownloadsBlock.read_lines_raw(&content, flags).await?;
 
         Ok(())
     }
@@ -126,7 +126,7 @@ impl Monset {
             let path = if path.is_empty() { None } else { Some(path) };
 
             let name = self.run
-                .rsplit(|c| c == '/' || c == '\\')
+                .rsplit(['/', '\\'])
                 .next()
                 .unwrap_or("list.mon")
                 .to_string();

@@ -51,7 +51,7 @@ impl Tasks {
         let contents = reader.lines().collect::<Result<Vec<_>, _>>()?.join("\n");
 
         for line in contents.lines() {
-            Vars.get_print(&line);
+            Vars.get_print(line);
         }
 
         Ok(())
@@ -80,8 +80,8 @@ impl Tasks {
                 }
 
                 let url = trimmed.split_whitespace().next().unwrap_or("");
-                if !MacroHandler::handle_check_macro_line(&line, "ignore") {
-                    if !url.is_empty() && is_url(&url) {
+                if !MacroHandler::handle_check_macro_line(line, "ignore")
+                    && !url.is_empty() && is_url(url) {
                         FileUtils.create_path(&qrcode_path);
             
                         let value = Settings.get("general.qrcode_size", "INT");
@@ -89,11 +89,11 @@ impl Tasks {
             
                         let name = FileNameRemote::new(url).get();
                         let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-                            ChatGPT::new(&url, "", custom_name).title().await
+                            ChatGPT::new(url, "", custom_name).title().await
                                 .map(|t| t.to_string().replace(" ", "_"))
                                 .unwrap_or_else(|_| name.clone())
                         } else if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-                            Gemini::new(&url, "", custom_name).title().await
+                            Gemini::new(url, "", custom_name).title().await
                                 .map(|t| t.to_string().replace(" ", "_"))
                                 .unwrap_or_else(|_| name.clone())
                         } else {
@@ -103,9 +103,8 @@ impl Tasks {
                         let name_pdf = FileUtils.replace_extension(&qr_code_name, "png");
                         let file_path = format!("{}{}", qrcode_path, name_pdf);
                         
-                        GenQrCode::new(&url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
+                        GenQrCode::new(url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
                     }
-                }
             }
         }
 
@@ -126,23 +125,23 @@ impl Tasks {
         }
 
         if let Some(contents) = contents {
-            Markdown.create(&contents, &url, &path).await?;
+            Markdown.create(contents, url, path).await?;
         }
 
         if line_url.ends_with(".tex") {
-            let _ = LaTex.create_pdf(&path, &line_url, custom_name).await;
+            let _ = LaTex.create_pdf(path, &line_url, custom_name).await;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-            ChatGPT::new(&line_url, &path, custom_name).convert().await?;
+            ChatGPT::new(&line_url, path, custom_name).convert().await?;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-            Gemini::new(&line_url, &path, custom_name).convert().await?;
+            Gemini::new(&line_url, path, custom_name).convert().await?;
         }
 
         if !Providers::new(&line_url).check_provider_domain() {
-            MakeDownload.download_line(&line_url, &url, path, custom_name).await?;
+            MakeDownload.download_line(&line_url, url, path, custom_name).await?;
         }
 
         Ok(())

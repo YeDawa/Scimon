@@ -37,7 +37,7 @@ impl Markdown {
         if !no_open_link {
             let full_path = env::current_dir().expect(
                 ""
-            ).join(&path).to_str().unwrap().replace(
+            ).join(path).to_str().unwrap().replace(
                 "\\", "/"
             );
 
@@ -45,7 +45,7 @@ impl Markdown {
                 "file://{}", full_path
             );
 
-            let _ = open::that(&url_file);
+            let _ = open::that(url_file);
         }
     }
 
@@ -60,7 +60,7 @@ impl Markdown {
     }
 
     pub fn append_extras_and_render(&self, markdown: &str) -> String {
-        let parser = Parser::new_ext(&markdown, Options::all());
+        let parser = Parser::new_ext(markdown, Options::all());
         let mut html_output = String::new();
         html::push_html(&mut html_output, parser);
 
@@ -80,15 +80,15 @@ impl Markdown {
     }
 
     pub async fn create(&self, contents: &str, url: &str, path: &str) -> Result<(), Box<dyn Error>> {
-        if Remote.check_content_type(&url, "text/markdown").await? || url.contains(".md") {
+        if Remote.check_content_type(url, "text/markdown").await? || url.contains(".md") {
             let html_content = self.render(url).await?;
             let content = RenderInject.html_content(contents, html_content).await?;
             
             let original_name = FileNameRemote::new(url).get();
             let new_filename = FileUtils.replace_extension(&original_name, "pdf");
-            let output_path = FileUtils.get_output_path(&path, &new_filename);
+            let output_path = FileUtils.get_output_path(path, &new_filename);
 
-            Pdf.create_pdf(&content, output_path, &url).await?;
+            Pdf.create_pdf(&content, output_path, url).await?;
             SuccessAlerts::download_and_generated_pdf(&new_filename, url);
         }
 

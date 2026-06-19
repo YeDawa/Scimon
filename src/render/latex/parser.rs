@@ -475,8 +475,7 @@ impl Parser {
             if line.is_empty() { continue; }
 
             // \kill — discard this line, keep tab stops
-            if line.ends_with("\\kill") {
-                let content = &line[..line.len() - 5];
+            if let Some(content) = line.strip_suffix("\\kill") {
                 // measure tab stop positions from \= markers
                 tab_stops.clear();
                 let mut col: usize = 0;
@@ -642,7 +641,7 @@ impl Parser {
             // Comments  % ... \n
             // ----------------------------------------------------------------
             if current == '%' {
-                while self.peek().map_or(false, |c| c != '\n') {
+                while self.peek().is_some_and(|c| c != '\n') {
                     self.next_char();
                 }
                 continue;
@@ -704,7 +703,7 @@ impl Parser {
                         if matches!(nc, '\'' | '`' | '"' | '^' | '~' | '=' | '.') && self.in_document {
                             let base = if self.peek() == Some('{') {
                                 self.parse_braces_content()
-                            } else if self.peek().map_or(false, |c| c.is_alphabetic()) {
+                            } else if self.peek().is_some_and(|c| c.is_alphabetic()) {
                                 self.next_char().map(|c| c.to_string()).unwrap_or_default()
                             } else {
                                 // Accent without a following letter — emit the accent itself
@@ -874,7 +873,7 @@ impl Parser {
                         } else if let Some(sibling) = shared {
                             // sharing a counter also inherits its numbering parent
                             if let Some(def) = labels.get(&format!("thm@{}", sibling)) {
-                                parent = def.splitn(4, '|').nth(2).unwrap_or("").to_string();
+                                parent = def.split('|').nth(2).unwrap_or("").to_string();
                             }
                             sibling
                         } else {
@@ -3720,9 +3719,9 @@ impl Parser {
         let (n_str, rest)     = Self::take_brace(rest)?;
         let n: usize          = n_str.trim().parse().ok()?;
         let rest              = rest.trim_start();
-        let (spec, rest)      = Self::take_brace(&rest)?;
+        let (spec, rest)      = Self::take_brace(rest)?;
         let rest              = rest.trim_start();
-        let (content, _)      = Self::take_brace(&rest)?;
+        let (content, _)      = Self::take_brace(rest)?;
         let align             = Self::colspec_align(&spec);
         Some((n, align, content))
     }

@@ -824,7 +824,7 @@ impl LatexNode {
                     ctx.last_counter = ctx.tab_num.to_string();
                 }
                 let num = ctx.last_counter.clone();
-                let _ = write!(buf, "<table class=\"latex-table\" id=\"item-{}\"><tbody>\n", num);
+                let _ = writeln!(buf, "<table class=\"latex-table\" id=\"item-{}\"><tbody>", num);
 
                 for row in rows {
                     buf.push_str("  <tr>\n");

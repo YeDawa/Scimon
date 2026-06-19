@@ -1,4 +1,5 @@
 pub mod ui_base;
+pub mod syntax_alerts;
 pub mod panic_alerts;
 pub mod macros_alerts;
 pub mod errors_alerts;

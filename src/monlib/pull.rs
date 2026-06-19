@@ -40,7 +40,7 @@ impl MonlibPull {
         let mut url = Addons::MONLIB_API_REQUEST.to_owned();
     
         url.push_str("packages/");
-        url.push_str(&run);
+        url.push_str(run);
         url.push_str("/raw");
 
         let response = MonlibRequest::new().get(url.as_str()).await?;
@@ -75,9 +75,9 @@ impl MonlibPull {
 
                 let monset = Monset::new(&data);
 
-                let _ = monset.downloads_raw(&flags).await?;
-                let _ = monset.run_code_raw(&flags).await;
-                let _ = ReadMeBlock.render_block_and_save_file(&url, &flags);
+                monset.downloads_raw(flags).await?;
+                let _ = monset.run_code_raw(flags).await;
+                ReadMeBlock.render_block_and_save_file(&url, flags).await;
             }
     
             Ok(result)
@@ -93,7 +93,7 @@ impl MonlibPull {
             } else {
                 Err(
                     ApiError::Message(
-                        format!("Error: internal server error")
+                        "Error: internal server error".to_string()
                     ).into()
                 )
             }

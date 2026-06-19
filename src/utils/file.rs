@@ -41,14 +41,14 @@ impl FileUtils {
     pub fn create_path(&self, path: &str) {
         if !&self.check_path_exists(path) {
             fs::create_dir_all(path).expect(
-                &"Error creating directory".to_string()
+                "Error creating directory"
             );
         }
     }
     
     pub fn write_file(&self, path: &str, contents: String) {
         fs::write(path, contents).expect(
-            &"Error saving file".to_string()
+            "Error saving file"
         );
     }
 
@@ -86,11 +86,11 @@ impl FileUtils {
         } else {
             let parsed_url = Url::parse(url)?;
             parsed_url.path_segments()
-                .and_then(|segments| segments.last())
+                .and_then(|mut segments| segments.next_back())
                 .map(|name| name.to_string())
         };
     
-        let final_filename = if pdf == true {
+        let final_filename = if pdf {
             self.set_final_filename(filename_option)
         } else {
             filename_option.unwrap()
@@ -104,7 +104,7 @@ impl FileUtils {
 
         if let Some(name) = path.file_name() {
             if let Some(name_str) = name.to_str() {
-                if let Some(_) = name_str.rfind('.') {
+                if name_str.rfind('.').is_some() {
                     path.set_extension(new_extension);
                     return path.to_string_lossy().to_string();
                 }

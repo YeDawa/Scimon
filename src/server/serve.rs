@@ -96,7 +96,7 @@ impl Serve {
         let listener = TcpListener::bind(&addr)?;
 
         let url = &format!("http://{}", addr);
-        ServerAlerts::started(self.port, &url);
+        ServerAlerts::started(self.port, url);
         ServerAlerts::to_quit();
 
         for stream in listener.incoming() {

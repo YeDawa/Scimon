@@ -43,7 +43,7 @@ impl Scripts {
         let line_cleanned = Regex::new(
             CoreRegExp::CLEAN_LINE
         ).unwrap().replace_all(
-            &line, ""
+            line, ""
         ).to_string();
 
         let output = Command::new(&language)
@@ -68,7 +68,7 @@ impl Scripts {
                 let path = Folders::SCRIPTS_FOLDER.to_str().unwrap_or_default().to_string();
 
                 FileUtils.create_path(&path);
-                Remote.download(&line_trimmed, &path).await?
+                Remote.download(line_trimmed, &path).await?
             } else {
                 line_trimmed.to_string()
             };

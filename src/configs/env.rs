@@ -23,11 +23,11 @@ impl Env {
 
         load_env.call_once(|| {
             dotenvy::from_path(
-                &Folders::APP_FOLDER.join(".env")
+                Folders::APP_FOLDER.join(".env")
             ).ok();
         });
     
-        env::var(key).expect(&format!("{} not set", key))
+        env::var(key).unwrap_or_else(|_| panic!("{} not set", key))
     }
     
     pub fn open_env_file(&self) -> Result<(), IoError> {

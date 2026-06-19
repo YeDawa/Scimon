@@ -35,19 +35,19 @@ impl Math {
             UI::section_header("math render", "normal");
             
             for (expression, file_name) in math_expressions {
-                let result = renderer.render(&expression)?;
+                let result = renderer.render(expression)?;
 
                 if file_name.contains(".png") {
                     let image = result.into_image(10.0)?;
-                    image.save(&file_name)?;
+                    image.save(file_name)?;
                 } else if file_name.contains(".svg") {
                     let svg_string = result.into_raw();
-                    write(&file_name, svg_string)?;
+                    write(file_name, svg_string)?;
                 } else {
-                    ErrorsAlerts::math(&file_name);
+                    ErrorsAlerts::math(file_name);
                 }
 
-                SuccessAlerts::math(&file_name);
+                SuccessAlerts::math(file_name);
             }
         }
 

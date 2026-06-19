@@ -5,10 +5,12 @@ use crate::{
     args_cli::*,
     server::serve::Serve,
     addons::scrape::Scrape,
+    syntax::validator::Validator,
     syntax::blocks::readme_block::ReadMeBlock,
 
     ui::{
         ui_base::UI,
+        syntax_alerts::SyntaxAlerts,
         errors_alerts::ErrorsAlerts,
     },
 
@@ -93,15 +95,19 @@ impl Scimon {
 
                     let contents = monset.raw_contents().await.unwrap_or_default();
 
-                    if Monset::has_downloads_block(&contents) {
-                        let _ = monset.downloads(&flags_clone).await;
-                    }
+                    if let Some(err) = Validator.check(&contents) {
+                        SyntaxAlerts::error(err.line, &err.content, &err.message);
+                    } else {
+                        if Monset::has_downloads_block(&contents) {
+                            let _ = monset.downloads(&flags_clone).await;
+                        }
 
-                    let _ = monset.run_code(&flags_clone).await;
-                    let _ = ReadMeBlock.render_block_and_save_file(&file, &flags_clone);
+                        let _ = monset.run_code(&flags_clone).await;
+                        ReadMeBlock.render_block_and_save_file(&file, &flags_clone).await;
 
-                    if let Err(err) = monset.server().await {
-                        ErrorsAlerts::generic(&err.to_string());
+                        if let Err(err) = monset.server().await {
+                            ErrorsAlerts::generic(&err.to_string());
+                        }
                     }
                 },
 

@@ -67,13 +67,13 @@ impl MakeDownload {
     }
 
     pub async fn download_line(&self, line_url: &str, url: &str, path: &str, final_name: Option<&str>) -> Result<String, Box<dyn Error>> {
-        if Pdf.is_pdf_file(&line_url).await? || Providers::new(url).valid_provider_domain() && !line_url.contains(".md") {
-            let result = self.make(&line_url, path, final_name.unwrap_or("")).await;
+        if Pdf.is_pdf_file(line_url).await? || Providers::new(url).valid_provider_domain() && !line_url.contains(".md") {
+            let result = self.make(line_url, path, final_name.unwrap_or("")).await;
             
             match result {
                 Ok(file) => {
                     let file_path = &format!("{}{}", &path, &file);
-                    let password = Pdf.is_pdf_encrypted(&file_path);
+                    let password = Pdf.is_pdf_encrypted(file_path);
                     
                     SuccessAlerts::download(&file, url, password);
                     return Ok(file_path.to_string())

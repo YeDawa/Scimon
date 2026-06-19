@@ -48,7 +48,7 @@ impl DownloadsBlock {
         let mut tasks = Vec::new();
 
         for line in downloads_content.lines() {
-            let url = line.trim().split_whitespace().next().unwrap_or("");
+            let url = line.split_whitespace().next().unwrap_or("");
             let final_url = Providers::new(url).arxiv();
 
             if line.trim().starts_with("downloads {") {
@@ -63,8 +63,8 @@ impl DownloadsBlock {
 
             seen_urls.insert(final_url.to_string());
 
-            if !MacroHandler::handle_check_macro_line(&line, "ignore") {
-                let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(&line) {
+            if !MacroHandler::handle_check_macro_line(line, "ignore") {
+                let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(line) {
                     custom_name
                 } else {
                     "".to_string()

@@ -22,7 +22,7 @@ impl RenderInject {
 
     pub fn content(&self, file: &str, contents: String, markdown_html: String) -> String {
         let title = format!(
-            "{}: {}: README", StrUtils.capitalize(&Global::APP_NAME), &file.replace(
+            "{}: {}: README", StrUtils.capitalize(Global::APP_NAME), &file.replace(
                 ".md", ""
             )
         );

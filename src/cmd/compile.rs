@@ -70,7 +70,7 @@ impl Compile {
     }
 
     pub async fn compile(&self) -> Result<(), Box<dyn Error>> {
-        match self.file.split('.').last().unwrap_or_default() {
+        match self.file.split('.').next_back().unwrap_or_default() {
             "tex" => {
                 if let Err(err) = &self.latex().await {
                     ErrorsAlerts::generic(&err.to_string());

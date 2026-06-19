@@ -36,7 +36,7 @@ impl ViewEnv {
                     let name = parts[0].trim().to_string();
                     let mut value = parts[1].trim().to_string().replace('"', "");
 
-                    if value == "" {
+                    if value.is_empty() {
                         value = "None".to_string();
                     }
 

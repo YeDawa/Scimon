@@ -26,7 +26,7 @@ impl GenQrCode {
         Self {
             link: link.to_string(),
             size: size as u32,
-            format: format,
+            format,
         }
     }
 

@@ -46,9 +46,9 @@ impl Gemini {
 
     pub fn custom_name(&self, file_name: &str) -> String {
         if let Some(custom_name) = &self.custom_name {
-            format!("{}", custom_name.replace(" ", "_"))
+            custom_name.replace(" ", "_").to_string()
         } else {
-            format!("{}", &file_name.replace(" ", "_"))
+            file_name.replace(" ", "_").to_string()
         }
     }
 

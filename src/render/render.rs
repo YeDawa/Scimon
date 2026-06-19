@@ -51,7 +51,7 @@ impl Render {
     pub async fn render_content(&self, file: &str, md_content: String) -> Result<String, Box<dyn Error>> {
         let minify_prop = Settings.get("render_markdown.minify_html", "BOOLEAN");
         let template_content = Remote.content(Addons::README_TEMPLATE_LINK).await?;
-        let content = RenderInject.content(&file, template_content, md_content);
+        let content = RenderInject.content(file, template_content, md_content);
         let content = RenderImages::new(content).render().await?;
 
         let output = if minify_prop == true {

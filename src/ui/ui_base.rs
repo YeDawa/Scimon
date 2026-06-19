@@ -23,7 +23,7 @@ impl UI {
             
             if let Some(title) = standard_font.convert(&name) {
                 println!("{}", &title.to_string().bold().cyan());
-                println!("");
+                println!();
                 println!("Version: {}", Global::APP_VERSION.yellow());
                 println!("Homepage: {} • {}", Global::APP_HOMEPAGE.blue(), Global::APP_AUTHOR.green());
                 println!("Started in: {}", General.date_time().magenta());
@@ -43,7 +43,7 @@ impl UI {
             _ => text.bold(),
         };
 
-        println!("");
+        println!();
         println!("{}", message);
     }
 

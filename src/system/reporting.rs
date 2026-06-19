@@ -29,7 +29,7 @@ impl Reporting {
                 url_valid = true;
             }
 
-            if Remote.get_status_code(final_url).await != 200 && url_valid == true {
+            if Remote.get_status_code(final_url).await != 200 && url_valid {
                 let status_code = Box::from("Failed to retrieve the URL with status code other than 200");
                 ErrorsAlerts::download(status_code, final_url);
             }

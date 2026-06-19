@@ -70,7 +70,7 @@ impl Covers {
                 .or_else(|_| Pdfium::bind_to_system_library())?;
 
             let pdfium = Pdfium::new(bindings);
-            for entry in WalkDir::new(&pdf_path) {
+            for entry in WalkDir::new(pdf_path) {
                 let entry = entry?;
                 let path = entry.path();
 

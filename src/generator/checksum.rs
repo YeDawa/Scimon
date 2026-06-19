@@ -62,7 +62,7 @@ impl Checksum {
     pub fn files(&self) -> IoResult<()> {
         UI::section_header("Hashes files", "normal");
 
-        let contents = self.contents.as_ref().map(|s| s.as_str()).unwrap_or("");
+        let contents = self.contents.as_deref().unwrap_or("");
         let folder_path = Vars.get_path(contents);
 
         let checksum_filename = format!(
@@ -78,13 +78,13 @@ impl Checksum {
             let path = entry.path();
             let name = path.strip_prefix(Path::new(&folder_path)).unwrap();
 
-            if path.extension().map_or(false, |ext| ext == "pdf") {
+            if path.extension().is_some_and(|ext| ext == "pdf") {
                 let file = name.to_str().unwrap();
                 let path = path.to_str().unwrap();
                 let hash = self.hash(path).unwrap();
 
                 writeln!(checksum_file, "{}  {}", hash, file)?;
-                ChecksumAlerts::hash(&file, &hash);
+                ChecksumAlerts::hash(file, &hash);
             }
         }
 

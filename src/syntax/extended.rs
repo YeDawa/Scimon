@@ -10,9 +10,9 @@ impl Extended {
             let clean_name = name_part.trim().trim_matches('"');
 
             if clean_name.ends_with(".pdf") {
-                return Some(clean_name.to_string());
+                Some(clean_name.to_string())
             } else {
-                return Some(format!("{}.pdf", clean_name));
+                Some(format!("{}.pdf", clean_name))
             }
         } else {
             None

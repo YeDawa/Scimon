@@ -56,7 +56,7 @@ impl MonlibSync {
             } else {
                 Err(
                     ApiError::Message(
-                        format!("Error: internal server error")
+                        "Error: internal server error".to_string()
                     ).into()
                 )
             }

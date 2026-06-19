@@ -9,7 +9,7 @@ impl Validate {
 
     pub fn file(file: &str) -> io::Result<()> {
         if !Path::new(file).exists() {
-            println!("");
+            println!();
             
             return Err(
                 io::Error::new(

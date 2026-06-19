@@ -176,7 +176,7 @@ impl Tikz {
                     if let Some((content, _)) = Self::take_braces(rest) {
                         for part in Self::split_commas(&content) {
                             if let Some((key, value)) = part.split_once("/.style") {
-                                let value = value.trim_start().strip_prefix('=').unwrap_or(&value);
+                                let value = value.trim_start().strip_prefix('=').unwrap_or(value);
                                 scope.styles.insert(
                                     key.trim().to_string(),
                                     Self::strip_outer_braces(value),
@@ -334,7 +334,7 @@ impl Tikz {
             let whole_word = rest[pos + var.len()..]
                 .chars()
                 .next()
-                .map_or(true, |c| !c.is_alphabetic());
+                .is_none_or(|c| !c.is_alphabetic());
 
             out.push_str(&rest[..pos]);
             out.push_str(if whole_word { value } else { var });
@@ -471,7 +471,7 @@ impl Tikz {
 
     // True when `s` continues with a non-word character (token boundary)
     fn token_boundary(s: &str) -> bool {
-        s.chars().next().map_or(true, |c| !c.is_alphanumeric())
+        s.chars().next().is_none_or(|c| !c.is_alphanumeric())
     }
 
     // -----------------------------------------------------------------------
@@ -785,7 +785,7 @@ impl Tikz {
                 if let Some((inner, after)) = spec {
                     // (start:end:radius) or [start angle=, end angle=, radius=]
                     let nums: Vec<f64> = if inner.contains(':') {
-                        inner.split(':').filter_map(|n| Self::parse_unit(n)).collect()
+                        inner.split(':').filter_map(Self::parse_unit).collect()
                     } else {
                         ["start angle", "end angle", "radius"].iter()
                             .filter_map(|key| inner.split(',').find_map(|part| {
