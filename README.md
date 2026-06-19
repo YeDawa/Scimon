@@ -31,6 +31,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`) and skipping (`!ignore`).
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
+- 🤖 **AI-generated Markdown** — describe what you want in an `ai { ... }` block and Scimon writes the Markdown files for you via OpenRouter.
 - 📐 **Built-in LaTeX compiler** — turn `.tex` files into PDF with no TeX distribution installed (theorems, bibliography, acronyms, TikZ, pgfplots, and more).
 - 📝 **Markdown rendering** — render Markdown to styled PDF with MathJax and Mermaid support.
 - 🔢 **Math to image** — render formulas straight to PNG.
@@ -114,12 +115,23 @@ downloads {
     https://pt.wikisource.org/wiki/Manifesto_da_Guerrilha_do_Livre_Acesso !ignore
 }
 
+ai {
+    "Write a short article about the Rust programming language" as "rust.md"
+    "Explain quantum computing for beginners" as "quantum.md" with "anthropic/claude-3.5-sonnet"
+}
+
 commands {
     https://gist.githubusercontent.com/Kremilly/e0e0db11e43269da179adab610f38bb1/raw/6820be26a936a54bac713d03deb49edf804d0b6b/index.py
 }
 
 server "8080"
 ```
+
+> [!NOTE]
+> The `ai` block generates Markdown files using [OpenRouter](https://openrouter.ai).
+> Set your key with `scimon options write-env` (or edit the `.env` file) so that
+> `OPENROUTER_API_KEY="..."` is defined. Each entry takes a prompt and an output
+> file (`as "name.md"`); add `with "provider/model"` to override the default model.
 
 > [!NOTE]
 > Save the file as `scimon.mon`, then run `scimon run scimon.mon`.
