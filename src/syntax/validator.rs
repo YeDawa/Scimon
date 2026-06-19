@@ -113,6 +113,14 @@ impl Validator {
                 }
             }
 
+            "ai" => {
+                if matches(BlocksRegExp::GET_AI_BLOCK) {
+                    None
+                } else {
+                    Some("expected: ai { ... }".to_string())
+                }
+            }
+
             _ => None,
         }
     }

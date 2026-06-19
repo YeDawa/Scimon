@@ -90,6 +90,16 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn ai_markdown(file: &str) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} AI markdown generated and saved in {}",
+            current_datetime.green().bold(),
+            file.blue(),
+        );
+    }
+
     pub fn math(file: &str) {
         let current_datetime = General.date_time();
     

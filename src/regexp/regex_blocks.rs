@@ -7,6 +7,10 @@ impl BlocksRegExp {
         r"\}",
     ];
 
+    pub const GET_AI_BLOCK: &'static str = r"(?im)^\s*ai\s*\{";
+
+    pub const GET_AI_ENTRY: &'static str = r#"(?i)^"(?P<prompt>(?:[^"\\]|\\.)*)"\s+as\s+"(?P<file>[^"]+)"(?:\s+with\s+"(?P<model>[^"]+)")?"#;
+
     pub const GET_PATH_VAR: &'static str = r#"(?i)path\s*"([^"]+)""#;
 
     pub const GET_OPEN_VAR: &'static str = r#"(?i)open\s*"([^"]+)""#;

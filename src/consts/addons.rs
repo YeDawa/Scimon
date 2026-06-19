@@ -15,6 +15,11 @@ impl Addons {
     pub const MONLIB_API_ENV: &'static str = "MONLIB_API_KEY";
     pub const MONLIB_API_REQUEST: &'static str = "https://system.monlib.net/";
 
+    // OpenRouter (AI generated markdown)
+    pub const OPENROUTER_API_ENV: &'static str = "OPENROUTER_API_KEY";
+    pub const OPENROUTER_API_REQUEST: &'static str = "https://openrouter.ai/api/v1/chat/completions";
+    pub const OPENROUTER_DEFAULT_MODEL: &'static str = "openai/gpt-4o-mini";
+
     pub const README_TEMPLATE_LINK: &'static str = "https://readme.scimon.dev/";
 
     // Chat GPT Content Class
