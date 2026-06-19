@@ -37,6 +37,7 @@ nav:
     - Downloads Block: syntax/download-block.md
     - Readme Block: syntax/readme-block.md
     - Commands Block: syntax/commands-block.md
+    - AI Block: syntax/ai-block.md
     - Compress folder: syntax/compress.md
     - Open links: syntax/open-links.md
     - Style: syntax/style.md
