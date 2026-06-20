@@ -12,6 +12,8 @@ use std::{
 use crate::{
     system::latex::LaTex,
     render::render::Render,
+    system::markdown::Markdown,
+    render::render_inject::RenderInject,
 
     ui::{
         ui_base::UI,
@@ -40,17 +42,16 @@ impl Compile {
         }
     }
 
-    pub async fn latex(&self) -> Result<(), Box<dyn Error>> {
-        UI::header();
-        UI::section_header("LaTex Compiler", "info");
-
-        let content = if is_url(&self.file) {
-            Remote.content(&self.file).await?
+    async fn read_content(&self) -> Result<String, Box<dyn Error>> {
+        if is_url(&self.file) {
+            Ok(Remote.content(&self.file).await?)
         } else {
-            read_to_string(&self.file)?
-        };
+            Ok(read_to_string(&self.file)?)
+        }
+    }
 
-        let output_name = if let Some(output) = &self.output {
+    fn output_name(&self) -> String {
+        if let Some(output) = &self.output {
             FileUtils.replace_extension(output, "pdf")
         } else if is_url(&self.file) {
             FileUtils.replace_extension(
@@ -58,9 +59,34 @@ impl Compile {
             )
         } else {
             FileUtils.replace_extension(&self.file, "pdf")
-        };
+        }
+    }
+
+    pub async fn latex(&self) -> Result<(), Box<dyn Error>> {
+        UI::header();
+        UI::section_header("LaTex Compiler", "info");
+
+        let content = self.read_content().await?;
+        let output_name = self.output_name();
 
         let html = LaTex.render(&content).await;
+        let pdf_contents = Render.connect_to_browser(&html).await?;
+
+        write(&output_name, pdf_contents)?;
+        SuccessAlerts::generated_pdf(&output_name);
+
+        Ok(())
+    }
+
+    pub async fn markdown(&self) -> Result<(), Box<dyn Error>> {
+        UI::header();
+        UI::section_header("Markdown Compiler", "info");
+
+        let content = self.read_content().await?;
+        let output_name = self.output_name();
+
+        let html_body = Markdown.append_extras_and_render(&content);
+        let html = RenderInject.html_content("", html_body).await?;
         let pdf_contents = Render.connect_to_browser(&html).await?;
 
         write(&output_name, pdf_contents)?;
@@ -77,7 +103,12 @@ impl Compile {
                 }
             },
 
-            "md" => ErrorsAlerts::generic("Markdown compilation is not implemented yet."),
+            "md" | "markdown" => {
+                if let Err(err) = &self.markdown().await {
+                    ErrorsAlerts::generic(&err.to_string());
+                }
+            },
+
             _ => ErrorsAlerts::unsupported_file_type(),
         };
 
