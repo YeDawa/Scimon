@@ -75,6 +75,18 @@ impl Vars {
         }
     }
 
+    pub fn get_imports(&self, contents: &str) -> Vec<String> {
+        let import_pattern = Regex::new(BlocksRegExp::GET_IMPORT_VAR).unwrap();
+
+        contents.lines()
+            .filter_map(|line| {
+                import_pattern.captures(line)
+                    .and_then(|caps| caps.get(1))
+                    .map(|m| m.as_str().to_string())
+            })
+            .collect()
+    }
+
     pub fn get_copy(&self, contents: &str) -> Option<String> {
         let copy_pattern = Regex::new(BlocksRegExp::GET_COPY_VAR).unwrap();
 

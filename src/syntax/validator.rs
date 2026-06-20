@@ -79,6 +79,7 @@ impl Validator {
             "covers"   => var(BlocksRegExp::GET_COVERS_VAR, "covers"),
             "qrcode"   => var(BlocksRegExp::GET_QRCODE_VAR, "qrcode"),
             "copy"     => var(BlocksRegExp::GET_COPY_VAR, "copy"),
+            "import"   => var(BlocksRegExp::GET_IMPORT_VAR, "import"),
             "compress" => var(BlocksRegExp::GET_COMPRESS_VAR, "compress"),
             "server"   => var(BlocksRegExp::GET_SERVER_VAR, "server"),
 
