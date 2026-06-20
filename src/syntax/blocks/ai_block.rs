@@ -1,8 +1,15 @@
 use regex::Regex;
 
+use std::{
+    fs,
+    error::Error,
+};
+
 use crate::{
     syntax::vars::Vars,
     utils::file::FileUtils,
+    render::render::Render,
+    system::markdown::Markdown,
     addons::openrouter::OpenRouter,
     regexp::regex_blocks::BlocksRegExp,
     syntax::macro_handler::MacroHandler,
@@ -19,6 +26,7 @@ struct AiEntry {
     prompt: String,
     file: String,
     model: Option<String>,
+    pdf: bool,
 }
 
 pub struct AiBlock;
@@ -67,11 +75,25 @@ impl AiBlock {
         let mut file = caps.name("file")?.as_str().trim().to_string();
         let model = caps.name("model").map(|m| m.as_str().trim().to_string());
 
-        if !file.to_lowercase().ends_with(".md") {
+        // The output extension decides the format: ".pdf" renders the generated
+        // Markdown to a styled PDF, anything else is saved as a ".md" file.
+        let lower = file.to_lowercase();
+        let pdf = lower.ends_with(".pdf");
+
+        if !pdf && !lower.ends_with(".md") {
             file.push_str(".md");
         }
 
-        Some(AiEntry { prompt, file, model })
+        Some(AiEntry { prompt, file, model, pdf })
+    }
+
+    async fn save_pdf(&self, file: &str, output_path: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
+        let html_body = Markdown.append_extras_and_render(markdown);
+        let document = Render.render_content(file, html_body).await?;
+        let pdf_bytes = Render.connect_to_browser(&document).await?;
+
+        fs::write(output_path, pdf_bytes)?;
+        Ok(())
     }
 
     pub async fn generate_and_save_files(&self, contents: &str) {
@@ -109,8 +131,15 @@ impl AiBlock {
 
             match OpenRouter::new(entry.model).generate(&entry.prompt).await {
                 Ok(markdown) => {
-                    FileUtils.write_file(&output_path, markdown);
-                    SuccessAlerts::ai_markdown(&output_path);
+                    if entry.pdf {
+                        match self.save_pdf(&entry.file, &output_path, &markdown).await {
+                            Ok(()) => SuccessAlerts::generated_pdf(&output_path),
+                            Err(e) => ErrorsAlerts::generic(&e.to_string()),
+                        }
+                    } else {
+                        FileUtils.write_file(&output_path, markdown);
+                        SuccessAlerts::ai_markdown(&output_path);
+                    }
                 }
 
                 Err(e) => {
