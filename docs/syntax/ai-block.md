@@ -32,8 +32,10 @@ Each line inside the block is a prompt followed by the output file:
 
 - The output extension decides the format:
   - `.md` (or no extension) saves the raw generated Markdown.
-  - `.pdf` renders the generated Markdown to a styled PDF (same pipeline as the
-    [Readme Block](./readme-block.md) / [Markdown render](./markdown-render.md)).
+  - `.pdf` renders the generated Markdown to a styled PDF using the generic
+    template (same pipeline as [Markdown render](./markdown-render.md)). The
+    [`style`](./style.md) variable is honored for the PDF's CSS, falling back to
+    the default stylesheet.
 - The `.md` extension is added automatically if you omit it.
 - Files are written inside the folder defined by the [`path`](./what-is.md)
   variable, so they are also picked up by the [`server`](./server.md) command.
