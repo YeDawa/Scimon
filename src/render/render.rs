@@ -99,7 +99,6 @@ impl Render {
             .map_err(|e| format!("Failed to build browser config: {:?}", e))?;
 
         let (mut browser, mut handler) = Browser::launch(config).await?;
-
         let browser_handle = tokio::task::spawn(async move {
             while let Some(event) = handler.next().await {
                 if event.is_err() {
@@ -109,13 +108,11 @@ impl Render {
         });
 
         let page = browser.new_page("about:blank").await?;
-
         let (port, stop, server) = Self::serve_content(content.to_string())?;
 
         page.goto(&format!("http://127.0.0.1:{}/document.html", port)).await?;
         page.wait_for_navigation().await?;
 
-        // Wait for MathJax to finish typesetting
         page.evaluate(r#"
             new Promise(function(resolve) {
                 if (typeof MathJax === 'undefined' || typeof MathJax.startup === 'undefined') {
