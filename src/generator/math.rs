@@ -39,11 +39,7 @@ impl Math {
         let renderer = MathJax::new()?;
         UI::section_header("math render", "normal");
 
-        // MathJax exposes a single renderer, so the typesetting itself stays
-        // sequential; the CPU-heavy rasterization and disk write of each result
-        // are offloaded to the blocking pool so they run concurrently.
         let mut tasks = Vec::new();
-
         for (expression, file_name) in math_expressions {
             let file_name = file_name.clone();
 
