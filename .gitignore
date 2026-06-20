@@ -17,6 +17,10 @@ Cargo.lock
 *.pdf
 *.epub
 *.docx
+*.bib
+*.tex
+*.html
+*.sha256
 
 # Ignore .env file
 .env
@@ -29,7 +33,6 @@ credentials.json
 
 # Ignore .pd files
 *.pbd
-*.sha256
 
 # Ignore compress files
 *.tar.gz
@@ -69,10 +72,3 @@ site/
 *.dll
 *.so
 *.dylib
-
-# Ignore html files
-*.html
-
-# Ignore bibtex e tex files
-*.bib
-*.tex
