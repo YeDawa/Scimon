@@ -15,3 +15,14 @@ when no output is given.
 
 This is the same rendering used by the [`ai`](../syntax/ai-block.md) block's
 `.pdf` output and by [Markdown render](../syntax/markdown-render.md).
+
+## EPUB output
+
+Give the output an `.epub` name to package the Markdown as an EPUB instead of a
+PDF:
+
+```shell
+scimon compile notes.md -o book.epub
+```
+
+The book title comes from the output file name; the author defaults to `Scimon`.
