@@ -15,9 +15,8 @@ use crate::{
 
     ui::{
         ui_base::UI,
-        panic_alerts::PanicAlerts, 
-        macros_alerts::MacrosAlerts, 
-    }, 
+        macros_alerts::MacrosAlerts,
+    },
 
     cmd::{
         tasks::Tasks,
@@ -103,28 +102,29 @@ impl DownloadsBlock {
 
         let end_index = contents.rfind("}");
 
+        let mut downloaded = false;
+
         if let (Some(start_index), Some(end_index)) = (start_index, end_index) {
-            FileUtils.create_path(&path);
             let downloads_content = &contents[start_index + "downloads ".len()..end_index];
 
-            if downloads_content.trim().starts_with("commands {") {
-                return Ok(());
+            if !downloads_content.trim().starts_with("commands {") {
+                FileUtils.create_path(&path);
+                UI::section_header("downloads", "normal");
+                self.block(&contents, downloads_content, &path, flags).await?;
+                downloaded = true;
             }
+        }
 
-            UI::section_header("downloads", "normal");
-            self.block(&contents, downloads_content, &path, flags).await?;
+        let _ = Covers::new(&contents).get().await;
+        let _ = Compress::new(&contents).get();
+        let _ = Tasks.qr_codes(&contents, None).await;
+        let _ = Math::new(&contents).render().await;
 
-            let _ = Covers::new(&contents).get().await;
-            let _ = Compress::new(&contents).get();
-            let _ = Tasks.qr_codes(&contents, None).await;
-            let _ = Math::new(&contents).render().await;
+        Vars.get_open(&contents, flags.no_open_link).await;
+        let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
 
-            Vars.get_open(&contents, flags.no_open_link).await;
-            let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
-
+        if downloaded {
             let _ = Checksum::new(Some(contents)).files();
-        } else {
-            PanicAlerts::downloads_block();
         }
 
         Ok(())
@@ -142,28 +142,29 @@ impl DownloadsBlock {
 
         let end_index = contents.rfind("}");
 
+        let mut downloaded = false;
+
         if let (Some(start_index), Some(end_index)) = (start_index, end_index) {
-            FileUtils.create_path(&path);
             let downloads_content = &contents[start_index + "downloads ".len()..end_index];
 
-            if downloads_content.trim().starts_with("commands {") {
-                return Ok(());
+            if !downloads_content.trim().starts_with("commands {") {
+                FileUtils.create_path(&path);
+                UI::section_header("downloads", "normal");
+                self.block(&contents, downloads_content, &path, flags).await?;
+                downloaded = true;
             }
+        }
 
-            UI::section_header("downloads", "normal");
-            self.block(&contents, downloads_content, &path, flags).await?;
+        let _ = Compress::new(&contents).get();
+        let _ = Covers::new(&contents).get().await;
+        let _ = TasksRaw.qr_codes(&contents, None).await;
+        let _ = Math::new(&contents).render().await;
 
-            let _ = Compress::new(&contents).get();
-            let _ = Covers::new(&contents).get().await;
-            let _ = TasksRaw.qr_codes(&contents, None).await;
-            let _ = Math::new(&contents).render().await;
+        Vars.get_open(&contents, flags.no_open_link).await;
+        let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
 
-            Vars.get_open(&contents, flags.no_open_link).await;
-            let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
-
+        if downloaded {
             let _ = Checksum::new(Some(contents)).files();
-        } else {
-            PanicAlerts::downloads_block();
         }
 
         Ok(())

@@ -115,10 +115,6 @@ impl Monset {
         Ok(String::from_utf8_lossy(cursor.get_ref()).to_string())
     }
 
-    pub fn has_downloads_block(contents: &str) -> bool {
-        contents.contains("downloads {") || contents.contains("downloads{")
-    }
-
     pub async fn server(&self) -> Result<(), Box<dyn Error>> {
         let contents = self.raw_contents().await?;
 

@@ -103,10 +103,7 @@ impl Scimon {
                     } else {
                         MonlibImport.run(&contents, &flags_clone).await;
 
-                        if Monset::has_downloads_block(&contents) {
-                            let _ = monset.downloads(&flags_clone).await;
-                        }
-
+                        let _ = monset.downloads(&flags_clone).await;
                         let _ = monset.run_code(&flags_clone).await;
                         AiBlock.generate_and_save_files(&contents).await;
                         ReadMeBlock.render_block_and_save_file(&file, &flags_clone).await;

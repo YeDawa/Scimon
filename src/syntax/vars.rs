@@ -7,10 +7,7 @@ use crate::{
     configs::settings::Settings,
     regexp::regex_blocks::BlocksRegExp,
 
-    ui::{
-        ui_base::UI,
-        panic_alerts::PanicAlerts,
-    },
+    ui::ui_base::UI,
 };
 
 pub struct Vars;
@@ -20,15 +17,12 @@ impl Vars {
     pub fn get_path(&self, contents: &str) -> String {
         let path_pattern = Regex::new(BlocksRegExp::GET_PATH_VAR).unwrap();
 
-        let path = path_pattern.captures(contents)
+        // `path` is optional: when it is absent the current directory is used,
+        // so lists that don't download anything don't have to declare it.
+        path_pattern.captures(contents)
             .and_then(|caps| caps.get(1))
-            .map(|m| m.as_str())
-            .unwrap_or_else(|| {
-                PanicAlerts::path_var();
-                ""
-            });
-
-        path.to_string()
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_else(|| ".".to_string())
     }
 
     pub async fn get_open(&self, contents: &str, no_open: bool) -> Option<String> {
