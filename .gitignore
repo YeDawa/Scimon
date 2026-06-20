@@ -15,12 +15,11 @@ Cargo.lock
 
 # Ignore all files downloaded
 *.pdf
+*.epub
+*.docx
 
 # Ignore .env file
 .env
-
-# Ignore the zip files
-*.zip
 
 # Ignore JetBrains path
 .idea/

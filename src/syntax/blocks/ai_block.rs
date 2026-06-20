@@ -2,13 +2,22 @@ use regex::Regex;
 use tokio::task;
 use futures::future::join_all;
 
+use epub_builder::{
+    ZipLibrary,
+    EpubBuilder,
+    EpubContent,
+    ReferenceType,
+};
+
 use std::{
     fs,
+    path::Path,
     error::Error,
 };
 
 use crate::{
     syntax::vars::Vars,
+    consts::global::Global,
     utils::file::FileUtils,
     render::render::Render,
     system::markdown::Markdown,
@@ -25,11 +34,18 @@ use crate::{
     },
 };
 
+#[derive(Clone, Copy)]
+enum AiFormat {
+    Markdown,
+    Pdf,
+    Epub,
+}
+
 struct AiEntry {
     prompt: String,
     file: String,
     model: Option<String>,
-    pdf: bool,
+    format: AiFormat,
 }
 
 pub struct AiBlock;
@@ -79,15 +95,68 @@ impl AiBlock {
         let model = caps.name("model").map(|m| m.as_str().trim().to_string());
 
         // The output extension decides the format: ".pdf" renders the generated
-        // Markdown to a styled PDF, anything else is saved as a ".md" file.
+        // Markdown to a styled PDF, ".epub" packages it as an EPUB, anything
+        // else is saved as a ".md" file.
         let lower = file.to_lowercase();
-        let pdf = lower.ends_with(".pdf");
 
-        if !pdf && !lower.ends_with(".md") {
-            file.push_str(".md");
-        }
+        let format = if lower.ends_with(".pdf") {
+            AiFormat::Pdf
+        } else if lower.ends_with(".epub") {
+            AiFormat::Epub
+        } else {
+            if !lower.ends_with(".md") {
+                file.push_str(".md");
+            }
 
-        Some(AiEntry { prompt, file, model, pdf })
+            AiFormat::Markdown
+        };
+
+        Some(AiEntry { prompt, file, model, format })
+    }
+
+    fn metadata(contents: &str, key: &str) -> Option<String> {
+        let pattern = Regex::new(&format!(r#"(?im)^\s*@{}\s+"([^"]+)""#, key)).unwrap();
+
+        pattern.captures(contents)
+            .and_then(|caps| caps.get(1))
+            .map(|m| m.as_str().to_string())
+    }
+
+    fn xml_escape(value: &str) -> String {
+        value
+            .replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;")
+    }
+
+    fn save_epub(list_contents: &str, output_path: &str, title: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
+        let html_body = Markdown.append_extras_and_render(markdown);
+
+        let author = Self::metadata(list_contents, "author")
+            .unwrap_or_else(|| Global::APP_NAME.to_string());
+
+        let xhtml = format!(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
+             <!DOCTYPE html>\n\
+             <html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>{}</title></head>\
+             <body>{}</body></html>",
+            Self::xml_escape(title), html_body
+        );
+
+        let mut output = Vec::new();
+        let mut builder = EpubBuilder::new(ZipLibrary::new()?)?;
+
+        builder.metadata("title", title)?;
+        builder.metadata("author", &author)?;
+        builder.add_content(
+            EpubContent::new("chapter1.xhtml", xhtml.as_bytes())
+                .title(title)
+                .reftype(ReferenceType::Text),
+        )?;
+        builder.generate(&mut output)?;
+
+        fs::write(output_path, output)?;
+        Ok(())
     }
 
     async fn save_pdf(list_contents: &str, output_path: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
@@ -116,15 +185,31 @@ impl AiBlock {
             }
         };
 
-        if entry.pdf {
-            if let Err(e) = Self::save_pdf(&list_contents, &output_path, &markdown).await {
-                ErrorsAlerts::generic(&e.to_string());
-            } else {
-                SuccessAlerts::generated_pdf(&output_path);
+        match entry.format {
+            AiFormat::Pdf => {
+                if let Err(e) = Self::save_pdf(&list_contents, &output_path, &markdown).await {
+                    ErrorsAlerts::generic(&e.to_string());
+                } else {
+                    SuccessAlerts::generated_pdf(&output_path);
+                }
             }
-        } else {
-            FileUtils.write_file(&output_path, markdown);
-            SuccessAlerts::ai_markdown(&output_path);
+
+            AiFormat::Epub => {
+                let title = Path::new(&entry.file)
+                    .file_stem()
+                    .map(|stem| stem.to_string_lossy().to_string())
+                    .unwrap_or_else(|| entry.file.clone());
+
+                match Self::save_epub(&list_contents, &output_path, &title, &markdown) {
+                    Ok(()) => SuccessAlerts::generated_epub(&output_path),
+                    Err(e) => ErrorsAlerts::generic(&e.to_string()),
+                }
+            }
+
+            AiFormat::Markdown => {
+                FileUtils.write_file(&output_path, markdown);
+                SuccessAlerts::ai_markdown(&output_path);
+            }
         }
     }
 
