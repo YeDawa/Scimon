@@ -150,8 +150,8 @@ impl Server {
             CodeMirror.defineSimpleMode('scimon',{
                 start:[
                     {regex:/@\w+/,token:'meta'},
-                    {regex:/\b(downloads|commands|readme)\b(?=\s*\{)/,token:'keyword'},
-                    {regex:/\b(path|open|compress|covers|qrcode|style|print|readme|math|server|as)\b/,token:'keyword'},
+                    {regex:/\b(downloads|commands|readme|ai)\b(?=\s*\{)/,token:'keyword'},
+                    {regex:/\b(import|path|open|compress|copy|covers|qrcode|style|print|readme|math|server|as)\b/,token:'keyword'},
                     {regex:/![a-zA-Z_]+/,token:'atom'},
                     {regex:/"(?:[^"\\]|\\.)*"/,token:'string'},
                     {regex:/https?:\/\/\S+/,token:'link'},
