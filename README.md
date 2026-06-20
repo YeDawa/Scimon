@@ -31,7 +31,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`) and skipping (`!ignore`).
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
-- 🤖 **AI-generated Markdown** — describe what you want in an `ai { ... }` block and Scimon writes the Markdown files for you via OpenRouter.
+- 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown or rendered straight to PDF.
 - 📐 **Built-in LaTeX compiler** — turn `.tex` files into PDF with no TeX distribution installed (theorems, bibliography, acronyms, TikZ, pgfplots, and more).
 - 📝 **Markdown rendering** — render Markdown to styled PDF with MathJax and Mermaid support.
 - 🔢 **Math to image** — render formulas straight to PNG.
@@ -117,7 +117,7 @@ downloads {
 
 ai {
     "Write a short article about the Rust programming language" as "rust.md"
-    "Explain quantum computing for beginners" as "quantum.md" with "anthropic/claude-3.5-sonnet"
+    "Explain quantum computing for beginners" as "quantum.pdf" with "anthropic/claude-3.5-sonnet"
 }
 
 commands {
@@ -128,10 +128,11 @@ server "8080"
 ```
 
 > [!NOTE]
-> The `ai` block generates Markdown files using [OpenRouter](https://openrouter.ai).
+> The `ai` block generates documents using [OpenRouter](https://openrouter.ai).
 > Set your key with `scimon options write-env` (or edit the `.env` file) so that
 > `OPENROUTER_API_KEY="..."` is defined. Each entry takes a prompt and an output
-> file (`as "name.md"`); add `with "provider/model"` to override the default model.
+> file (`as "name.md"`): use a `.md` name to save raw Markdown or a `.pdf` name to
+> render a styled PDF. Add `with "provider/model"` to override the default model.
 
 > [!NOTE]
 > Save the file as `scimon.mon`, then run `scimon run scimon.mon`.
