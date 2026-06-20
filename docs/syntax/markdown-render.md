@@ -19,24 +19,6 @@
 * Mermaid diagrams
 * HTML tags
 
-### Extra Features
-
-* DocsSources
-* Citations (References)
-
-Learn more about how to use Extras features [here](#how-to-use-extras-features).
-
-### File Formats Supported by DocsSources:
-
-<ul>
-  <li>.pdf</li>
-  <li>.doc, .docx</li>
-  <li>.epub, .mobui</li>
-  <li>.rst, .yml, .yaml, .toml, .json</li>
-  <li>.7z, .zip, .rar, .tar, .tar.gz, .gz</li>
-  <li>.bin, .img</li>
-</ul>
-
 ### Third-party Libraries Loaded on README File Rendered:
 
 <ul>
