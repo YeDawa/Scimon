@@ -6,6 +6,8 @@ Scimon (`.mon`) is the dedicated language behind the tool. It started as a way t
 
 The key strength of the language is its user-friendly design. The syntax is intuitive, reducing the learning curve typically associated with programming languages. This makes it accessible to both beginners and experienced developers. A list is just a plain-text file made of **variables** (single-line, like `path "..."`) and **blocks** (multi-line, like `downloads { ... }`), processed top to bottom when you run `scimon run <file>`.
 
+Everything is optional: since Scimon is no longer only about downloading PDFs, a list does not need a `downloads { ... }` block or a `path` variable. When `path` is omitted, the current directory is used, so a list can do nothing but `print`, run `commands { ... }`, generate from an `ai { ... }` block, render `math`, and so on.
+
 ## Summary
 
 - [Comments](./comments.md)
