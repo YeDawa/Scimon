@@ -13,8 +13,10 @@ impl TemplateReadMe {
                 <meta name='theme-color' content='#0c0c10'>
                 <meta name='color-scheme' content='dark'>
 
-                <!-- Favicon and stylesheets -->
+                <!-- Favicon -->
                 <link rel='icon' href='https://i.imgur.com/aHe6qpf.png' sizes='32x32'>
+
+                <!-- Stylesheets -->
                 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css' crossorigin='anonymous'>
                 <link rel='stylesheet' href='https://static.monlib.net/bundle.css'>
                 <link rel='stylesheet' href='https://static.monlib.net/prism.css'>
