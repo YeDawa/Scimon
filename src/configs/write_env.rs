@@ -51,13 +51,12 @@ impl WriteEnv {
         let app_folder = &*Folders::APP_FOLDER;
         let env_path: PathBuf = app_folder.join(".env");
 
-        let mut file = OpenOptions::new()
-            
+        let mut file = OpenOptions::new()       
             .append(true)
             .create(true)
             .open(env_path)?;
 
-        writeln!(file, "{}=\"{}\"", self.key, self.value)?;
+        writeln!(file, "\n{}=\"{}\"", self.key, self.value)?;
         Ok(())
     }
 
