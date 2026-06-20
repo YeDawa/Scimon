@@ -1,6 +1,7 @@
 use is_url::is_url;
 
 use std::{
+    path::Path,
     error::Error,
 
     fs::{
@@ -11,7 +12,9 @@ use std::{
 
 use crate::{
     system::latex::LaTex,
+    generator::epub::Epub,
     render::render::Render,
+    consts::global::Global,
     system::markdown::Markdown,
     render::render_inject::RenderInject,
 
@@ -78,11 +81,33 @@ impl Compile {
         Ok(())
     }
 
+    fn wants_epub(&self) -> bool {
+        self.output
+            .as_ref()
+            .map(|output| output.to_lowercase().ends_with(".epub"))
+            .unwrap_or(false)
+    }
+
     pub async fn markdown(&self) -> Result<(), Box<dyn Error>> {
         UI::header();
         UI::section_header("Markdown Compiler", "info");
 
         let content = self.read_content().await?;
+
+        if self.wants_epub() {
+            let output_name = self.output.clone().unwrap_or_default();
+
+            let title = Path::new(&output_name)
+                .file_stem()
+                .map(|stem| stem.to_string_lossy().to_string())
+                .unwrap_or_else(|| output_name.clone());
+
+            Epub.create(&content, &title, Global::APP_NAME, &output_name)?;
+            SuccessAlerts::generated_epub(&output_name);
+
+            return Ok(());
+        }
+
         let output_name = self.output_name();
 
         let html_body = Markdown.append_extras_and_render(&content);
