@@ -2,13 +2,6 @@ use regex::Regex;
 use tokio::task;
 use futures::future::join_all;
 
-use epub_builder::{
-    ZipLibrary,
-    EpubBuilder,
-    EpubContent,
-    ReferenceType,
-};
-
 use std::{
     fs,
     path::Path,
@@ -18,6 +11,7 @@ use std::{
 use crate::{
     syntax::vars::Vars,
     consts::global::Global,
+    generator::epub::Epub,
     utils::file::FileUtils,
     render::render::Render,
     system::markdown::Markdown,
@@ -114,51 +108,6 @@ impl AiBlock {
         Some(AiEntry { prompt, file, model, format })
     }
 
-    fn metadata(contents: &str, key: &str) -> Option<String> {
-        let pattern = Regex::new(&format!(r#"(?im)^\s*@{}\s+"([^"]+)""#, key)).unwrap();
-
-        pattern.captures(contents)
-            .and_then(|caps| caps.get(1))
-            .map(|m| m.as_str().to_string())
-    }
-
-    fn xml_escape(value: &str) -> String {
-        value
-            .replace('&', "&amp;")
-            .replace('<', "&lt;")
-            .replace('>', "&gt;")
-    }
-
-    fn save_epub(list_contents: &str, output_path: &str, title: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
-        let html_body = Markdown.append_extras_and_render(markdown);
-
-        let author = Self::metadata(list_contents, "author")
-            .unwrap_or_else(|| Global::APP_NAME.to_string());
-
-        let xhtml = format!(
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n\
-             <!DOCTYPE html>\n\
-             <html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>{}</title></head>\
-             <body>{}</body></html>",
-            Self::xml_escape(title), html_body
-        );
-
-        let mut output = Vec::new();
-        let mut builder = EpubBuilder::new(ZipLibrary::new()?)?;
-
-        builder.metadata("title", title)?;
-        builder.metadata("author", &author)?;
-        builder.add_content(
-            EpubContent::new("chapter1.xhtml", xhtml.as_bytes())
-                .title(title)
-                .reftype(ReferenceType::Text),
-        )?;
-        builder.generate(&mut output)?;
-
-        fs::write(output_path, output)?;
-        Ok(())
-    }
-
     async fn save_pdf(list_contents: &str, output_path: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
         let html_body = Markdown.append_extras_and_render(markdown);
         let document = RenderInject.html_content(list_contents, html_body).await?;
@@ -200,7 +149,10 @@ impl AiBlock {
                     .map(|stem| stem.to_string_lossy().to_string())
                     .unwrap_or_else(|| entry.file.clone());
 
-                match Self::save_epub(&list_contents, &output_path, &title, &markdown) {
+                let author = Vars.get_metadata(&list_contents, "author")
+                    .unwrap_or_else(|| Global::APP_NAME.to_string());
+
+                match Epub.create(&markdown, &title, &author, &output_path) {
                     Ok(()) => SuccessAlerts::generated_epub(&output_path),
                     Err(e) => ErrorsAlerts::generic(&e.to_string()),
                 }

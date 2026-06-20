@@ -2,6 +2,7 @@ extern crate open;
 
 use std::{
     env,
+    path::Path,
     error::Error,
 };
 
@@ -13,16 +14,19 @@ use pulldown_cmark::{
 
 use crate::{
     system::pdf::Pdf,
-    configs::settings::Settings, 
+    syntax::vars::Vars,
+    consts::global::Global,
+    generator::epub::Epub,
+    configs::settings::Settings,
     generator::file_name::FileName,
     ui::success_alerts::SuccessAlerts,
-    
+
     utils::{
-        remote::Remote, 
+        remote::Remote,
         file::FileUtils,
         file_name_remote::FileNameRemote,
     },
-    
+
     render::{
         render_io::RenderIO,
         render_inject::RenderInject,
@@ -79,17 +83,41 @@ impl Markdown {
         Ok(html_output)
     }
 
-    pub async fn create(&self, contents: &str, url: &str, path: &str) -> Result<(), Box<dyn Error>> {
+    pub async fn create(&self, contents: &str, url: &str, path: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
         if Remote.check_content_type(url, "text/markdown").await? || url.contains(".md") {
-            let html_content = self.render(url).await?;
-            let content = RenderInject.html_content(contents, html_content).await?;
-            
-            let original_name = FileNameRemote::new(url).get();
-            let new_filename = FileUtils.replace_extension(&original_name, "pdf");
-            let output_path = FileUtils.get_output_path(path, &new_filename);
+            let wants_epub = custom_name
+                .map(|name| name.to_lowercase().ends_with(".epub"))
+                .unwrap_or(false);
 
-            Pdf.create_pdf(&content, output_path, url).await?;
-            SuccessAlerts::download_and_generated_pdf(&new_filename, url);
+            if wants_epub {
+                let name = custom_name.unwrap();
+                let output_path = FileUtils.get_output_path(path, name)
+                    .to_string_lossy()
+                    .to_string();
+
+                let title = Path::new(name)
+                    .file_stem()
+                    .map(|stem| stem.to_string_lossy().to_string())
+                    .unwrap_or_else(|| name.to_string());
+
+                let author = Vars.get_metadata(contents, "author")
+                    .unwrap_or_else(|| Global::APP_NAME.to_string());
+
+                let markdown_content = Remote.content(url).await?;
+                Epub.create(&markdown_content, &title, &author, &output_path)?;
+
+                SuccessAlerts::generated_epub(&output_path);
+            } else {
+                let html_content = self.render(url).await?;
+                let content = RenderInject.html_content(contents, html_content).await?;
+
+                let original_name = FileNameRemote::new(url).get();
+                let new_filename = FileUtils.replace_extension(&original_name, "pdf");
+                let output_path = FileUtils.get_output_path(path, &new_filename);
+
+                Pdf.create_pdf(&content, output_path, url).await?;
+                SuccessAlerts::download_and_generated_pdf(&new_filename, url);
+            }
         }
 
         Ok(())

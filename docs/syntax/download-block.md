@@ -32,8 +32,21 @@ Some URLs aren't just downloaded — Scimon recognizes them and applies a dedica
 
 - **Provider links** (ChatGPT/Gemini share links, Wikipedia, Arxiv, …) are fetched and rendered to PDF. See [Providers](../providers.md).
 - **`.tex` files** are compiled to PDF on the fly. See the [LaTeX Compiler](../compile.md).
+- **Markdown sources** (`.md`) are rendered to PDF — or, when you rename the entry with an `.epub` name, packaged as an EPUB instead.
 
 You can still combine these with `as "name.pdf"` and `!ignore`.
+
+### EPUB output
+
+A Markdown URL can be turned into an EPUB by giving the entry an `.epub` name with `as`:
+
+```plaintext
+downloads {
+    https://raw.githubusercontent.com/owner/repo/main/README.md as "book.epub"
+}
+```
+
+The book title comes from the output file name and the author from the `@author` metadata (falling back to `Scimon`).
 
 ### Path Configuration
 

@@ -125,7 +125,7 @@ impl Tasks {
         }
 
         if let Some(contents) = contents {
-            Markdown.create(contents, url, path).await?;
+            Markdown.create(contents, url, path, custom_name).await?;
         }
 
         if line_url.ends_with(".tex") {

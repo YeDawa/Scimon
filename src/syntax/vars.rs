@@ -69,6 +69,14 @@ impl Vars {
         }
     }
 
+    pub fn get_metadata(&self, contents: &str, key: &str) -> Option<String> {
+        let pattern = Regex::new(&format!(r#"(?im)^\s*@{}\s+"([^"]+)""#, key)).unwrap();
+
+        pattern.captures(contents)
+            .and_then(|caps| caps.get(1))
+            .map(|m| m.as_str().to_string())
+    }
+
     pub fn get_imports(&self, contents: &str) -> Vec<String> {
         let import_pattern = Regex::new(BlocksRegExp::GET_IMPORT_VAR).unwrap();
 

@@ -8,8 +8,9 @@ impl Extended {
 
         if let Some((_, name_part)) = clean_line.split_once(" as ") {
             let clean_name = name_part.trim().trim_matches('"');
+            let lower = clean_name.to_lowercase();
 
-            if clean_name.ends_with(".pdf") {
+            if lower.ends_with(".pdf") || lower.ends_with(".epub") {
                 Some(clean_name.to_string())
             } else {
                 Some(format!("{}.pdf", clean_name))

@@ -1,5 +1,6 @@
 pub mod uuid;
 pub mod math;
+pub mod epub;
 pub mod covers;
 pub mod qr_code;
 pub mod checksum;
