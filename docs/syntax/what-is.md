@@ -14,6 +14,7 @@ The key strength of the language is its user-friendly design. The syntax is intu
 - [Commands Block](./commands-block.md)
 - [AI Block](./ai-block.md)
 - [Compress folder](./compress.md)
+- [Copy folder](./copy.md)
 - [Open links](./open-links.md)
 - [Style](./style.md)
 - [Print](./prints.md)
