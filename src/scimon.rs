@@ -16,6 +16,7 @@ use crate::{
     },
 
     cmd::{
+        copy::Copy,
         monset::Monset,
         compile::Compile,
     },
@@ -106,6 +107,10 @@ impl Scimon {
                         let _ = monset.run_code(&flags_clone).await;
                         AiBlock.generate_and_save_files(&contents).await;
                         ReadMeBlock.render_block_and_save_file(&file, &flags_clone).await;
+
+                        if let Err(err) = Copy::new(&contents).get() {
+                            ErrorsAlerts::generic(&err.to_string());
+                        }
 
                         if let Err(err) = monset.server().await {
                             ErrorsAlerts::generic(&err.to_string());

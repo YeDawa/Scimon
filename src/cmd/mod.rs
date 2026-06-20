@@ -1,3 +1,4 @@
+pub mod copy;
 pub mod tasks;
 pub mod monset;
 pub mod compile;
