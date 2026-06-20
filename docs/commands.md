@@ -37,15 +37,20 @@ scimon check scimon.mon && scimon run scimon.mon
 
 ## `compile`
 
-Compile a LaTeX (`.tex`) file into a PDF. Accepts a local path or a URL, with an
+Compile a file into a PDF. The format is picked from the extension: LaTeX
+(`.tex`) or Markdown (`.md` / `.markdown`). Accepts a local path or a URL, with an
 optional `-o` / `--output`.
 
 ```shell
 scimon compile paper.tex
-scimon compile paper.tex -o build/final.pdf
+scimon compile notes.md
+scimon compile notes.md -o build/notes.pdf
+scimon compile https://example.com/readme.md
 ```
 
-See the [LaTeX Compiler](./compile.md) page for the full feature list.
+Markdown is rendered with the generic template (MathJax/Mermaid supported) and
+printed to PDF. See the [LaTeX Compiler](./compile.md) page for the LaTeX feature
+list.
 
 ## `serve`
 
