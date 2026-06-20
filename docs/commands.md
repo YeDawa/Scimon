@@ -49,8 +49,7 @@ scimon compile https://example.com/readme.md
 ```
 
 Markdown is rendered with the generic template (MathJax/Mermaid supported) and
-printed to PDF. See the [LaTeX Compiler](./compile.md) page for the LaTeX feature
-list.
+printed to PDF. See the [Compiler](./compile.md) page for the full feature list.
 
 ## `serve`
 

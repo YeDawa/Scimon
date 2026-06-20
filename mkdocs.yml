@@ -30,7 +30,10 @@ nav:
   - Commands: commands.md
   - Scrape: scrape.md
   - Providers: providers.md
-  - LaTeX Compiler: compile.md
+  - Compiler:
+    - Overview: compile.md
+    - LaTeX: compile/latex.md
+    - Markdown: compile/markdown.md
   - Syntax:
     - Overview: syntax/what-is.md
     - Comments: syntax/comments.md

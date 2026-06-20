@@ -31,7 +31,7 @@ In this example:
 Some URLs aren't just downloaded — Scimon recognizes them and applies a dedicated strategy automatically:
 
 - **Provider links** (ChatGPT/Gemini share links, Wikipedia, Arxiv, …) are fetched and rendered to PDF. See [Providers](../providers.md).
-- **`.tex` files** are compiled to PDF on the fly. See the [LaTeX Compiler](../compile.md).
+- **`.tex` files** are compiled to PDF on the fly. See the [Compiler](../compile.md).
 - **Markdown sources** (`.md`) are rendered to PDF — or, when you rename the entry with an `.epub` name, packaged as an EPUB instead.
 
 You can still combine these with `as "name.pdf"` and `!ignore`.
