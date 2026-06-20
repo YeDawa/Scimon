@@ -18,6 +18,23 @@ scimon run https://example.com/scimon.mon
 
 See [Basic usage](./basic-usage.md) and the [language syntax](./syntax/what-is.md).
 
+## `check`
+
+Validate a list's syntax **without downloading or running anything** — a quick
+lint / dry-run. Accepts a local path or a remote URL.
+
+```shell
+scimon check scimon.mon
+```
+
+It reports the first syntax error (with line number and a hint) and exits with a
+non-zero status, or confirms the list is valid. The non-zero exit code makes it
+handy in CI or pre-commit hooks:
+
+```shell
+scimon check scimon.mon && scimon run scimon.mon
+```
+
 ## `compile`
 
 Compile a LaTeX (`.tex`) file into a PDF. Accepts a local path or a URL, with an
