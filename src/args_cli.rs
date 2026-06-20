@@ -35,6 +35,12 @@ pub enum Commands {
         file: String,
     },
 
+    /// Validate a list's syntax without downloading or running anything
+    Check {
+        /// File to validate
+        file: String,
+    },
+
     /// Get datasets of the links from the web
     Pull {
         /// File or task to be executed

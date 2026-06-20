@@ -121,6 +121,20 @@ impl Scimon {
                     }
                 },
 
+                Commands::Check { file } => {
+                    UI::header();
+                    let monset = Monset::new(&file);
+
+                    let contents = monset.raw_contents().await.unwrap_or_default();
+
+                    if let Some(err) = Validator.check(&contents) {
+                        SyntaxAlerts::error(err.line, &err.content, &err.message);
+                        std::process::exit(1);
+                    } else {
+                        SyntaxAlerts::valid(&file);
+                    }
+                },
+
                 Commands::Pull { file } => {
                     UI::header();
                     let _ = MonlibPull.pull(&file, &flags_clone).await;
