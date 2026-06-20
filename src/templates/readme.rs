@@ -22,7 +22,6 @@ impl TemplateReadMe {
 
                 <header>
                     <div class='label' id='headerLabel'></div>
-                    <div class='logo' title='SciMon'></div>
                     <nav class='nav' aria-label='Page actions'>
                         <button type='button' class='nav-btn is-hidden' id='scrollToTopBtn' title='Back to top' aria-label='Back to top'>
                             <i class='fa-solid fa-chevron-up' aria-hidden='true'></i>
