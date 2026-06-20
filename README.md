@@ -38,6 +38,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 🔳 **QR codes & covers** — generate QR codes and extract document covers.
 - 🗜️ **Compression & scripts** — zip output folders and run Python/JavaScript/TypeScript steps (with a secure-by-default runner).
 - 🌍 **Built-in web server** — browse and preview the generated files in your browser (lightbox for images/PDFs, dark mode), via the `serve` command or `server "PORT"` in a list.
+- 📦 **Reusable packages** — pull and run a shared package from [Monlib](https://monlib.net) before your list with `import "package"`.
 
 ## Requirements
 
@@ -157,6 +158,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
 - [LaTeX Compiler](https://docs.scimon.dev/compile)
 - [Syntax](https://docs.scimon.dev/syntax/what-is)
   - [Comments](https://docs.scimon.dev/syntax/comments)
+  - [Import](https://docs.scimon.dev/syntax/import)
   - [Metadata](https://docs.scimon.dev/syntax/metadata)
   - [Downloads Block](https://docs.scimon.dev/syntax/download-block)
   - [Readme Block](https://docs.scimon.dev/syntax/readme-block)

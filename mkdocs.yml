@@ -34,6 +34,7 @@ nav:
   - Syntax:
     - Overview: syntax/what-is.md
     - Comments: syntax/comments.md
+    - Import: syntax/import.md
     - Metadata: syntax/metadata.md
     - Downloads Block: syntax/download-block.md
     - Readme Block: syntax/readme-block.md
