@@ -55,7 +55,7 @@ credentials.json
 *.mjs
 *.cjs
 
-# ignore Monset files
+# ignore Scimon files
 *.mon
 
 # Ignore images
