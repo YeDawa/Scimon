@@ -1,4 +1,5 @@
 pub mod vars;
+pub mod comments;
 pub mod extended;
 pub mod validator;
 pub mod macro_handler;

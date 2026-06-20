@@ -21,6 +21,7 @@ use crate::{
     args_cli::Flags,
     syntax::vars::Vars,
     server::serve::Serve,
+    syntax::comments::Comments,
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
 
@@ -70,7 +71,10 @@ impl Monset {
             file.read_to_end(&mut buffer)?;
         }
 
-        Ok(Cursor::new(buffer))
+        let raw = String::from_utf8_lossy(&buffer).to_string();
+        let clean = Comments.strip(&raw);
+
+        Ok(Cursor::new(clean.into_bytes()))
     }
 
     pub async fn downloads(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
@@ -84,7 +88,7 @@ impl Monset {
     }
 
     pub async fn downloads_raw(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
-        let content = self.run.clone();
+        let content = Comments.strip(&self.run);
 
         TasksRaw.prints(&content).await?;
         DownloadsBlock.read_lines_raw(&content, flags).await?;
@@ -100,7 +104,7 @@ impl Monset {
     }
 
     pub async fn run_code_raw(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
-        let content = self.run.clone();
+        let content = Comments.strip(&self.run);
         RunnerBlock.read_lines_raw(&content, flags).await?;
 
         Ok(())
