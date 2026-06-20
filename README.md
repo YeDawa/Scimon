@@ -33,7 +33,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`) and skipping (`!ignore`).
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
-- 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown or rendered straight to PDF.
+- 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown, PDF, or EPUB.
 - 📐 **Built-in LaTeX compiler** — turn `.tex` files into PDF with no TeX distribution installed (theorems, bibliography, acronyms, TikZ, pgfplots, and more).
 - 📝 **Markdown rendering** — render Markdown to styled PDF with MathJax and Mermaid support.
 - 🔢 **Math to image** — render formulas straight to PNG.

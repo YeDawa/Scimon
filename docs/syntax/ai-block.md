@@ -36,6 +36,8 @@ Each line inside the block is a prompt followed by the output file:
     template (same pipeline as [Markdown render](./markdown-render.md)). The
     [`style`](./style.md) variable is honored for the PDF's CSS, falling back to
     the default stylesheet.
+  - `.epub` packages the generated Markdown as an EPUB. The book title comes from
+    the output file name and the author from the `@author` metadata.
 - The `.md` extension is added automatically if you omit it.
 - Files are written inside the folder defined by the [`path`](./what-is.md)
   variable, so they are also picked up by the [`server`](./server.md) command.
@@ -49,11 +51,13 @@ path "downloads/"
 ai {
     "Write a short article about the Rust programming language" as "rust.md"
     "Explain quantum computing for beginners" as "quantum.pdf"
+    "Write a beginner's guide to Rust" as "guide.epub"
     "Draft release notes for version 2.0" as "drafts/release.md" !ignore
 }
 ```
 
-Here `rust.md` is saved as Markdown, while `quantum.pdf` is rendered to a PDF.
+Here `rust.md` is saved as Markdown, `quantum.pdf` is rendered to a PDF, and
+`guide.epub` is packaged as an EPUB.
 
 ## Choosing a model
 
