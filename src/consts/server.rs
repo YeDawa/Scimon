@@ -71,8 +71,8 @@ impl Server {
         .sidebar .folders a.active{background:var(--hover);font-weight:600;}
         .sidebar .separator{height:1px;background:var(--border);margin:.5rem 0;}
         .logo{align-self:center;}
-        .brand-meta{align-self:center;margin-top:.5rem;font-size:.8rem;color:var(--muted);}
-        .brand-meta a{color:var(--muted);}
+        .brand-meta{align-self:center;display:flex;align-items:center;justify-content:center;gap:.35rem;margin-top:.5rem;font-size:.8rem;color:var(--muted);}
+        .brand-meta a{display:inline-flex;align-items:center;color:var(--muted);}
         .brand-meta a:hover{color:var(--link);}
         .logo img{display:block;filter:var(--logo-filter);}
         h1{font-size:1.2rem;}
