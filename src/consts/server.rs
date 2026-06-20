@@ -2,7 +2,7 @@ pub struct Server;
 
 impl Server {
 
-    pub const LOGO_PNG: &str = "https://static.monlib.net/scimon.png";
+    pub const LOGO_PNG: &str = "https://static.monlib.net/logo.png";
 
     pub const SOURCE_ROUTE: &str = "/__scimon/source.mon";
 
