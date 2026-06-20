@@ -40,10 +40,6 @@ use futures::StreamExt;
 use tokio::sync::Semaphore;
 use once_cell::sync::Lazy;
 
-// Each headless Chrome needs its own user-data-dir; sharing the default profile
-// makes concurrent launches fight over the same lock and exit before the
-// DevTools websocket is ready. A semaphore also caps how many run at once so a
-// list with many PDF entries does not exhaust memory.
 static BROWSER_SEQ: AtomicU64 = AtomicU64::new(0);
 
 static BROWSER_LIMIT: Lazy<Semaphore> = Lazy::new(|| {
@@ -68,6 +64,7 @@ use crate::{
 pub struct Render;
 
 impl Render {
+
     pub async fn render_content(&self, file: &str, md_content: String) -> Result<String, Box<dyn Error>> {
         let minify_prop = Settings.get("render_markdown.minify_html", "BOOLEAN");
         let template_content = Remote.content(Addons::README_TEMPLATE_LINK).await?;
@@ -130,7 +127,6 @@ impl Render {
             })
         "#).await?;
 
-        // Wait for web fonts
         page.evaluate(r#"
             new Promise(function(resolve) {
                 if (document.fonts && document.fonts.ready) {
@@ -142,7 +138,6 @@ impl Render {
             })
         "#).await?;
 
-        // Force lazy images to load and wait for them to decode before printing
         page.evaluate(r#"
             new Promise(function(resolve) {
                 var imgs = Array.prototype.slice.call(document.querySelectorAll('img'));
@@ -163,7 +158,6 @@ impl Render {
             })
         "#).await?;
 
-        // Resolve \pageref{} placeholders
         page.evaluate(r#"
             (function() {
                 var PAGE_H = 697;
@@ -213,7 +207,6 @@ impl Render {
             })()
         "#).await?;
 
-        // Configuração nativa de PDF do chromiumoxide
         let pdf_options = PrintToPdfParams::builder()
             .print_background(true)
             .build();
@@ -228,8 +221,6 @@ impl Render {
                 }
 
                 let pages_json = serde_json::to_string(&destinations)?;
-                
-                // O evaluate do chromiumoxide permite extrair o valor retornado
                 let eval_result = page.evaluate(format!(r#"
                     (function() {{
                         var pages = {};
@@ -245,19 +236,16 @@ impl Render {
                     }})()
                 "#, pages_json)).await?;
 
-                // Converte o retorno do JS para um bool no Rust
                 let changed = eval_result.into_value::<bool>().unwrap_or(false);
 
                 if !changed {
                     break;
                 }
                 
-                // Gera o PDF novamente se houve mudança
                 contents = page.pdf(pdf_options.clone()).await?;
             }
         }
 
-        // Limpeza (desliga o servidor local e o browser)
         stop.store(true, Ordering::SeqCst);
         let _ = TcpStream::connect(("127.0.0.1", port));
         let _ = server.join();
@@ -266,7 +254,6 @@ impl Render {
         let _ = browser_handle.await;
 
         let _ = fs::remove_dir_all(&user_data_dir);
-
         Ok(contents)
     }
 
