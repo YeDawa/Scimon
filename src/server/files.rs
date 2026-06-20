@@ -356,8 +356,12 @@ impl Files {
         html.push_str("<aside class=\"sidebar\">");
         html.push_str(&format!("<a class=\"logo\" href=\"/\">{}</a>", components.logo()));
         html.push_str(&format!(
-            "<div class=\"brand-meta\">v{} | <a href=\"https://scimon.dev\">Home</a> - <a href=\"https://docs.scimon.dev\">Docs</a></div>",
-            Global::APP_VERSION
+            "<div class=\"brand-meta\">v{} | \
+             <a href=\"https://scimon.dev\" title=\"Home\" aria-label=\"Home\">{}</a> \
+             <a href=\"https://docs.scimon.dev\" title=\"Docs\" aria-label=\"Docs\">{}</a></div>",
+            Global::APP_VERSION,
+            Icons.icon("home"),
+            Icons.icon("book-open")
         ));
 
         if let Some(name) = source_name {
