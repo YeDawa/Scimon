@@ -1,5 +1,5 @@
-use mathjax::MathJax;
 use tokio::task;
+use mathjax::MathJax;
 use futures::future::join_all;
 
 use std::{
