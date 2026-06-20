@@ -155,8 +155,14 @@ impl Server {
                     {regex:/![a-zA-Z_]+/,token:'atom'},
                     {regex:/"(?:[^"\\]|\\.)*"/,token:'string'},
                     {regex:/https?:\/\/\S+/,token:'link'},
+                    {regex:/(?:^|\s)\/\/.*$/,token:'comment'},
+                    {regex:/(?:^|\s)\/\*/,token:'comment',next:'blockComment'},
                     {regex:/[{}]/,token:'bracket'},
                     {regex:/>/,token:'operator'}
+                ],
+                blockComment:[
+                    {regex:/.*?\*\//,token:'comment',next:'start'},
+                    {regex:/.*/,token:'comment'}
                 ]
             });
         })();
