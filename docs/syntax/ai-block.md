@@ -26,10 +26,14 @@ the run.
 
 Each line inside the block is a prompt followed by the output file:
 
-```plaintext
+```scimon
 "<prompt>" as "<filename>.md"
 ```
 
+- The output extension decides the format:
+  - `.md` (or no extension) saves the raw generated Markdown.
+  - `.pdf` renders the generated Markdown to a styled PDF (same pipeline as the
+    [Readme Block](./readme-block.md) / [Markdown render](./markdown-render.md)).
 - The `.md` extension is added automatically if you omit it.
 - Files are written inside the folder defined by the [`path`](./what-is.md)
   variable, so they are also picked up by the [`server`](./server.md) command.
@@ -37,15 +41,17 @@ Each line inside the block is a prompt followed by the output file:
 
 ### Example
 
-```plaintext
+```scimon
 path "downloads/"
 
 ai {
     "Write a short article about the Rust programming language" as "rust.md"
-    "Explain quantum computing for beginners" as "quantum.md"
+    "Explain quantum computing for beginners" as "quantum.pdf"
     "Draft release notes for version 2.0" as "drafts/release.md" !ignore
 }
 ```
+
+Here `rust.md` is saved as Markdown, while `quantum.pdf` is rendered to a PDF.
 
 ## Choosing a model
 
@@ -53,7 +59,7 @@ By default the block uses the `openai/gpt-4o-mini` model. You can override the
 model per entry with `with "provider/model"`, using any model id available on
 OpenRouter:
 
-```plaintext
+```scimon
 ai {
     "Summarize the history of the internet" as "internet.md" with "anthropic/claude-3.5-sonnet"
     "Write a haiku about Rust" as "haiku.md" with "meta-llama/llama-3.1-8b-instruct"
