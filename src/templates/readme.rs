@@ -12,6 +12,8 @@ impl TemplateReadMe {
                 <meta name='viewport' content='width=device-width, initial-scale=1.0'>
                 <meta name='theme-color' content='#0c0c10'>
                 <meta name='color-scheme' content='dark'>
+
+                <!-- Favicon and stylesheets -->
                 <link rel='icon' href='https://i.imgur.com/aHe6qpf.png' sizes='32x32'>
                 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css' crossorigin='anonymous'>
                 <link rel='stylesheet' href='https://static.monlib.net/bundle.css'>
@@ -43,6 +45,7 @@ impl TemplateReadMe {
 
                 <div class='markdown-body'>{1}</div>
 
+                <!-- Scripts -->
                 <script src='https://cdn.jsdelivr.net/npm/citation-js'></script>
                 <script src='https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.min.js'></script>
                 <script src='https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js'></script>
