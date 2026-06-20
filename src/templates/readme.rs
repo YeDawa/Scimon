@@ -9,6 +9,8 @@ impl TemplateReadMe {
             <head>
                 <meta charset='UTF-8'>
                 <title>{0}</title>
+
+                <!-- Meta tags -->
                 <meta name='viewport' content='width=device-width, initial-scale=1.0'>
                 <meta name='theme-color' content='#0c0c10'>
                 <meta name='color-scheme' content='dark'>
