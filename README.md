@@ -1,5 +1,5 @@
 <div align='center'>
-    <img src="https://i.imgur.com/jAE5DWn.png"/>
+    <img src="https://static.monlib.net/logo.png"/>
 </div>
 
 <p align='center'>
