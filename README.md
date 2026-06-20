@@ -63,6 +63,7 @@ The binary is produced at `target/release/scimon`. See the
 Create a file named `scimon.mon`:
 
 ```scimon
+// where the files are saved
 path "downloads/"
 
 downloads {
@@ -70,6 +71,10 @@ downloads {
     https://chatgpt.com/share/67c3f647-0bac-8005-abbb-012c3c1dafcc as "chat.pdf"
 }
 ```
+
+> [!TIP]
+> Scimon supports `//` line comments and `/* ... */` block comments — see the
+> [syntax guide](https://docs.scimon.dev/syntax/what-is#comments).
 
 Run it:
 
