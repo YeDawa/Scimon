@@ -1,17 +1,19 @@
 use minify::html::minify;
 
 use std::{
+    fs,
     error::Error,
+    path::PathBuf,
     thread::JoinHandle,
     collections::HashMap,
 
     io::{
-        Read, 
+        Read,
         Write
     },
 
     net::{
-        TcpListener, 
+        TcpListener,
         TcpStream
     },
 
@@ -20,7 +22,8 @@ use std::{
 
         atomic::{
             Ordering,
-            AtomicBool, 
+            AtomicU64,
+            AtomicBool,
         },
     },
 };
@@ -29,11 +32,28 @@ use chromiumoxide::{
     cdp::browser_protocol::page::PrintToPdfParams,
 
     browser::{
-        Browser, 
+        Browser,
         BrowserConfig
     },
 };
 use futures::StreamExt;
+use tokio::sync::Semaphore;
+use once_cell::sync::Lazy;
+
+// Each headless Chrome needs its own user-data-dir; sharing the default profile
+// makes concurrent launches fight over the same lock and exit before the
+// DevTools websocket is ready. A semaphore also caps how many run at once so a
+// list with many PDF entries does not exhaust memory.
+static BROWSER_SEQ: AtomicU64 = AtomicU64::new(0);
+
+static BROWSER_LIMIT: Lazy<Semaphore> = Lazy::new(|| {
+    let permits = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(2)
+        .clamp(1, 4);
+
+    Semaphore::new(permits)
+});
 
 use crate::{
     consts::addons::Addons,
@@ -64,11 +84,20 @@ impl Render {
     }
 
     pub async fn connect_to_browser(&self, content: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+        let _permit = BROWSER_LIMIT.acquire().await?;
+
+        let user_data_dir: PathBuf = std::env::temp_dir().join(format!(
+            "scimon-cdp-{}-{}",
+            std::process::id(),
+            BROWSER_SEQ.fetch_add(1, Ordering::SeqCst),
+        ));
+
         let config = BrowserConfig::builder()
             .arg("--headless=new")
             .arg("--window-position=-32000,-32000")
             .arg("--disable-gpu")
             .arg("--no-sandbox")
+            .user_data_dir(&user_data_dir)
             .build()
             .map_err(|e| format!("Failed to build browser config: {:?}", e))?;
 
@@ -235,6 +264,8 @@ impl Render {
         
         browser.close().await?;
         let _ = browser_handle.await;
+
+        let _ = fs::remove_dir_all(&user_data_dir);
 
         Ok(contents)
     }

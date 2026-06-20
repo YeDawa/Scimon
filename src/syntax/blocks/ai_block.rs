@@ -13,6 +13,7 @@ use crate::{
     render::render::Render,
     system::markdown::Markdown,
     addons::openrouter::OpenRouter,
+    render::render_inject::RenderInject,
     regexp::regex_blocks::BlocksRegExp,
     syntax::macro_handler::MacroHandler,
 
@@ -89,16 +90,16 @@ impl AiBlock {
         Some(AiEntry { prompt, file, model, pdf })
     }
 
-    async fn save_pdf(file: &str, output_path: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
+    async fn save_pdf(list_contents: &str, output_path: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
         let html_body = Markdown.append_extras_and_render(markdown);
-        let document = Render.render_content(file, html_body).await?;
+        let document = RenderInject.html_content(list_contents, html_body).await?;
         let pdf_bytes = Render.connect_to_browser(&document).await?;
 
         fs::write(output_path, pdf_bytes)?;
         Ok(())
     }
 
-    async fn process_entry(entry: AiEntry, path: String) {
+    async fn process_entry(entry: AiEntry, path: String, list_contents: String) {
         let output_path = FileUtils
             .get_output_path(&path, &entry.file)
             .to_string_lossy()
@@ -116,7 +117,7 @@ impl AiBlock {
         };
 
         if entry.pdf {
-            if let Err(e) = Self::save_pdf(&entry.file, &output_path, &markdown).await {
+            if let Err(e) = Self::save_pdf(&list_contents, &output_path, &markdown).await {
                 ErrorsAlerts::generic(&e.to_string());
             } else {
                 SuccessAlerts::generated_pdf(&output_path);
@@ -160,7 +161,8 @@ impl AiBlock {
             };
 
             let path = path.clone();
-            tasks.push(task::spawn(Self::process_entry(entry, path)));
+            let list_contents = contents.to_string();
+            tasks.push(task::spawn(Self::process_entry(entry, path, list_contents)));
         }
 
         join_all(tasks).await;
