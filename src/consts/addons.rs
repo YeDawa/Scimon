@@ -20,8 +20,6 @@ impl Addons {
     pub const OPENROUTER_API_REQUEST: &'static str = "https://openrouter.ai/api/v1/chat/completions";
     pub const OPENROUTER_DEFAULT_MODEL: &'static str = "openai/gpt-4o-mini";
 
-    pub const README_TEMPLATE_LINK: &'static str = "https://readme.scimon.dev/";
-
     // Chat GPT Content Class
     pub const CHATGPT_CONTENT_CLASS: &'static str = "section[data-turn=\"assistant\"]";
 
