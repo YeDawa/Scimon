@@ -1,4 +1,6 @@
 use regex::Regex;
+use tokio::task;
+use futures::future::join_all;
 
 use std::{
     fs,
@@ -87,13 +89,42 @@ impl AiBlock {
         Some(AiEntry { prompt, file, model, pdf })
     }
 
-    async fn save_pdf(&self, file: &str, output_path: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
+    async fn save_pdf(file: &str, output_path: &str, markdown: &str) -> Result<(), Box<dyn Error>> {
         let html_body = Markdown.append_extras_and_render(markdown);
         let document = Render.render_content(file, html_body).await?;
         let pdf_bytes = Render.connect_to_browser(&document).await?;
 
         fs::write(output_path, pdf_bytes)?;
         Ok(())
+    }
+
+    async fn process_entry(entry: AiEntry, path: String) {
+        let output_path = FileUtils
+            .get_output_path(&path, &entry.file)
+            .to_string_lossy()
+            .to_string();
+
+        // The (non-`Send`) error is turned into a `String` right after each
+        // `await` so nothing non-`Send` is held across an await point — that
+        // keeps the future `Send`, which `tokio::spawn` requires.
+        let markdown = match OpenRouter::new(entry.model).generate(&entry.prompt).await {
+            Ok(markdown) => markdown,
+            Err(e) => {
+                ErrorsAlerts::generic(&e.to_string());
+                return;
+            }
+        };
+
+        if entry.pdf {
+            if let Err(e) = Self::save_pdf(&entry.file, &output_path, &markdown).await {
+                ErrorsAlerts::generic(&e.to_string());
+            } else {
+                SuccessAlerts::generated_pdf(&output_path);
+            }
+        } else {
+            FileUtils.write_file(&output_path, markdown);
+            SuccessAlerts::ai_markdown(&output_path);
+        }
     }
 
     pub async fn generate_and_save_files(&self, contents: &str) {
@@ -106,6 +137,10 @@ impl AiBlock {
         FileUtils.create_path(&path);
 
         UI::section_header("ai", "normal");
+
+        // Each entry is an independent network request (and optional PDF render),
+        // so they are dispatched concurrently instead of one after another.
+        let mut tasks = Vec::new();
 
         for line in block.lines() {
             let trimmed = line.trim();
@@ -124,29 +159,11 @@ impl AiBlock {
                 None => continue,
             };
 
-            let output_path = FileUtils
-                .get_output_path(&path, &entry.file)
-                .to_string_lossy()
-                .to_string();
-
-            match OpenRouter::new(entry.model).generate(&entry.prompt).await {
-                Ok(markdown) => {
-                    if entry.pdf {
-                        match self.save_pdf(&entry.file, &output_path, &markdown).await {
-                            Ok(()) => SuccessAlerts::generated_pdf(&output_path),
-                            Err(e) => ErrorsAlerts::generic(&e.to_string()),
-                        }
-                    } else {
-                        FileUtils.write_file(&output_path, markdown);
-                        SuccessAlerts::ai_markdown(&output_path);
-                    }
-                }
-
-                Err(e) => {
-                    ErrorsAlerts::generic(&e.to_string());
-                }
-            }
+            let path = path.clone();
+            tasks.push(task::spawn(Self::process_entry(entry, path)));
         }
+
+        join_all(tasks).await;
     }
 
 }
