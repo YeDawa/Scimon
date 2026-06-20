@@ -74,7 +74,7 @@ downloads {
 
 > [!TIP]
 > Scimon supports `//` line comments and `/* ... */` block comments — see the
-> [syntax guide](https://docs.scimon.dev/syntax/what-is#comments).
+> [comments guide](https://docs.scimon.dev/syntax/comments).
 
 Run it:
 
@@ -156,6 +156,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
 - [Providers](https://docs.scimon.dev/providers)
 - [LaTeX Compiler](https://docs.scimon.dev/compile)
 - [Syntax](https://docs.scimon.dev/syntax/what-is)
+  - [Comments](https://docs.scimon.dev/syntax/comments)
   - [Metadata](https://docs.scimon.dev/syntax/metadata)
   - [Downloads Block](https://docs.scimon.dev/syntax/download-block)
   - [Readme Block](https://docs.scimon.dev/syntax/readme-block)

@@ -33,6 +33,7 @@ nav:
   - LaTeX Compiler: compile.md
   - Syntax:
     - Overview: syntax/what-is.md
+    - Comments: syntax/comments.md
     - Metadata: syntax/metadata.md
     - Downloads Block: syntax/download-block.md
     - Readme Block: syntax/readme-block.md

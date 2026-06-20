@@ -8,6 +8,7 @@ The key strength of the language is its user-friendly design. The syntax is intu
 
 ## Summary
 
+- [Comments](./comments.md)
 - [Metadata](./metadata.md)
 - [Downloads Block](./download-block.md)
 - [Readme Block](./readme-block.md)
