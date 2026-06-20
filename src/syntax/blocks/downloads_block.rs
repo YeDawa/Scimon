@@ -117,7 +117,7 @@ impl DownloadsBlock {
             let _ = Covers::new(&contents).get().await;
             let _ = Compress::new(&contents).get();
             let _ = Tasks.qr_codes(&contents, None).await;
-            let _ = Math::new(&contents).render();
+            let _ = Math::new(&contents).render().await;
 
             Vars.get_open(&contents, flags.no_open_link).await;
             let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
@@ -156,7 +156,7 @@ impl DownloadsBlock {
             let _ = Compress::new(&contents).get();
             let _ = Covers::new(&contents).get().await;
             let _ = TasksRaw.qr_codes(&contents, None).await;
-            let _ = Math::new(&contents).render();
+            let _ = Math::new(&contents).render().await;
 
             Vars.get_open(&contents, flags.no_open_link).await;
             let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
