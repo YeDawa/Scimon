@@ -35,7 +35,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
 - 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown, PDF, or EPUB.
 - 📐 **Built-in LaTeX compiler** — turn `.tex` files into PDF with no TeX distribution installed (theorems, bibliography, acronyms, TikZ, pgfplots, and more).
-- 📝 **Markdown rendering** — render Markdown to styled PDF with MathJax and Mermaid support.
+- 📝 **Markdown rendering** — render Markdown to styled PDF with MathJax and Mermaid support. EPUB output also supported.
 - 🔢 **Math to image** — render formulas straight to PNG.
 - 🔳 **QR codes & covers** — generate QR codes and extract document covers.
 - 🗜️ **Compression & scripts** — zip output folders and run Python/JavaScript/TypeScript steps (with a secure-by-default runner).
