@@ -10,6 +10,7 @@ impl Icons {
         match kind {
             Some("image") => "image",
             Some("pdf") => "file-text",
+            Some("zip") => "file-archive",
             _ => "file",
         }
     }

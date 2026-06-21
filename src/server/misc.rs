@@ -31,6 +31,7 @@ impl Misc {
             "png" | "jpg" | "jpeg" | "gif" | "svg" | "webp" | "ico" | "bmp" | "avif" => Some("image"),
             "pdf" => Some("pdf"),
             "epub" => Some("epub"),
+            "zip" => Some("zip"),
             "sha256" | "sha1" | "sha512" | "md5" | "crc32" => Some("text"),
             _ => None,
         }

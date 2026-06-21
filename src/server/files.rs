@@ -32,6 +32,36 @@ pub struct Files;
 
 impl Files {
 
+    // Lists the entries of a zip as JSON (name/size/dir) without extracting it.
+    pub fn zip_entries_json(&self, path: &Path) -> Option<String> {
+        let file = std::fs::File::open(path).ok()?;
+        let mut archive = zip::ZipArchive::new(file).ok()?;
+
+        let mut entries = Vec::new();
+
+        for i in 0..archive.len() {
+            let entry = match archive.by_index(i) {
+                Ok(entry) => entry,
+                Err(_) => continue,
+            };
+
+            let is_dir = entry.is_dir();
+            let size = if is_dir {
+                String::new()
+            } else {
+                FileUtils.human_size(entry.size())
+            };
+
+            entries.push(serde_json::json!({
+                "name": entry.name(),
+                "size": size,
+                "dir": is_dir,
+            }));
+        }
+
+        serde_json::to_string(&entries).ok()
+    }
+
     pub fn serve_file(
         &self,
         stream: &mut TcpStream,
@@ -220,7 +250,7 @@ impl Files {
 
                 rows.push_str(&format!(
                     "<tr data-dir=\"0\" data-name=\"{0}\" data-size=\"{1}\" data-mtime=\"{2}\">\
-                     <td class=\"name\"><a href=\"{3}\" download=\"{0}\">{4}{0}</a></td>\
+                     <td class=\"name\"><a class=\"lb\" data-type=\"zip\" data-list=\"{7}\" data-download=\"{3}\" href=\"{3}\">{4}{0}</a></td>\
                      <td class=\"meta\">{5}</td><td class=\"meta num\">{6}</td></tr>",
                     misc.html_escape(name),
                     size,
@@ -229,6 +259,7 @@ impl Files {
                     Icons.icon("file-archive"),
                     mtime.map(|t| misc.format_mtime(t)).unwrap_or_default(),
                     FileUtils.human_size(size),
+                    Server::ARCHIVE_LIST_ROUTE,
                 ));
             }
         }

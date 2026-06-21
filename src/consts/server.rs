@@ -13,6 +13,9 @@ impl Server {
 
     pub const CHECKSUM_HASH_ROUTE: &str = "/checksum/";
 
+    pub const ZIP_LIST_ROUTE: &str = "/__scimon/ziplist/";
+    pub const ARCHIVE_LIST_ROUTE: &str = "/__scimon/archivelist";
+
     pub const THEME_EARLY: &'static str = "<script>(function(){try{\
         var t=localStorage.getItem('scimon-theme');\
         if(t)document.documentElement.setAttribute('data-theme',t);\
@@ -131,6 +134,16 @@ impl Server {
         #lb iframe{width:90vw;height:82vh;border:0;border-radius:4px;background:#fff;}
         #lb .epub-view{width:90vw;max-width:1000px;height:82vh;background:#fff;
             border-radius:4px;overflow:auto;}
+        #lb .zip-list{width:90vw;max-width:1000px;max-height:82vh;overflow:auto;
+            background:#111;color:#eee;border-radius:4px;padding:1rem 1.2rem;box-sizing:border-box;}
+        #lb .zip-list ul{list-style:none;margin:0;padding:0;}
+        #lb .zip-list li{display:flex;align-items:center;gap:.6rem;padding:.25rem 0;
+            font-family:ui-monospace,Consolas,monospace;font-size:.9rem;}
+        #lb .zip-list .zn{flex:1;overflow-wrap:anywhere;}
+        #lb .zip-list .zs{color:#9aa0a6;white-space:nowrap;}
+        #lb .zip-list .zip-dl{display:inline-block;margin-bottom:.8rem;padding:.35rem .8rem;
+            border:1px solid #444;border-radius:6px;color:#6ea8fe;font-size:.85rem;}
+        #lb .zip-list .zip-dl:hover{background:#1a1d24;text-decoration:none;}
         #lb .cm-box{width:90vw;max-width:1000px;}
         #lb .CodeMirror{width:100%;height:82vh;border-radius:6px;font-size:.9rem;}
         #lb .cm-box:not(:has(.CodeMirror)){background:#111;color:#eee;padding:1rem 1.2rem;
@@ -320,6 +333,36 @@ impl Server {
                     }else{
                         holder.textContent='EPUB reader failed to load.';
                     }
+                }else if(type==='zip'){
+                    var zbox=document.createElement('div');
+                    zbox.className='zip-list';
+                    zbox.textContent='Loading…';
+                    stage.appendChild(zbox);
+                    var listUrl=link.getAttribute('data-list')||('/__scimon/ziplist/'+href.replace(/^\//,''));
+                    var dlUrl=link.getAttribute('data-download')||href;
+                    fetch(listUrl)
+                        .then(function(r){return r.ok?r.json():Promise.reject();})
+                        .then(function(items){
+                            zbox.textContent='';
+                            var dl=document.createElement('a');
+                            dl.className='zip-dl';dl.href=dlUrl;dl.setAttribute('download','');
+                            dl.textContent='Download archive';
+                            zbox.appendChild(dl);
+                            if(!items.length){var em=document.createElement('div');em.textContent='Empty archive.';zbox.appendChild(em);return;}
+                            var ul=document.createElement('ul');
+                            items.forEach(function(it){
+                                var li=document.createElement('li');
+                                var ic=document.createElement('span');ic.className='icon';
+                                ic.innerHTML='<i data-lucide="'+(it.dir?'folder':'file')+'"></i>';
+                                var nm=document.createElement('span');nm.className='zn';nm.textContent=it.name;
+                                var sz=document.createElement('span');sz.className='zs';sz.textContent=it.size||'';
+                                li.appendChild(ic);li.appendChild(nm);li.appendChild(sz);
+                                ul.appendChild(li);
+                            });
+                            zbox.appendChild(ul);
+                            if(window.lucide)lucide.createIcons();
+                        })
+                        .catch(function(){zbox.textContent='Failed to read archive.';});
                 }else{
                     var box=document.createElement('div');
                     box.className='cm-box';

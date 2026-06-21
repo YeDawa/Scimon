@@ -173,6 +173,18 @@ impl Serve {
             return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
         }
 
+        if decoded == Server::ARCHIVE_LIST_ROUTE {
+            if let Some(archive) = &archive {
+                if let Some(json) = Files.zip_entries_json(&archive.1) {
+                    ServerAlerts::logs(method, target, 200);
+                    return stream_instance.respond(&mut stream, 200, "OK", "application/json; charset=utf-8", json.as_bytes());
+                }
+            }
+
+            ServerAlerts::logs(method, target, 404);
+            return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
+        }
+
         if let Some(rest) = decoded.strip_prefix(Server::SCRIPT_ROUTE) {
             if let (Some(scripts), Ok(idx)) = (&scripts, rest.parse::<usize>()) {
                 if let Some(url) = scripts.get(idx) {
@@ -213,6 +225,30 @@ impl Serve {
                             ServerAlerts::logs(method, target, 200);
                             return stream_instance.respond(&mut stream, 200, "OK", "text/plain; charset=utf-8", hash.as_bytes());
                         }
+                    }
+                }
+            }
+
+            ServerAlerts::logs(method, target, 404);
+            return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
+        }
+
+        // List a zip's entries (without extracting) for the in-page viewer.
+        if let Some(rest) = decoded.strip_prefix(Server::ZIP_LIST_ROUTE) {
+            let resolved = stream_instance.resolve(root, rest)
+                .and_then(|p| p.canonicalize().ok())
+                .filter(|p| p.starts_with(root));
+
+            if let Some(path) = resolved {
+                let is_zip = path.extension()
+                    .and_then(|e| e.to_str())
+                    .map(|e| e.eq_ignore_ascii_case("zip"))
+                    .unwrap_or(false);
+
+                if is_zip {
+                    if let Some(json) = Files.zip_entries_json(&path) {
+                        ServerAlerts::logs(method, target, 200);
+                        return stream_instance.respond(&mut stream, 200, "OK", "application/json; charset=utf-8", json.as_bytes());
                     }
                 }
             }
