@@ -40,6 +40,9 @@ server "8080"
 - The server is local only (binds to `127.0.0.1`).
 - PDFs, images, and checksum files (`.sha256`, `.md5`, `.crc32`, …) open in an
   in-page lightbox; other files download or open inline.
+- EPUB files (`.epub`) open in a built-in reader (powered by
+  [epub.js](https://github.com/futurepress/epub.js)). It loads the reader from a CDN, so it
+  needs network access the first time.
 - It honors your system dark/light theme, with a toggle in the corner.
 - This is the same server as the [`serve`](../commands.md#serve) command — use
   the command for an arbitrary directory, or `server "PORT"` to wire it into a list.
