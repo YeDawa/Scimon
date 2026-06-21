@@ -75,7 +75,15 @@ impl Compress {
                 let path = entry.path();
                 let name = path.strip_prefix(Path::new(&folder_path)).unwrap();
 
-                if path.extension().is_some_and(|ext| ext == "pdf") {
+                let is_target = path.extension()
+                    .and_then(|ext| ext.to_str())
+                    .map(|ext| {
+                        let ext = ext.to_lowercase();
+                        ext == "pdf" || ext == "epub"
+                    })
+                    .unwrap_or(false);
+
+                if is_target {
                     zip.start_file(name.to_str().unwrap(), options.clone())?;
                     let mut f = File::open(path)?;
                     let mut buffer = Vec::new();
