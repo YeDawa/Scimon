@@ -129,6 +129,8 @@ impl Server {
         #lb img{max-width:90vw;max-height:82vh;border-radius:4px;
             background:var(--lb-img-bg);padding:var(--lb-img-pad);box-sizing:border-box;}
         #lb iframe{width:90vw;height:82vh;border:0;border-radius:4px;background:#fff;}
+        #lb .epub-view{width:90vw;max-width:1000px;height:82vh;background:#fff;
+            border-radius:4px;overflow:auto;}
         #lb .cm-box{width:90vw;max-width:1000px;}
         #lb .CodeMirror{width:100%;height:82vh;border-radius:6px;font-size:.9rem;}
         #lb .cm-box:not(:has(.CodeMirror)){background:#111;color:#eee;padding:1rem 1.2rem;
@@ -137,7 +139,7 @@ impl Server {
         #lb .cap{color:#eee;font-size:.95rem;max-width:90vw;text-align:center;
             overflow-wrap:anywhere;}
         #lb .btn{position:absolute;color:#fff;cursor:pointer;user-select:none;
-            font-size:2rem;padding:.4rem 1rem;opacity:.8;line-height:1;}
+            font-size:2rem;padding:.4rem 1rem;opacity:.8;line-height:1;z-index:1002;}
         #lb .btn:hover{opacity:1;}
         #lb .close{top:1rem;right:1.5rem;font-size:2.4rem;}
         #lb .prev{left:.5rem;top:50%;transform:translateY(-50%);}
@@ -277,11 +279,18 @@ impl Server {
             var next=lb.querySelector('.next');
             var links=[];
             var i=0;
+            var book=null;
+            var rendition=null;
+            function destroyBook(){
+                if(book){try{book.destroy();}catch(e){}}
+                book=null;rendition=null;
+            }
             function show(n){
                 i=(n+links.length)%links.length;
                 var link=links[i];
                 var type=link.getAttribute('data-type');
                 var href=link.getAttribute('href');
+                destroyBook();
                 stage.innerHTML='';
                 if(type==='image'){
                     var img=document.createElement('img');
@@ -291,6 +300,26 @@ impl Server {
                     var frame=document.createElement('iframe');
                     frame.src=href;
                     stage.appendChild(frame);
+                }else if(type==='epub'){
+                    var holder=document.createElement('div');
+                    holder.className='epub-view';
+                    stage.appendChild(holder);
+                    if(window.ePub){
+                        try{
+                            book=ePub(href);
+                            rendition=book.renderTo(holder,{
+                                manager:'continuous',
+                                flow:'scrolled',
+                                width:'100%',
+                                height:'100%',
+                                allowScriptedContent:true
+                            });
+                            rendition.themes.font('system-ui, sans-serif');
+                            rendition.display();
+                        }catch(e){holder.textContent='Failed to open EPUB.';}
+                    }else{
+                        holder.textContent='EPUB reader failed to load.';
+                    }
                 }else{
                     var box=document.createElement('div');
                     box.className='cm-box';
@@ -327,22 +356,25 @@ impl Server {
                 show(i);
                 lb.classList.add('open');
             }
-            function close(){lb.classList.remove('open');stage.innerHTML='';}
+            function close(){lb.classList.remove('open');destroyBook();stage.innerHTML='';}
+            function nav(dir){
+                if(links.length>1){show(i+dir);}
+            }
             document.addEventListener('click',function(e){
                 var a=e.target.closest?e.target.closest('a.lb'):null;
                 if(a){e.preventDefault();open(a);}
             });
             lb.addEventListener('click',function(e){
                 var t=e.target;
-                if(t.classList.contains('next')){show(i+1);}
-                else if(t.classList.contains('prev')){show(i-1);}
+                if(t.classList.contains('next')){nav(1);}
+                else if(t.classList.contains('prev')){nav(-1);}
                 else if(t.classList.contains('close')||t===lb||t.classList.contains('stage')||t.classList.contains('figure')){close();}
             });
             document.addEventListener('keydown',function(e){
                 if(!lb.classList.contains('open'))return;
                 if(e.key==='Escape')close();
-                else if(e.key==='ArrowRight'&&links.length>1)show(i+1);
-                else if(e.key==='ArrowLeft'&&links.length>1)show(i-1);
+                else if(e.key==='ArrowRight')nav(1);
+                else if(e.key==='ArrowLeft')nav(-1);
             });
         })();
     "#;

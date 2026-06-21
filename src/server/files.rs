@@ -398,6 +398,8 @@ impl Files {
         html.push_str("<script src=\"https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/mode/loadmode.min.js\"></script>");
         html.push_str("<script>if(window.CodeMirror)CodeMirror.modeURL='https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/%N/%N.min.js';</script>");
         html.push_str(&format!("<script>{}</script>", components.scimon_mode_js()));
+        html.push_str("<script src=\"https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js\"></script>");
+        html.push_str("<script src=\"https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js\"></script>");
         html.push_str("</body></html>");
 
         html
