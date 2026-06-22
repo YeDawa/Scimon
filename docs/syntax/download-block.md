@@ -81,11 +81,12 @@ In this example:
 Macros are `!`-prefixed flags appended to a download line. They can be combined
 with `as "name"` and with each other.
 
-| Macro      | Effect                                                                                  |
-| ---------- | --------------------------------------------------------------------------------------- |
-| `!ignore`  | Skip this line entirely.                                                                |
-| `!only`    | Focus mode — when **any** line carries `!only`, only the marked lines run (others skip).|
-| `!no-qr`   | Exclude this line from QR code generation (when the `qrcode` directive is set).         |
+| Macro        | Effect                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------- |
+| `!ignore`    | Skip this line entirely.                                                                |
+| `!only`      | Focus mode — when **any** line carries `!only`, only the marked lines run (others skip).|
+| `!no-qr`     | Exclude this line from QR code generation (when the `qrcode` directive is set).         |
+| `!retry(N)`  | Re-attempt the download up to `N` extra times if it fails.                              |
 
 #### `!only` (focus mode)
 
@@ -121,7 +122,24 @@ downloads {
 
 `file2.pdf` is still downloaded, but no QR code is generated for it.
 
-#### Auto-renameing Files
+#### `!retry(N)`
+
+Network downloads can fail transiently. Append `!retry(N)` to give an entry up
+to `N` extra attempts before it's reported as failed:
+
+```scimon
+downloads {
+    https://example.com/flaky.pdf !retry(3)
+    https://example.com/also.pdf as "also.pdf" !retry(5)
+}
+```
+
+`flaky.pdf` is attempted up to 4 times total (1 + 3 retries). Each retry prints
+a `Retrying (n/N)` notice. A failed download stays non-fatal — the rest of the
+list keeps going. Retries apply to the actual file download; it combines freely
+with `as "name"` and the other macros.
+
+#### Auto-renaming Files
 
 When downloading files, you can also specify a custom name for the downloaded file using the `as` variable. This allows you to rename the file as it is saved to your system.
 
