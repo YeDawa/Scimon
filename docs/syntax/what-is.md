@@ -26,5 +26,6 @@ Everything is optional: since Scimon is no longer only about downloading PDFs, a
 - [Covers](./covers.md)
 - [QR Code](./qrcode.md)
 - [Math](./math.md)
+- [Merge PDFs](./merge.md)
 - [Server](./server.md)
 - [Markdown render](./markdown-render.md)

@@ -52,6 +52,7 @@ nav:
     - Covers: syntax/covers.md
     - QR Code: syntax/qrcode.md
     - Math: syntax/math.md
+    - Merge PDFs: syntax/merge.md
     - Server: syntax/server.md
   - Markdown: syntax/markdown-render.md
   - Configs:
