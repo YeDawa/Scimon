@@ -165,6 +165,40 @@ downloads {
 
 Fallback applies to direct file downloads (the common case: PDF mirrors).
 
+### URL ranges
+
+A numeric range `{A..B}` expands one line into several — one download per value:
+
+```scimon
+downloads {
+    https://arxiv.org/pdf/{2203.08877..08880}
+}
+```
+
+This downloads `2203.08877`, `2203.08878`, `2203.08879` and `2203.08880`. The
+width of `B` sets the zero-padding and the non-counter part of `A` is kept as a
+prefix, so `{1..3}` yields `1, 2, 3` and `{08..10}` yields `08, 09, 10`.
+
+The token is replaced **everywhere it appears on the line**, so repeat it in the
+name to keep each file unique:
+
+```scimon
+downloads {
+    https://example.com/vol-{1..3}.pdf as "volume-{1..3}.pdf"
+}
+```
+
+This produces `volume-1.pdf`, `volume-2.pdf` and `volume-3.pdf`. A fixed `as`
+name without the range would make every copy collide, so either include the
+range in the name or leave the entry to be auto-named.
+
+Notes:
+
+- Only ascending ranges expand; very large ranges are rejected to guard against
+  typos.
+- Ranges combine with `as`, the macros and `||` fallbacks (each expanded line is
+  processed independently).
+
 #### Auto-renaming Files
 
 When downloading files, you can also specify a custom name for the downloaded file using the `as` variable. This allows you to rename the file as it is saved to your system.
