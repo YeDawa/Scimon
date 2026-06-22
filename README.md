@@ -31,6 +31,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 ## Features
 
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`) and skipping (`!ignore`).
+- 🧩 **Variables & functions** — keep lists DRY with `@var name "..."` (used as `${name}`) and reusable `@fn name(args) { ... }` templates.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
 - 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown or rendered straight to PDF.
@@ -102,6 +103,10 @@ scimon run scimon.mon
 
 @var path "downloads/"
 
+@fn arxiv(id, name) {
+    https://arxiv.org/pdf/${id} as "${name}"
+}
+
 path "${path}"
 
 copy "${path}backup/"
@@ -121,7 +126,7 @@ print "Hello, World!"
 readme "https://gist.githubusercontent.com/Kremilly/5fd360d994bb0fe108b648d0e4c9e92f/raw/1ede0877f2bd023e77674eb89f4a0eb7d8f7e7da/readme-example.md"
 
 downloads {
-    https://arxiv.org/pdf/2203.08877 as "arxiv_paper.pdf"
+    @arxiv("2203.08877", "arxiv_paper.pdf")
     https://chatgpt.com/share/67c3f647-0bac-8005-abbb-012c3c1dafcc as "chatgpt_conversation.pdf"
     https://arxiv.org/pdf/2405.01513 !ignore
     https://www.sci-hub.se/10.1626/JCS.66.427
