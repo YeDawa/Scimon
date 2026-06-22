@@ -22,6 +22,13 @@ impl MacroHandler {
 
         line.contains(&get_macro)
     }
+
+    // True when any line in `content` carries the `!word` macro. Useful for
+    // whole-block modes such as `!only`, where one tagged line changes how the
+    // rest of the block is processed.
+    pub fn any(content: &str, word: &str) -> bool {
+        content.lines().any(|line| Self::handle_check_macro_line(line, word))
+    }
   
     pub fn handle_ignore_macro_flag(line: &str, no_ignore: bool) -> Result<String, &'static str> {
         if !no_ignore && Self::handle_check_macro_line(line, "ignore") {

@@ -46,6 +46,10 @@ impl DownloadsBlock {
         let mut seen_urls = HashSet::new();
         let mut tasks = Vec::new();
 
+        // Focus mode: when any line is tagged `!only`, every untagged line is
+        // skipped so just the marked entries are downloaded.
+        let only_mode = MacroHandler::any(downloads_content, "only");
+
         for line in downloads_content.lines() {
             let url = line.split_whitespace().next().unwrap_or("");
             let final_url = Providers::new(url).arxiv();
@@ -54,6 +58,10 @@ impl DownloadsBlock {
                 continue;
             } else if line.trim().starts_with("}") {
                 break;
+            }
+
+            if only_mode && !MacroHandler::handle_check_macro_line(line, "only") {
+                continue;
             }
 
             if seen_urls.contains(&final_url) {

@@ -61,6 +61,10 @@ impl Tasks {
         if let Some(qrcode_path) = Vars.get_qrcode(contents) {
             UI::section_header("QR Codes", "normal");
 
+            // Honor the same focus mode as downloads: with `!only` in play, only
+            // the marked lines get a QR code.
+            let only_mode = MacroHandler::any(contents, "only");
+
             let mut in_downloads_block = false;
             for line in contents.lines() {
                 let trimmed = line.trim();
@@ -76,6 +80,14 @@ impl Tasks {
                 }
 
                 if !in_downloads_block {
+                    continue;
+                }
+
+                if only_mode && !MacroHandler::handle_check_macro_line(line, "only") {
+                    continue;
+                }
+
+                if MacroHandler::handle_check_macro_line(line, "no-qr") {
                     continue;
                 }
 
