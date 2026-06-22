@@ -27,8 +27,9 @@ use crate::{
     syntax::{
         vars::Vars,
         extended::Extended,
-        macro_handler::MacroHandler, 
-        blocks::readme_block::ReadMeBlock, 
+        blocks::ai_block::AiBlock,
+        macro_handler::MacroHandler,
+        blocks::readme_block::ReadMeBlock,
     },
     
     generator::{
@@ -48,10 +49,7 @@ impl DownloadsBlock {
         let mut seen_urls = HashSet::new();
         let mut tasks = Vec::new();
 
-        // Focus mode: when any line is tagged `!only`, every untagged line is
-        // skipped so just the marked entries are downloaded.
         let only_mode = MacroHandler::any(downloads_content, "only");
-
         for line in downloads_content.lines() {
             if line.trim().starts_with("downloads {") {
                 continue;
@@ -63,8 +61,6 @@ impl DownloadsBlock {
                 continue;
             }
 
-            // A line may list fallback URLs separated by `||`; the first one that
-            // works wins. Each candidate is normalized (e.g. arxiv abs -> pdf).
             let candidates: Vec<String> = line
                 .split("||")
                 .filter_map(|segment| segment.trim().split_whitespace().next())
@@ -135,12 +131,14 @@ impl DownloadsBlock {
             }
         }
 
+        let _ = AiBlock.generate_and_save_files(&contents).await;
+        let _ = Merge::new(&contents).get();
+
         let _ = Covers::new(&contents).get().await;
         let _ = Compress::new(&contents).get();
         let _ = Tasks.qr_codes(&contents, None).await;
         let _ = Math::new(&contents).render().await;
-        Merge::new(&contents).get();
-        Convert::new(&contents).run().await;
+        let _ = Convert::new(&contents).run().await;
 
         Vars.get_open(&contents, flags.no_open_link).await;
         let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
@@ -162,9 +160,8 @@ impl DownloadsBlock {
             (None, None) => None,
         };
 
-        let end_index = contents.rfind("}");
-
         let mut downloaded = false;
+        let end_index = contents.rfind("}");
 
         if let (Some(start_index), Some(end_index)) = (start_index, end_index) {
             let downloads_content = &contents[start_index + "downloads ".len()..end_index];
@@ -177,12 +174,13 @@ impl DownloadsBlock {
             }
         }
 
+        let _ = AiBlock.generate_and_save_files(&contents).await;
+        let _ = Merge::new(&contents).get();
         let _ = Compress::new(&contents).get();
         let _ = Covers::new(&contents).get().await;
         let _ = TasksRaw.qr_codes(&contents, None).await;
         let _ = Math::new(&contents).render().await;
-        Merge::new(&contents).get();
-        Convert::new(&contents).run().await;
+        let _ = Convert::new(&contents).run().await;
 
         Vars.get_open(&contents, flags.no_open_link).await;
         let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;

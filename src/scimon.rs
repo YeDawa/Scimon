@@ -6,7 +6,6 @@ use crate::{
     server::serve::Serve,
     addons::scrape::Scrape,
     syntax::validator::Validator,
-    syntax::blocks::ai_block::AiBlock,
     syntax::blocks::readme_block::ReadMeBlock,
 
     ui::{
@@ -105,7 +104,6 @@ impl Scimon {
 
                         let _ = monset.downloads(&flags_clone).await;
                         let _ = monset.run_code(&flags_clone).await;
-                        AiBlock.generate_and_save_files(&contents).await;
                         ReadMeBlock.render_block_and_save_file(&file, &flags_clone).await;
 
                         if let Err(err) = Copy::new(&contents).get() {
