@@ -180,6 +180,7 @@ impl Server {
             if(!window.CodeMirror||!CodeMirror.defineSimpleMode)return;
             CodeMirror.defineSimpleMode('scimon',{
                 start:[
+                    {regex:/\$\{[^}]*\}/,token:'variable-2'},
                     {regex:/@\w+/,token:'meta'},
                     {regex:/\b(downloads|commands|readme|ai)\b(?=\s*\{)/,token:'keyword'},
                     {regex:/\b(import|path|open|compress|copy|covers|qrcode|style|print|readme|math|server|as)\b/,token:'keyword'},

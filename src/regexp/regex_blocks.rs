@@ -33,6 +33,10 @@ impl BlocksRegExp {
 
     pub const GET_IMPORT_VAR: &'static str = r#"(?i)import\s*"([^"]+)""#;
 
+    pub const GET_VAR_DEF: &'static str = r#"(?im)^\s*@var\s+([A-Za-z_][A-Za-z0-9_]*)\s+"([^"]*)"\s*$"#;
+
+    pub const GET_VAR_USAGE: &'static str = r"\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}";
+
     pub const GET_MATH_VAR: &'static str = r#"math\s+['"]([^'"]+)['"]\s*>\s*(\S+)"#;
 
     pub const GET_PATTERNS_MONLIB_VARS: [&'static str; 7] = [

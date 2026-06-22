@@ -60,6 +60,14 @@ impl Validator {
         let kw = Self::keyword(line);
 
         if kw.starts_with('@') {
+            if kw == "@var" {
+                return if matches(BlocksRegExp::GET_VAR_DEF) {
+                    None
+                } else {
+                    Some("expected: @var name \"value\"".to_string())
+                };
+            }
+
             return if matches(r#"(?i)^@\w+\s+"[^"]*""#) {
                 None
             } else {

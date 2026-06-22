@@ -1,6 +1,7 @@
 extern crate open;
 
 use regex::Regex;
+use std::collections::HashMap;
 
 use crate::{
     consts::addons::Addons,
@@ -13,6 +14,33 @@ use crate::{
 pub struct Vars;
 
 impl Vars {
+
+    // Resolves user-defined variables: collects every `@var name "value"`
+    // declaration, drops those lines, and expands `${name}` everywhere else.
+    // Unknown names are left untouched so a stray `${x}` stays visible.
+    pub fn interpolate(&self, contents: &str) -> String {
+        let def = Regex::new(BlocksRegExp::GET_VAR_DEF).unwrap();
+
+        let mut map: HashMap<String, String> = HashMap::new();
+        for caps in def.captures_iter(contents) {
+            map.insert(caps[1].to_string(), caps[2].to_string());
+        }
+
+        if map.is_empty() {
+            return contents.to_string();
+        }
+
+        let body = contents.lines()
+            .filter(|line| !def.is_match(line))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let usage = Regex::new(BlocksRegExp::GET_VAR_USAGE).unwrap();
+
+        usage.replace_all(&body, |caps: &regex::Captures| {
+            map.get(&caps[1]).cloned().unwrap_or_else(|| caps[0].to_string())
+        }).into_owned()
+    }
 
     pub fn get_path(&self, contents: &str) -> String {
         let path_pattern = Regex::new(BlocksRegExp::GET_PATH_VAR).unwrap();
