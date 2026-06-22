@@ -58,8 +58,6 @@ impl Covers {
         Ok(())
     }
 
-    // Finds the cover image href inside an OPF, supporting both the EPUB3
-    // (`properties="cover-image"`) and EPUB2 (`<meta name="cover">`) conventions.
     fn cover_href(opf: &str) -> Option<String> {
         let href = Regex::new(r#"href="([^"]+)""#).unwrap();
 
@@ -174,4 +172,5 @@ impl Covers {
 
         Ok(())
     }
+    
 }
