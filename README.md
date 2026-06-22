@@ -31,6 +31,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 ## Features
 
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`) and skipping (`!ignore`).
+- 🔁 **Ranges & fallbacks** — expand a numeric range into many downloads (`{2203.08877..08880}`), list mirror URLs with `||`, and retry flaky ones with `!retry(3)`.
 - 🧩 **Variables & functions** — keep lists DRY with `@var name "..."` (used as `${name}`) and reusable `@fn name(args) { ... }` templates.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
@@ -127,6 +128,8 @@ readme "https://gist.githubusercontent.com/Kremilly/5fd360d994bb0fe108b648d0e4c9
 
 downloads {
     @arxiv("2203.08877", "arxiv_paper.pdf")
+    https://arxiv.org/pdf/{2405.01510..01513}
+    https://primary.example/spec.pdf || https://mirror.example/spec.pdf as "spec.pdf" !retry(2)
     https://chatgpt.com/share/67c3f647-0bac-8005-abbb-012c3c1dafcc as "chatgpt_conversation.pdf"
     https://arxiv.org/pdf/2405.01513 !ignore
     https://www.sci-hub.se/10.1626/JCS.66.427
