@@ -68,6 +68,14 @@ impl Validator {
                 };
             }
 
+            if kw == "@fn" {
+                return if matches(BlocksRegExp::GET_FN_DEF) {
+                    None
+                } else {
+                    Some("expected: @fn name(params) { ... }".to_string())
+                };
+            }
+
             return if matches(r#"(?i)^@\w+\s+"[^"]*""#) {
                 None
             } else {
