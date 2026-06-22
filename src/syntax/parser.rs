@@ -92,6 +92,11 @@ impl Parser {
             .map(|(pattern, output)| json!({ "pattern": pattern, "output": output }))
             .collect();
 
+        let convert: Vec<Value> = Vars.get_all_convert(contents)
+            .into_iter()
+            .map(|(input, output)| json!({ "input": input, "output": output }))
+            .collect();
+
         json!({
             "path": self.capture(contents, BlocksRegExp::GET_PATH_VAR),
             "open": self.capture(contents, BlocksRegExp::GET_OPEN_VAR),
@@ -106,6 +111,7 @@ impl Parser {
             "imports": Vars.get_imports(contents),
             "math": math,
             "merge": merge,
+            "convert": convert,
         })
     }
 

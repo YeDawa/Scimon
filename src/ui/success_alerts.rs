@@ -70,6 +70,17 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn converted(input: &str, output: &str) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Converted {} to {}",
+            current_datetime.green().bold(),
+            input.blue(),
+            output.blue(),
+        );
+    }
+
     pub fn merged(file: &str, count: usize) {
         let current_datetime = General.date_time();
 

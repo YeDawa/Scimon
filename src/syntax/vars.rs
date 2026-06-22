@@ -182,6 +182,21 @@ impl Vars {
         results
     }
 
+    pub fn get_all_convert(&self, contents: &str) -> Vec<(String, String)> {
+        let convert_pattern = Regex::new(BlocksRegExp::GET_CONVERT_VAR).unwrap();
+        let mut results = Vec::new();
+
+        for line in contents.lines() {
+            if let Some(caps) = convert_pattern.captures(line) {
+                let input = caps.get(1).map(|m| m.as_str().to_string()).unwrap();
+                let output = caps.get(2).map(|m| m.as_str().to_string()).unwrap();
+                results.push((input, output));
+            }
+        }
+
+        results
+    }
+
     pub fn get_style(&self, contents: &str) -> Option<String> {
         let style_pattern = Regex::new(BlocksRegExp::GET_STYLE_VAR).unwrap();
     

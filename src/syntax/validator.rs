@@ -107,6 +107,14 @@ impl Validator {
                 }
             }
 
+            "convert" => {
+                if matches(BlocksRegExp::GET_CONVERT_VAR) {
+                    None
+                } else {
+                    Some("expected: convert \"input.md\" > \"output.pdf\"".to_string())
+                }
+            }
+
             "readme" => {
                 if matches(BlocksRegExp::GET_README_VAR) || matches(r"(?i)^readme\s*\{") {
                     None
