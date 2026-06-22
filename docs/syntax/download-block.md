@@ -139,6 +139,32 @@ a `Retrying (n/N)` notice. A failed download stays non-fatal — the rest of the
 list keeps going. Retries apply to the actual file download; it combines freely
 with `as "name"` and the other macros.
 
+### Fallback URLs
+
+List mirrors for the same file by separating URLs with `||`. Scimon tries them
+left to right and stops at the first one that downloads successfully:
+
+```scimon
+downloads {
+    https://primary.example/file.pdf || https://mirror.example/file.pdf as "file.pdf"
+}
+```
+
+- The `as "name"` and any macros apply to the whole entry and go after the last
+  URL.
+- When a candidate fails, a `... failed, trying fallback ...` notice is printed
+  and the next URL is attempted; only when all fail is the entry reported failed.
+- Combines with `!retry(N)`: each candidate is retried `N` times before moving
+  on to the next.
+
+```scimon
+downloads {
+    https://primary.example/a.pdf || https://mirror.example/a.pdf as "a.pdf" !retry(2)
+}
+```
+
+Fallback applies to direct file downloads (the common case: PDF mirrors).
+
 #### Auto-renaming Files
 
 When downloading files, you can also specify a custom name for the downloaded file using the `as` variable. This allows you to rename the file as it is saved to your system.
