@@ -39,6 +39,8 @@ impl BlocksRegExp {
 
     pub const GET_MATH_VAR: &'static str = r#"math\s+['"]([^'"]+)['"]\s*>\s*(\S+)"#;
 
+    pub const GET_MERGE_VAR: &'static str = r#"merge\s+['"]([^'"]+)['"]\s*>\s*['"]?([^'"\s]+)['"]?"#;
+
     pub const GET_PATTERNS_MONLIB_VARS: [&'static str; 7] = [
         r#"(?m)^\s*@name\s+"[^"]+""#,
         r#"(?m)^\s*@version\s+"[^"]+""#,

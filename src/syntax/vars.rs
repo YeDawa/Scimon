@@ -167,6 +167,21 @@ impl Vars {
         results
     }
     
+    pub fn get_all_merge(&self, contents: &str) -> Vec<(String, String)> {
+        let merge_pattern = Regex::new(BlocksRegExp::GET_MERGE_VAR).unwrap();
+        let mut results = Vec::new();
+
+        for line in contents.lines() {
+            if let Some(caps) = merge_pattern.captures(line) {
+                let glob = caps.get(1).map(|m| m.as_str().to_string()).unwrap();
+                let output = caps.get(2).map(|m| m.as_str().to_string()).unwrap();
+                results.push((glob, output));
+            }
+        }
+
+        results
+    }
+
     pub fn get_style(&self, contents: &str) -> Option<String> {
         let style_pattern = Regex::new(BlocksRegExp::GET_STYLE_VAR).unwrap();
     

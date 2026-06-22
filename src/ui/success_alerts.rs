@@ -70,6 +70,17 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn merged(file: &str, count: usize) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Merged {} PDFs into {}",
+            current_datetime.green().bold(),
+            count.to_string().blue(),
+            file.blue(),
+        );
+    }
+
     pub fn generated_pdf(file: &str) {
         let current_datetime = General.date_time();
 
