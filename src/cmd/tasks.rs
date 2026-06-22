@@ -123,7 +123,7 @@ impl Tasks {
         Ok(())
     }
 
-    pub async fn download(&self, contents: Option<&str>, url: &str, path: &str, custom_name: Option<&str>, flags: &Flags) -> Result<(), Box<dyn Error>> {
+    pub async fn download(&self, contents: Option<&str>, url: &str, path: &str, custom_name: Option<&str>, flags: &Flags, retries: u32) -> Result<(), Box<dyn Error>> {
         let mut line_url = Cow::Borrowed(
             url.trim()
         );
@@ -153,7 +153,7 @@ impl Tasks {
         }
 
         if !Providers::new(&line_url).check_provider_domain() {
-            MakeDownload.download_line(&line_url, url, path, custom_name).await?;
+            MakeDownload.download_line(&line_url, url, path, custom_name, retries).await?;
         }
 
         Ok(())

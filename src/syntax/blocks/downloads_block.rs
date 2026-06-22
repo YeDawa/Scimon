@@ -82,9 +82,10 @@ impl DownloadsBlock {
                     let url = final_url.clone();
                     let path = path.to_string();
                     let flags = flags.clone();
-                    
+                    let retries = MacroHandler::retry_count(line);
+
                     let task = task::spawn(async move {
-                        let _ = Tasks.download(Some(&contents), &url, &path, Some(&final_name), &flags).await;
+                        let _ = Tasks.download(Some(&contents), &url, &path, Some(&final_name), &flags, retries).await;
                     });
 
                     tasks.push(task);

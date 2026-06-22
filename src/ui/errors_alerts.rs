@@ -48,6 +48,16 @@ impl ErrorsAlerts {
         );
     }
 
+    pub fn retrying(url: &str, attempt: u32, total: u32) {
+        let current_datetime = General.date_time();
+
+        eprintln!(
+            "{} Retrying ({}/{}) {}",
+            current_datetime.yellow().bold(),
+            attempt, total, url.cyan()
+        );
+    }
+
     pub fn math(file: &str) {
         let current_datetime = General.date_time();
 

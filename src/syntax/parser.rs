@@ -126,10 +126,13 @@ impl Parser {
                     return None;
                 }
 
+                let retries = MacroHandler::retry_count(trimmed);
+
                 Some(json!({
                     "url": url,
                     "name": Extended.rename_on_the_fly(trimmed),
                     "ignore": MacroHandler::handle_check_macro_line(trimmed, "ignore"),
+                    "retry": if retries > 0 { json!(retries) } else { Value::Null },
                 }))
             })
             .collect()

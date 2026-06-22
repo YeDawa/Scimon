@@ -66,20 +66,32 @@ impl MakeDownload {
         Ok(filename)
     }
 
-    pub async fn download_line(&self, line_url: &str, url: &str, path: &str, final_name: Option<&str>) -> Result<String, Box<dyn Error>> {
+    pub async fn download_line(&self, line_url: &str, url: &str, path: &str, final_name: Option<&str>, retries: u32) -> Result<String, Box<dyn Error>> {
         if Pdf.is_pdf_file(line_url).await? || Providers::new(url).valid_provider_domain() && !line_url.contains(".md") {
-            let result = self.make(line_url, path, final_name.unwrap_or("")).await;
-            
-            match result {
-                Ok(file) => {
-                    let file_path = &format!("{}{}", &path, &file);
-                    let password = Pdf.is_pdf_encrypted(file_path);
-                    
-                    SuccessAlerts::download(&file, url, password);
-                    return Ok(file_path.to_string())
-                },
+            let mut attempt = 0;
 
-                Err(e) => ErrorsAlerts::download(e, url),
+            loop {
+                match self.make(line_url, path, final_name.unwrap_or("")).await {
+                    Ok(file) => {
+                        let file_path = &format!("{}{}", &path, &file);
+                        let password = Pdf.is_pdf_encrypted(file_path);
+
+                        SuccessAlerts::download(&file, url, password);
+                        return Ok(file_path.to_string())
+                    },
+
+                    Err(e) => {
+                        // `!retry(N)` grants N extra attempts before giving up.
+                        if attempt < retries {
+                            attempt += 1;
+                            ErrorsAlerts::retrying(url, attempt, retries);
+                            continue;
+                        }
+
+                        ErrorsAlerts::download(e, url);
+                        break;
+                    }
+                }
             }
         }
 
