@@ -169,6 +169,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
   - [Comments](https://docs.scimon.dev/syntax/comments)
   - [Import](https://docs.scimon.dev/syntax/import)
   - [Metadata](https://docs.scimon.dev/syntax/metadata)
+  - [Variables](https://docs.scimon.dev/syntax/variables)
   - [Downloads Block](https://docs.scimon.dev/syntax/download-block)
   - [Readme Block](https://docs.scimon.dev/syntax/readme-block)
   - [Commands Block](https://docs.scimon.dev/syntax/commands-block)
