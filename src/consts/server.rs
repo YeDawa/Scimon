@@ -6,12 +6,12 @@ impl Server {
 
     pub const SOURCE_ROUTE: &str = "/__scimon/source.mon";
 
-    pub const ARCHIVE_ROUTE: &str = "/archive";
+    pub const ARCHIVE_ROUTE: &str = "/__scimon/archive";
 
-    pub const SCRIPTS_ROUTE: &str = "/scripts";
-    pub const SCRIPT_ROUTE: &str = "/script/";
+    pub const SCRIPTS_ROUTE: &str = "/__scimon/scripts";
+    pub const SCRIPT_ROUTE: &str = "/__scimon/script/";
 
-    pub const CHECKSUM_HASH_ROUTE: &str = "/checksum/";
+    pub const CHECKSUM_HASH_ROUTE: &str = "/__scimon/checksum/";
 
     pub const ZIP_LIST_ROUTE: &str = "/__scimon/ziplist/";
     pub const ARCHIVE_LIST_ROUTE: &str = "/__scimon/archivelist";
