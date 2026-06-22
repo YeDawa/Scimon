@@ -132,16 +132,26 @@ impl Parser {
         block.lines()
             .filter_map(|line| {
                 let trimmed = line.trim();
-                let url = trimmed.split_whitespace().next().unwrap_or("");
+
+                // A line may list `||`-separated fallback URLs; the first is the
+                // primary, the rest are mirrors tried in order on failure.
+                let candidates: Vec<&str> = trimmed
+                    .split("||")
+                    .filter_map(|segment| segment.trim().split_whitespace().next())
+                    .collect();
+
+                let url = *candidates.first()?;
 
                 if !url.starts_with("http") {
                     return None;
                 }
 
                 let retries = MacroHandler::retry_count(trimmed);
+                let fallbacks = &candidates[1..];
 
                 Some(json!({
                     "url": url,
+                    "fallbacks": if fallbacks.is_empty() { Value::Null } else { json!(fallbacks) },
                     "name": Extended.rename_on_the_fly(trimmed),
                     "ignore": MacroHandler::handle_check_macro_line(trimmed, "ignore"),
                     "retry": if retries > 0 { json!(retries) } else { Value::Null },

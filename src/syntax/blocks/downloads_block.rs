@@ -53,9 +53,6 @@ impl DownloadsBlock {
         let only_mode = MacroHandler::any(downloads_content, "only");
 
         for line in downloads_content.lines() {
-            let url = line.split_whitespace().next().unwrap_or("");
-            let final_url = Providers::new(url).arxiv();
-
             if line.trim().starts_with("downloads {") {
                 continue;
             } else if line.trim().starts_with("}") {
@@ -66,11 +63,23 @@ impl DownloadsBlock {
                 continue;
             }
 
-            if seen_urls.contains(&final_url) {
+            // A line may list fallback URLs separated by `||`; the first one that
+            // works wins. Each candidate is normalized (e.g. arxiv abs -> pdf).
+            let candidates: Vec<String> = line
+                .split("||")
+                .filter_map(|segment| segment.trim().split_whitespace().next())
+                .map(|url| Providers::new(url).arxiv())
+                .collect();
+
+            let Some(primary) = candidates.first().cloned() else {
+                continue;
+            };
+
+            if seen_urls.contains(&primary) {
                 continue;
             }
 
-            seen_urls.insert(final_url.to_string());
+            seen_urls.insert(primary.clone());
 
             if !MacroHandler::handle_check_macro_line(line, "ignore") {
                 let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(line) {
@@ -79,21 +88,21 @@ impl DownloadsBlock {
                     "".to_string()
                 };
 
-                if !final_url.is_empty() && is_url(&final_url) && final_url.starts_with("http") {
+                if !primary.is_empty() && is_url(&primary) && primary.starts_with("http") {
                     let contents = contents.to_string();
-                    let url = final_url.clone();
                     let path = path.to_string();
                     let flags = flags.clone();
                     let retries = MacroHandler::retry_count(line);
+                    let fallbacks: Vec<String> = candidates[1..].to_vec();
 
                     let task = task::spawn(async move {
-                        let _ = Tasks.download(Some(&contents), &url, &path, Some(&final_name), &flags, retries).await;
+                        let _ = Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks).await;
                     });
 
                     tasks.push(task);
                 }
             } else {
-                MacrosAlerts::ignore(&final_url);
+                MacrosAlerts::ignore(&primary);
             }
         }
 

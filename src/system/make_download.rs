@@ -66,8 +66,21 @@ impl MakeDownload {
         Ok(filename)
     }
 
-    pub async fn download_line(&self, line_url: &str, url: &str, path: &str, final_name: Option<&str>, retries: u32) -> Result<String, Box<dyn Error>> {
-        if Pdf.is_pdf_file(line_url).await? || Providers::new(url).valid_provider_domain() && !line_url.contains(".md") {
+    pub async fn download_line(&self, urls: &[String], url: &str, path: &str, final_name: Option<&str>, retries: u32) -> Result<String, Box<dyn Error>> {
+        let total = urls.len();
+
+        // `urls` holds the primary plus any `||` fallbacks, in order. The first
+        // candidate that downloads successfully wins; the rest are skipped.
+        for (index, line_url) in urls.iter().enumerate() {
+            let is_last = index + 1 == total;
+
+            let eligible = Pdf.is_pdf_file(line_url).await.unwrap_or(false)
+                || (Providers::new(url).valid_provider_domain() && !line_url.contains(".md"));
+
+            if !eligible {
+                continue;
+            }
+
             let mut attempt = 0;
 
             loop {
@@ -88,7 +101,14 @@ impl MakeDownload {
                             continue;
                         }
 
-                        ErrorsAlerts::download(e, url);
+                        // Exhausted this candidate: fall back to the next URL,
+                        // or report the failure when none are left.
+                        if is_last {
+                            ErrorsAlerts::download(e, url);
+                        } else {
+                            ErrorsAlerts::fallback(line_url, &urls[index + 1]);
+                        }
+
                         break;
                     }
                 }

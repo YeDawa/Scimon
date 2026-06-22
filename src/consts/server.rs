@@ -190,7 +190,7 @@ impl Server {
                     {regex:/(?:^|\s)\/\/.*$/,token:'comment'},
                     {regex:/(?:^|\s)\/\*/,token:'comment',next:'blockComment'},
                     {regex:/[{}]/,token:'bracket'},
-                    {regex:/>/,token:'operator'}
+                    {regex:/\|\||>/,token:'operator'}
                 ],
                 blockComment:[
                     {regex:/.*?\*\//,token:'comment',next:'start'},

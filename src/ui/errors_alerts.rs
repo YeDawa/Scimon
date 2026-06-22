@@ -58,6 +58,16 @@ impl ErrorsAlerts {
         );
     }
 
+    pub fn fallback(failed: &str, next: &str) {
+        let current_datetime = General.date_time();
+
+        eprintln!(
+            "{} {} failed, trying fallback {}",
+            current_datetime.yellow().bold(),
+            failed.cyan(), next.cyan()
+        );
+    }
+
     pub fn math(file: &str) {
         let current_datetime = General.date_time();
 
