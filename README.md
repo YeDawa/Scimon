@@ -38,6 +38,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 📝 **Markdown rendering** — render Markdown to styled PDF with MathJax and Mermaid support.
 - 🔢 **Math to image** — render formulas straight to PNG.
 - 🔗 **Merge PDFs** — combine many PDFs into one with a glob (`merge "papers/*.pdf" > "out.pdf"`).
+- 🔄 **Convert files** — turn local files into other formats by extension (`convert "doc.md" > "doc.pdf"`): Markdown→PDF/HTML/EPUB, LaTeX→PDF, HTML→PDF.
 - 🔳 **QR codes & covers** — generate QR codes and extract document covers.
 - 🗜️ **Compression & scripts** — zip output folders and run Python/JavaScript/TypeScript steps (with a secure-by-default runner).
 - 🌍 **Built-in web server** — browse and preview the generated files in your browser (lightbox for images/PDFs, dark mode), via the `serve` command or `server "PORT"` in a list.
@@ -132,6 +133,8 @@ downloads {
 
 merge "${path}*.pdf" > "${path}all.pdf"
 
+convert "${path}report.md" > "${path}report.pdf"
+
 ai {
     "Write a short article about the Rust programming language" as "rust.md"
     "Explain quantum computing for beginners" as "quantum.pdf" with "anthropic/claude-3.5-sonnet"
@@ -182,6 +185,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
   - [Covers](https://docs.scimon.dev/syntax/covers)
   - [QR Code](https://docs.scimon.dev/syntax/qrcode)
   - [Math](https://docs.scimon.dev/syntax/math)
+  - [Convert](https://docs.scimon.dev/syntax/convert)
   - [Merge PDFs](https://docs.scimon.dev/syntax/merge)
   - [Server](https://docs.scimon.dev/syntax/server)
 - [Markdown render](https://docs.scimon.dev/syntax/markdown-render)
