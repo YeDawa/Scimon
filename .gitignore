@@ -46,7 +46,7 @@ credentials.json
 *.xz
 *.bz2
 
-# Ignore script files
+# Ignore script & styles files
 *.py
 *.js
 *.ts
@@ -54,6 +54,9 @@ credentials.json
 *.tsx
 *.mjs
 *.cjs
+*.css
+*.scss
+*.less
 
 # ignore Scimon files
 *.mon
