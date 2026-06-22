@@ -17,7 +17,6 @@ impl Extended {
         }
 
         let lower = clean_name.to_lowercase();
-
         if lower.ends_with(".pdf") || lower.ends_with(".epub") {
             Some(clean_name)
         } else {
