@@ -116,9 +116,8 @@ impl DownloadsBlock {
             (None, None) => None,
         };
 
-        let end_index = contents.rfind("}");
-
         let mut downloaded = false;
+        let end_index = contents.rfind("}");
 
         if let (Some(start_index), Some(end_index)) = (start_index, end_index) {
             let downloads_content = &contents[start_index + "downloads ".len()..end_index];
