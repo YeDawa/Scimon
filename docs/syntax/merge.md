@@ -5,11 +5,11 @@ takes a [glob](https://en.wikipedia.org/wiki/Glob_(programming)) pattern and an
 output path, separated by `>`:
 
 ```scimon
-merge "papers/*.pdf" > "compilado.pdf"
+merge "papers/*.pdf" > "compiled.pdf"
 ```
 
 This matches every `.pdf` inside `papers/`, concatenates them in alphabetical
-order, and writes the result to `compilado.pdf`.
+order, and writes the result to `compiled.pdf`.
 
 ## Multiple merges
 
