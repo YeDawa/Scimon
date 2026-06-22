@@ -1,5 +1,5 @@
 site_name: Scimon
-repo_url: https://github.com/Gausix/Scimon
+repo_url: https://github.com/YeDawa/Scimon
 theme:
   name: material
   features:
@@ -77,15 +77,6 @@ markdown_extensions:
           class: mermaid
 
 extra:
-    social:
-      - icon: fontawesome/solid/blog
-        link: https://kremilly.com
-        name: Blog
-        
-      - icon: fontawesome/brands/x-twitter
-        link: https://x.com/import_kremilly
-        name: Twitter
-    
     generator: false
 
-copyright: Copyright &copy; 2025 Gausix
+copyright: Copyright &copy; 2025 YeDawa
