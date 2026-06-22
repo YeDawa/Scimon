@@ -39,6 +39,7 @@ nav:
     - Comments: syntax/comments.md
     - Import: syntax/import.md
     - Metadata: syntax/metadata.md
+    - Variables: syntax/variables.md
     - Downloads Block: syntax/download-block.md
     - Readme Block: syntax/readme-block.md
     - Commands Block: syntax/commands-block.md
