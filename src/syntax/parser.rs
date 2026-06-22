@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 
 use crate::{
     syntax::vars::Vars,
+    syntax::ranges::Ranges,
     syntax::extended::Extended,
     syntax::comments::Comments,
     syntax::macro_handler::MacroHandler,
@@ -130,6 +131,7 @@ impl Parser {
         };
 
         block.lines()
+            .flat_map(|line| Ranges.expand_line(line))
             .filter_map(|line| {
                 let trimmed = line.trim();
 

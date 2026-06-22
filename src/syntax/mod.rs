@@ -1,5 +1,6 @@
 pub mod vars;
 pub mod parser;
+pub mod ranges;
 pub mod functions;
 pub mod comments;
 pub mod extended;

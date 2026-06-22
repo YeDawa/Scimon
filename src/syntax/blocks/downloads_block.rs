@@ -26,6 +26,7 @@ use crate::{
 
     syntax::{
         vars::Vars,
+        ranges::Ranges,
         extended::Extended,
         blocks::ai_block::AiBlock,
         macro_handler::MacroHandler,
@@ -50,55 +51,60 @@ impl DownloadsBlock {
         let mut tasks = Vec::new();
 
         let only_mode = MacroHandler::any(downloads_content, "only");
-        for line in downloads_content.lines() {
-            if line.trim().starts_with("downloads {") {
+        for raw_line in downloads_content.lines() {
+            let trimmed = raw_line.trim();
+
+            if trimmed.starts_with("downloads {") {
                 continue;
-            } else if line.trim().starts_with("}") {
+            } else if trimmed.starts_with("}") {
                 break;
             }
 
-            if only_mode && !MacroHandler::handle_check_macro_line(line, "only") {
+            if only_mode && !MacroHandler::handle_check_macro_line(raw_line, "only") {
                 continue;
             }
 
-            let candidates: Vec<String> = line
-                .split("||")
-                .filter_map(|segment| segment.trim().split_whitespace().next())
-                .map(|url| Providers::new(url).arxiv())
-                .collect();
+            // A `{A..B}` range expands one line into several, one per value.
+            for line in Ranges.expand_line(raw_line) {
+                let candidates: Vec<String> = line
+                    .split("||")
+                    .filter_map(|segment| segment.trim().split_whitespace().next())
+                    .map(|url| Providers::new(url).arxiv())
+                    .collect();
 
-            let Some(primary) = candidates.first().cloned() else {
-                continue;
-            };
-
-            if seen_urls.contains(&primary) {
-                continue;
-            }
-
-            seen_urls.insert(primary.clone());
-
-            if !MacroHandler::handle_check_macro_line(line, "ignore") {
-                let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(line) {
-                    custom_name
-                } else {
-                    "".to_string()
+                let Some(primary) = candidates.first().cloned() else {
+                    continue;
                 };
 
-                if !primary.is_empty() && is_url(&primary) && primary.starts_with("http") {
-                    let contents = contents.to_string();
-                    let path = path.to_string();
-                    let flags = flags.clone();
-                    let retries = MacroHandler::retry_count(line);
-                    let fallbacks: Vec<String> = candidates[1..].to_vec();
-
-                    let task = task::spawn(async move {
-                        let _ = Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks).await;
-                    });
-
-                    tasks.push(task);
+                if seen_urls.contains(&primary) {
+                    continue;
                 }
-            } else {
-                MacrosAlerts::ignore(&primary);
+
+                seen_urls.insert(primary.clone());
+
+                if !MacroHandler::handle_check_macro_line(&line, "ignore") {
+                    let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(&line) {
+                        custom_name
+                    } else {
+                        "".to_string()
+                    };
+
+                    if !primary.is_empty() && is_url(&primary) && primary.starts_with("http") {
+                        let contents = contents.to_string();
+                        let path = path.to_string();
+                        let flags = flags.clone();
+                        let retries = MacroHandler::retry_count(&line);
+                        let fallbacks: Vec<String> = candidates[1..].to_vec();
+
+                        let task = task::spawn(async move {
+                            let _ = Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks).await;
+                        });
+
+                        tasks.push(task);
+                    }
+                } else {
+                    MacrosAlerts::ignore(&primary);
+                }
             }
         }
 

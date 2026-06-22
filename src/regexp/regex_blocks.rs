@@ -37,6 +37,8 @@ impl BlocksRegExp {
 
     pub const GET_VAR_USAGE: &'static str = r"\$\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}";
 
+    pub const GET_RANGE: &'static str = r"\{([^{}]+?)\.\.(\d+)\}";
+
     pub const GET_FN_DEF: &'static str = r"@fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*\{";
 
     pub const GET_FN_CALL: &'static str = r"@([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)";

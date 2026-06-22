@@ -189,6 +189,7 @@ impl Server {
                     {regex:/https?:\/\/\S+/,token:'link'},
                     {regex:/(?:^|\s)\/\/.*$/,token:'comment'},
                     {regex:/(?:^|\s)\/\*/,token:'comment',next:'blockComment'},
+                    {regex:/\{[^{}]*\.\.[^{}]*\}/,token:'variable-2'},
                     {regex:/[{}]/,token:'bracket'},
                     {regex:/\|\||>/,token:'operator'}
                 ],
