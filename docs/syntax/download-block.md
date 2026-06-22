@@ -6,7 +6,7 @@ You can specify multiple URLs for downloading files. Each URL should be placed o
 
 #### Example Usage:
 
-```plaintext
+```scimon        
 downloads {
     https://example.com/file1.pdf !ignore
     https://example.com/file2.pdf
@@ -40,7 +40,7 @@ You can still combine these with `as "name.pdf"` and `!ignore`.
 
 A Markdown URL can be turned into an EPUB by giving the entry an `.epub` name with `as`:
 
-```plaintext
+```scimon
 downloads {
     https://raw.githubusercontent.com/owner/repo/main/README.md as "book.epub"
 }
@@ -54,7 +54,7 @@ You can specify the directory where the downloaded files should be stored by set
 
 #### Example Usage:
 
-```plaintext
+```scimon
 path "path/to/folder"
 ```
 
@@ -68,7 +68,7 @@ The `!ignore` macro allows you to skip specific URLs in your download list. This
 
 #### Example Usage:
 
-```plaintext
+```scimon
 https://example.com/file1.pdf !ignore
 ```
 
@@ -76,13 +76,58 @@ In this example:
 
 - The URL `https://example.com/file1.pdf` will be omitted from the download process because it is followed by the `!ignore` directive.
 
+### Line macros
+
+Macros are `!`-prefixed flags appended to a download line. They can be combined
+with `as "name"` and with each other.
+
+| Macro      | Effect                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------- |
+| `!ignore`  | Skip this line entirely.                                                                |
+| `!only`    | Focus mode — when **any** line carries `!only`, only the marked lines run (others skip).|
+| `!no-qr`   | Exclude this line from QR code generation (when the `qrcode` directive is set).         |
+
+#### `!only` (focus mode)
+
+Handy for testing a large list without commenting everything out: tag the
+entries you want and leave the rest untouched.
+
+```scimon
+downloads {
+    https://example.com/file1.pdf
+    https://example.com/file2.pdf !only
+    https://example.com/file3.pdf
+    https://example.com/file4.pdf !only
+}
+```
+
+Here only `file2.pdf` and `file4.pdf` are downloaded; `file1.pdf` and
+`file3.pdf` are skipped. Covers, compression and QR codes follow suit, since
+they only act on what was actually downloaded.
+
+#### `!no-qr`
+
+When the [`qrcode`](./qrcode.md) directive is set, Scimon makes a QR code for
+every download. Append `!no-qr` to opt a single entry out:
+
+```scimon
+qrcode "downloads/qrcodes/"
+
+downloads {
+    https://example.com/file1.pdf
+    https://example.com/file2.pdf !no-qr
+}
+```
+
+`file2.pdf` is still downloaded, but no QR code is generated for it.
+
 #### Auto-renameing Files
 
 When downloading files, you can also specify a custom name for the downloaded file using the `as` variable. This allows you to rename the file as it is saved to your system.
 
 #### Example Usage:
 
-```plaintext
+```scimon
 https://example.com/file1.pdf as "new_name.pdf"
 ```
 
@@ -94,7 +139,7 @@ In this example:
 
 1. **Download URLs**: List URLs line by line. Append `!ignore` to skip specific URLs.
 
-   ```plaintext
+   ```scimon
    downloads {
        https://example.com/file1.pdf !ignore
        https://example.com/file2.pdf
@@ -102,12 +147,12 @@ In this example:
    ```
 2. **Set Download Directory**: Define where the files should be saved using the `path` variable.
 
-   ```plaintext
+   ```scimon
    path "path/to/folder"
    ```
 3. **Skip Specific URLs**: Use `!ignore` to bypass certain URLs.
 
-   ```plaintext
+   ```scimon
    https://example.com/file1.pdf !ignore
    ```
 
