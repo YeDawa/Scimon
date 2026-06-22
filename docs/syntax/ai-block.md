@@ -79,3 +79,7 @@ ai {
 - Combine it with the [`readme`](./readme-block.md) or
   [`markdown render`](./markdown-render.md) features to turn the generated
   Markdown into styled PDF.
+- The block runs after downloads but before [`merge`](./merge.md),
+  [`covers`](./covers.md) and [`compress`](./compress.md), so generated PDFs are
+  merged, get a cover extracted and are included in the archive. The full order
+  is: `downloads → ai → merge → covers → compress → qrcode → math → convert`.

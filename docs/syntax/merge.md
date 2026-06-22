@@ -22,9 +22,16 @@ merge "reports/*.pdf" > "reports.pdf"
 
 ## When it runs
 
-`merge` runs at the end of a list, after downloads (and any `.tex` → PDF
-conversions) finish, so the generated files are already on disk and can be
-picked up by the pattern.
+`merge` runs after downloads (including `.tex` → PDF conversions) and after the
+`ai` block, so every generated file is already on disk and can be picked up by
+the pattern. It also runs **before** `covers` and `compress`, so the combined
+PDF gets a cover extracted and is included in the archive.
+
+The processing order is:
+
+```
+downloads → ai → merge → covers → compress → qrcode → math → convert
+```
 
 ```scimon
 path "downloads/"
