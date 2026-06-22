@@ -5,6 +5,7 @@ impl Server {
     pub const LOGO_PNG: &str = "https://static.monlib.net/logo.png";
 
     pub const SOURCE_ROUTE: &str = "/__scimon/source.mon";
+    pub const PARSE_ROUTE: &str = "/__scimon/parse.json";
 
     pub const ARCHIVE_ROUTE: &str = "/__scimon/archive";
 
@@ -149,6 +150,15 @@ impl Server {
         #lb .cm-box:not(:has(.CodeMirror)){background:#111;color:#eee;padding:1rem 1.2rem;
             border-radius:4px;max-height:82vh;overflow:auto;white-space:pre-wrap;
             word-break:break-all;font-family:ui-monospace,Consolas,monospace;}
+        #lb .cm-tabwrap{width:90vw;max-width:1000px;display:flex;flex-direction:column;}
+        #lb .cm-tabwrap .cm-box{width:100%;max-width:none;}
+        #lb .cm-tabwrap .CodeMirror{height:76vh;}
+        #lb .cm-tabs{display:flex;gap:.3rem;margin-bottom:.5rem;}
+        #lb .cm-tab{padding:.4rem .9rem;border:1px solid #2b2f37;border-bottom:none;
+            border-radius:6px 6px 0 0;background:#1a1d24;color:#9aa0a6;cursor:pointer;
+            font-size:.85rem;font-family:ui-monospace,Consolas,monospace;}
+        #lb .cm-tab:hover{color:#eee;}
+        #lb .cm-tab.active{background:#111;color:#eee;}
         #lb .cap{color:#eee;font-size:.95rem;max-width:90vw;text-align:center;
             overflow-wrap:anywhere;}
         #lb .btn{position:absolute;color:#fff;cursor:pointer;user-select:none;
@@ -298,6 +308,51 @@ impl Server {
                 if(book){try{book.destroy();}catch(e){}}
                 book=null;rendition=null;
             }
+            function renderCode(box,url,name){
+                fetch(url).then(function(r){return r.text();})
+                    .then(function(t){
+                        if(!window.CodeMirror){box.textContent=t;return;}
+                        var isMon=/\.mon$/i.test(name);
+                        var info=(!isMon&&CodeMirror.findModeByFileName)?CodeMirror.findModeByFileName(name):null;
+                        var cm=CodeMirror(box,{
+                            value:t,
+                            readOnly:'nocursor',
+                            lineNumbers:true,
+                            lineWrapping:true,
+                            theme:'material-darker',
+                            mode:isMon?'scimon':(info?info.mode:null),
+                            viewportMargin:Infinity
+                        });
+                        if(info&&CodeMirror.autoLoadMode)CodeMirror.autoLoadMode(cm,info.mode);
+                    })
+                    .catch(function(){box.textContent='Failed to load file.';});
+            }
+            function renderTabbed(stage,tabs){
+                var wrap=document.createElement('div');
+                wrap.className='cm-tabwrap';
+                var bar=document.createElement('div');
+                bar.className='cm-tabs';
+                var box=document.createElement('div');
+                box.className='cm-box';
+                function select(idx){
+                    [].forEach.call(bar.children,function(b,i){
+                        b.classList.toggle('active',i===idx);
+                    });
+                    box.innerHTML='';
+                    renderCode(box,tabs[idx].url,tabs[idx].label);
+                }
+                tabs.forEach(function(tab,i){
+                    var b=document.createElement('button');
+                    b.className='cm-tab';
+                    b.textContent=tab.label;
+                    b.addEventListener('click',function(){select(i);});
+                    bar.appendChild(b);
+                });
+                wrap.appendChild(bar);
+                wrap.appendChild(box);
+                stage.appendChild(wrap);
+                select(0);
+            }
             function show(n){
                 i=(n+links.length)%links.length;
                 var link=links[i];
@@ -364,27 +419,19 @@ impl Server {
                         })
                         .catch(function(){zbox.textContent='Failed to read archive.';});
                 }else{
-                    var box=document.createElement('div');
-                    box.className='cm-box';
-                    stage.appendChild(box);
-                    fetch(href).then(function(r){return r.text();})
-                        .then(function(t){
-                            if(!window.CodeMirror){box.textContent=t;return;}
-                            var name=link.textContent.trim();
-                            var isMon=/\.mon$/i.test(name);
-                            var info=(!isMon&&CodeMirror.findModeByFileName)?CodeMirror.findModeByFileName(name):null;
-                            var cm=CodeMirror(box,{
-                                value:t,
-                                readOnly:'nocursor',
-                                lineNumbers:true,
-                                lineWrapping:true,
-                                theme:'material-darker',
-                                mode:isMon?'scimon':(info?info.mode:null),
-                                viewportMargin:Infinity
-                            });
-                            if(info&&CodeMirror.autoLoadMode)CodeMirror.autoLoadMode(cm,info.mode);
-                        })
-                        .catch(function(){box.textContent='Failed to load file.';});
+                    var name=link.textContent.trim();
+                    var parseUrl=link.getAttribute('data-parse');
+                    if(parseUrl){
+                        renderTabbed(stage,[
+                            {label:name,url:href},
+                            {label:'parse.json',url:parseUrl}
+                        ]);
+                    }else{
+                        var box=document.createElement('div');
+                        box.className='cm-box';
+                        stage.appendChild(box);
+                        renderCode(box,href,name);
+                    }
                 }
                 cap.textContent=link.textContent.trim();
             }

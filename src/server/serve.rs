@@ -22,6 +22,7 @@ use std::{
 
 use crate::{
     utils::file::FileUtils,
+    syntax::parser::Parser,
     generator::checksum::Checksum,
 
     ui::{
@@ -155,6 +156,17 @@ impl Serve {
             if let Some(source) = &source {
                 ServerAlerts::logs(method, target, 200);
                 return stream_instance.respond(&mut stream, 200, "OK", "text/plain; charset=utf-8", source.1.as_bytes());
+            }
+
+            ServerAlerts::logs(method, target, 404);
+            return stream_instance.respond(&mut stream, 404, "Not Found", "text/html; charset=utf-8", Pages.not_found().as_bytes());
+        }
+
+        if decoded == Server::PARSE_ROUTE {
+            if let Some(source) = &source {
+                let body = Parser.to_json(&source.1);
+                ServerAlerts::logs(method, target, 200);
+                return stream_instance.respond(&mut stream, 200, "OK", "application/json; charset=utf-8", body.as_bytes());
             }
 
             ServerAlerts::logs(method, target, 404);

@@ -397,7 +397,8 @@ impl Files {
 
         if let Some(name) = source_name {
             html.push_str(&format!(
-                "<a class=\"item lb\" data-type=\"text\" href=\"{}\">{} {}</a>",
+                "<a class=\"item lb\" data-type=\"text\" data-parse=\"{}\" href=\"{}\">{} {}</a>",
+                Server::PARSE_ROUTE,
                 Server::SOURCE_ROUTE,
                 Icons.icon("file-code"),
                 misc.html_escape(name)
