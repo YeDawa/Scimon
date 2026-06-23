@@ -2,13 +2,6 @@
     <img src="https://static.monlib.net/logo.png"/>
 </div>
 
-<p align='center'>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
-    <img src="https://img.shields.io/badge/built%20with-Rust-orange.svg" alt="Built with Rust">
-    <img src="https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg" alt="Platforms">
-    <a href="https://docs.scimon.dev"><img src="https://img.shields.io/badge/docs-scimon.dev-success.svg" alt="Documentation"></a>
-</p>
-
 ## What is Scimon?
 
 **Scimon** is a fast, Rust-powered command-line tool for building document
