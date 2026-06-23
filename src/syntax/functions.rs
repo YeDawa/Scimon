@@ -14,7 +14,7 @@ impl Functions {
 
     // Expands user-defined template functions: collects every
     // `fn name(params) { ... }` definition, removes those blocks, and replaces
-    // each `@name(args)` call with the function body, substituting `${param}`
+    // each `name(args)` call with the function body, substituting `${param}`
     // with the matching argument. Runs before variable interpolation so a body
     // may also reference global `@var`s. Unknown calls are left untouched.
     pub fn expand(&self, contents: &str) -> String {
