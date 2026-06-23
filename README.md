@@ -35,7 +35,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 📐 **Built-in LaTeX compiler** — turn `.tex` files into PDF with no TeX distribution installed (theorems, bibliography, acronyms, TikZ, pgfplots, and more).
 - 📝 **Markdown rendering** — render Markdown to styled PDF with MathJax and Mermaid support.
 - 🔢 **Math to image** — render formulas straight to PNG.
-- 🔗 **Merge PDFs** — combine many PDFs into one with a glob (`merge "papers/*.pdf" > "out.pdf"`).
+- 🔗 **Merge PDFs** — combine many PDFs into one with a glob or an ordered list (`merge "papers/*.pdf" > "out.pdf"`, or `merge [ "a.pdf", "b.pdf" ] > "out.pdf"`).
 - ✂️ **Split PDFs** — split a PDF into one file per page (`split "doc.pdf" > "pages/page-{n}.pdf"`).
 - 🔃 **Rotate PDFs** — rotate every page by a multiple of 90° (`rotate "scan.pdf" 90 > "out.pdf"`).
 - 💧 **Watermark PDFs** — stamp every page with text or an image (`watermark "doc.pdf" "DRAFT" > "out.pdf"`, or `... image "logo.png" > ...`).

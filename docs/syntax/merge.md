@@ -11,6 +11,18 @@ merge "papers/*.pdf" > "compiled.pdf"
 This matches every `.pdf` inside `papers/`, concatenates them in alphabetical
 order, and writes the result to `compiled.pdf`.
 
+## Explicit list
+
+Instead of a glob, you can pass an explicit list of files in `[ ... ]`. They are
+merged in **exactly the order given** (not sorted), which is handy when order
+matters:
+
+```scimon
+merge [ "intro.pdf", "chapter1.pdf", "appendix.pdf" ] > "book.pdf"
+```
+
+Items are comma-separated and may use single or double quotes.
+
 ## Multiple merges
 
 You can declare more than one `merge` line; each produces its own output:
