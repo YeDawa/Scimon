@@ -38,7 +38,6 @@ nav:
     - Overview: syntax/what-is.md
     - Comments: syntax/comments.md
     - Import: syntax/import.md
-    - Include: syntax/include.md
     - Metadata: syntax/metadata.md
     - Variables: syntax/variables.md
     - Functions: syntax/functions.md

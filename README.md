@@ -28,7 +28,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`), skipping (`!ignore`), archive extraction (`!unzip`) and subfolders via `group "name" { ... }`.
 - 🔁 **Ranges & fallbacks** — expand a numeric range into many downloads (`{2203.08877..08880}`), list mirror URLs with `||`, and retry flaky ones with `!retry(3)`.
-- 🧩 **Variables, functions, loops & includes** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `@fn name(args) { ... }` templates, `for x in [...] { ... }` expansion, and split big lists across files with `include "other.mon"`.
+- 🧩 **Variables, functions & loops** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `@fn name(args) { ... }` templates, and `for x in [...] { ... }` expansion.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
 - 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown or rendered straight to PDF.
@@ -43,7 +43,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 🔳 **QR codes & covers** — generate QR codes and extract document covers.
 - 🗜️ **Compression & scripts** — zip output folders and run Python/JavaScript/TypeScript steps (with a secure-by-default runner).
 - 🌍 **Built-in web server** — browse and preview the generated files in your browser (lightbox for images/PDFs, dark mode), via the `serve` command or `server "PORT"` in a list.
-- 📦 **Reusable packages** — pull and run a shared package from [Monlib](https://monlib.net) before your list with `import "package"`.
+- 📦 **Composable packages** — `import "..."` splices another list into yours from a local file, a remote URL, or a [Monlib](https://monlib.net) package.
 
 ## Requirements
 
@@ -197,12 +197,11 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
 - [Scrape](https://docs.scimon.dev/scrape)
 - [Providers](https://docs.scimon.dev/providers)
 - [Compilers](https://docs.scimon.dev/compile)
-    - [LaTeX Compiler](https://docs.scimon.dev/compile/latex)
-    - [Markdown Compiler](https://docs.scimon.dev/compile/markdown)
+  - [LaTeX Compiler](https://docs.scimon.dev/compile/latex)
+  - [Markdown Compiler](https://docs.scimon.dev/compile/markdown)
 - [Syntax](https://docs.scimon.dev/syntax/what-is)
   - [Comments](https://docs.scimon.dev/syntax/comments)
   - [Import](https://docs.scimon.dev/syntax/import)
-  - [Include](https://docs.scimon.dev/syntax/include)
   - [Metadata](https://docs.scimon.dev/syntax/metadata)
   - [Variables](https://docs.scimon.dev/syntax/variables)
   - [Functions](https://docs.scimon.dev/syntax/functions)
