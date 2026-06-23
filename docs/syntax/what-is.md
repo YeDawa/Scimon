@@ -30,6 +30,7 @@ Everything is optional: since Scimon is no longer only about downloading PDFs, a
 - [QR Code](./qrcode.md)
 - [Math](./math.md)
 - [Merge PDFs](./merge.md)
+- [Split PDFs](./split.md)
 - [Convert](./convert.md)
 - [Server](./server.md)
 - [Markdown render](./markdown-render.md)

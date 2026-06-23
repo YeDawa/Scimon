@@ -56,6 +56,7 @@ nav:
     - QR Code: syntax/qrcode.md
     - Math: syntax/math.md
     - Merge PDFs: syntax/merge.md
+    - Split PDFs: syntax/split.md
     - Convert: syntax/convert.md
     - Server: syntax/server.md
   - Markdown: syntax/markdown-render.md
