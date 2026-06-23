@@ -212,6 +212,24 @@ impl Vars {
         results
     }
 
+    // Returns (input, mode, content, output) where mode is "image" or "text".
+    pub fn get_all_watermark(&self, contents: &str) -> Vec<(String, String, String, String)> {
+        let watermark_pattern = Regex::new(BlocksRegExp::GET_WATERMARK_VAR).unwrap();
+        let mut results = Vec::new();
+
+        for line in contents.lines() {
+            if let Some(caps) = watermark_pattern.captures(line) {
+                let input = caps.get(1).map(|m| m.as_str().to_string()).unwrap();
+                let mode = if caps.get(2).is_some() { "image" } else { "text" }.to_string();
+                let content = caps.get(3).map(|m| m.as_str().to_string()).unwrap();
+                let output = caps.get(4).map(|m| m.as_str().to_string()).unwrap();
+                results.push((input, mode, content, output));
+            }
+        }
+
+        results
+    }
+
     pub fn get_all_rotate(&self, contents: &str) -> Vec<(String, i64, String)> {
         let rotate_pattern = Regex::new(BlocksRegExp::GET_ROTATE_VAR).unwrap();
         let mut results = Vec::new();

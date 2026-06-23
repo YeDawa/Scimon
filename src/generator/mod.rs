@@ -6,6 +6,7 @@ pub mod split;
 pub mod covers;
 pub mod rotate;
 pub mod convert;
+pub mod watermark;
 pub mod qr_code;
 pub mod checksum;
 pub mod file_name;

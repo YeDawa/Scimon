@@ -43,6 +43,7 @@ use crate::{
         covers::Covers,
         convert::Convert,
         checksum::Checksum,
+        watermark::Watermark,
     },
 };
 
@@ -179,6 +180,7 @@ impl DownloadsBlock {
         let _ = Merge::new(&contents).get();
         let _ = Split::new(&contents).get();
         let _ = Rotate::new(&contents).get();
+        let _ = Watermark::new(&contents).get();
 
         let _ = Covers::new(&contents).get().await;
         let _ = Compress::new(&contents).get();
@@ -224,6 +226,7 @@ impl DownloadsBlock {
         let _ = Merge::new(&contents).get();
         let _ = Split::new(&contents).get();
         let _ = Rotate::new(&contents).get();
+        let _ = Watermark::new(&contents).get();
         let _ = Compress::new(&contents).get();
         let _ = Covers::new(&contents).get().await;
         let _ = TasksRaw.qr_codes(&contents, None).await;

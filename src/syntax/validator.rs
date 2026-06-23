@@ -160,6 +160,14 @@ impl Validator {
                 }
             }
 
+            "watermark" => {
+                if matches(BlocksRegExp::GET_WATERMARK_VAR) {
+                    None
+                } else {
+                    Some("expected: watermark \"input.pdf\" \"TEXT\" > \"output.pdf\" (or: ... image \"logo.png\" > ...)".to_string())
+                }
+            }
+
             "readme" => {
                 if matches(BlocksRegExp::GET_README_VAR) || matches(r"(?i)^readme\s*\{") {
                     None

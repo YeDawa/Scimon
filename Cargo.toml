@@ -41,7 +41,7 @@ image = "0.25.10"
 select = "0.6.1"
 rand = "0.10.1"
 open = "5.3.5"
-lopdf = "0.34.0"
+lopdf = { version = "0.34.0", features = ["embed_image"] }
 sha2 = "0.11.0"
 zip = "8.6.0"
 walkdir = "2.5.0"

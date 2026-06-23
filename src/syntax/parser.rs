@@ -108,6 +108,11 @@ impl Parser {
             .map(|(input, angle, output)| json!({ "input": input, "angle": angle, "output": output }))
             .collect();
 
+        let watermark: Vec<Value> = Vars.get_all_watermark(contents)
+            .into_iter()
+            .map(|(input, mode, content, output)| json!({ "input": input, "mode": mode, "content": content, "output": output }))
+            .collect();
+
         json!({
             "path": self.capture(contents, BlocksRegExp::GET_PATH_VAR),
             "open": self.capture(contents, BlocksRegExp::GET_OPEN_VAR),
@@ -124,6 +129,7 @@ impl Parser {
             "merge": merge,
             "split": split,
             "rotate": rotate,
+            "watermark": watermark,
             "convert": convert,
         })
     }

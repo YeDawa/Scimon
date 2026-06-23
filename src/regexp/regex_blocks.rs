@@ -59,6 +59,8 @@ impl BlocksRegExp {
 
     pub const GET_ROTATE_VAR: &'static str = r#"rotate\s+['"]([^'"]+)['"]\s+(-?\d+)\s*>\s*['"]?([^'"\s]+)['"]?"#;
 
+    pub const GET_WATERMARK_VAR: &'static str = r#"watermark\s+"([^"]+)"\s+(?:(image)\s+)?"([^"]+)"\s*>\s*['"]?([^'"\s]+)['"]?"#;
+
     pub const GET_PATTERNS_MONLIB_VARS: [&'static str; 7] = [
         r#"(?m)^\s*@name\s+"[^"]+""#,
         r#"(?m)^\s*@version\s+"[^"]+""#,
