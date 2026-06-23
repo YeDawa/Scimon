@@ -42,12 +42,12 @@ This produces `vol-1.pdf`, `vol-2.pdf` and `vol-3.pdf`.
 ## Combining with variables and functions
 
 The loop runs before variables and functions, so the body can use global
-`@var`s and call `@fn`s:
+`@var`s and call functions:
 
 ```scimon
 @var gist "https://gist.githubusercontent.com/Kremilly"
 
-@fn doc(slug, name) {
+fn doc(slug, name) {
     ${gist}/${slug} as "${name}"
 }
 

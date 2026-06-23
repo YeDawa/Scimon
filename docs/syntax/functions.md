@@ -1,6 +1,6 @@
 # Functions
 
-Functions are reusable, parametrized templates. You define one with `@fn` and a
+Functions are reusable, parametrized templates. You define one with `fn` and a
 parameter list, then call it as `@name(args)` — each call is replaced by the
 function body with `${param}` filled in. They build on
 [variables](./variables.md): a function body can use both its parameters and
@@ -9,7 +9,7 @@ global `@var`s.
 ## Defining and calling
 
 ```scimon
-@fn arxiv(id, name) {
+fn arxiv(id, name) {
     https://arxiv.org/pdf/${id} as "${name}" !retry(3)
 }
 
@@ -28,7 +28,7 @@ downloads {
 }
 ```
 
-- **Definition** — `@fn name(p1, p2, …) { ... }`. The name starts with a letter
+- **Definition** — `fn name(p1, p2, …) { ... }`. The name starts with a letter
   or `_`; the body can span multiple lines.
 - **Call** — `@name("a", "b")`. Arguments are comma-separated; surrounding double
   quotes are stripped.
@@ -42,7 +42,7 @@ A function body and its arguments can reference global variables:
 ```scimon
 @var gist "https://gist.githubusercontent.com/Kremilly"
 
-@fn doc(path, name) {
+fn doc(path, name) {
     ${gist}/${path} as "${name}"
 }
 
@@ -56,7 +56,7 @@ the call is resolved afterwards.
 
 ## Notes
 
-- `@fn` definitions are removed after expansion, so they don't affect downloads,
+- `fn` definitions are removed after expansion, so they don't affect downloads,
   validation or the served source.
 - Functions may call other functions; expansion repeats until stable (bounded,
   so a self-referential definition can't loop forever).

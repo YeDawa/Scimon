@@ -22,7 +22,7 @@ How the source is resolved:
 ## How it works
 
 `import` runs as a preprocessing step — before functions, loops and variables —
-so an imported file's `@fn`/`@var` definitions are shared with the rest of the
+so an imported file's `fn`/`@var` definitions are shared with the rest of the
 document, and vice versa. Imports may nest (an imported list can `import`
 others); cycles are detected and skipped.
 
@@ -32,7 +32,7 @@ import "headers.mon"
 path "downloads/"
 
 downloads {
-    @arxiv("2203.08877", "paper.pdf")   # @fn arxiv comes from headers.mon
+    @arxiv("2203.08877", "paper.pdf")   # fn arxiv comes from headers.mon
 }
 ```
 

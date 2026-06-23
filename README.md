@@ -28,7 +28,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`), skipping (`!ignore`), archive extraction (`!unzip`) and subfolders via `group "name" { ... }`.
 - 🔁 **Ranges & fallbacks** — expand a numeric range into many downloads (`{2203.08877..08880}`), list mirror URLs with `||`, and retry flaky ones with `!retry(3)`.
-- 🧩 **Variables, functions & loops** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `@fn name(args) { ... }` templates, and `for x in [...] { ... }` expansion.
+- 🧩 **Variables, functions & loops** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `fn name(args) { ... }` templates, and `for x in [...] { ... }` expansion.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
 - 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown or rendered straight to PDF.
@@ -109,7 +109,7 @@ homepage: "https://scimon.dev"
 // scimon.mon
 @var path "downloads/"
 
-@fn arxiv(id, name) {
+fn arxiv(id, name) {
     https://arxiv.org/pdf/${id} as "${name}"
 }
 
