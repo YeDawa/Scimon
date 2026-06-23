@@ -24,7 +24,6 @@ use crate::{
         pull::MonlibPull,
         push::MonlibPush,
         sync::MonlibSync,
-        import::MonlibImport,
         logout::MonlibLogout,
     },
 
@@ -100,8 +99,6 @@ impl Scimon {
                     if let Some(err) = Validator.check(&contents) {
                         SyntaxAlerts::error(err.line, &err.content, &err.message);
                     } else {
-                        MonlibImport.run(&contents, &flags_clone).await;
-
                         let _ = monset.downloads(&flags_clone).await;
                         let _ = monset.run_code(&flags_clone).await;
                         ReadMeBlock.render_block_and_save_file(&file, &flags_clone).await;

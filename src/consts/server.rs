@@ -185,7 +185,7 @@ impl Server {
                     {regex:/@\w+(?=\s*\()/,token:'variable-2'},
                     {regex:/@\w+/,token:'meta'},
                     {regex:/\b(downloads|commands|readme|ai)\b(?=\s*\{)/,token:'keyword'},
-                    {regex:/\b(group|for|in|import|include|path|open|compress|copy|covers|qrcode|style|print|readme|math|merge|split|rotate|watermark|convert|server|as|image)\b/,token:'keyword'},
+                    {regex:/\b(group|for|in|import|path|open|compress|copy|covers|qrcode|style|print|readme|math|merge|split|rotate|watermark|convert|server|as|image)\b/,token:'keyword'},
                     {regex:/![a-zA-Z_][\w-]*(?:\([^)]*\))?/,token:'atom'},
                     {regex:/"(?:[^"\\]|\\.)*"/,token:'string'},
                     {regex:/https?:\/\/\S+/,token:'link'},

@@ -93,14 +93,6 @@ impl Validator {
         };
 
         match kw.as_str() {
-            "include"  => {
-                if matches(BlocksRegExp::GET_INCLUDE_VAR) {
-                    None
-                } else {
-                    Some("expected: include \"path.mon\"".to_string())
-                }
-            }
-
             "for" => {
                 if matches(BlocksRegExp::GET_FOR_LOOP) {
                     None

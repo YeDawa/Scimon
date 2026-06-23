@@ -35,7 +35,7 @@ impl BlocksRegExp {
 
     pub const GET_IMPORT_VAR: &'static str = r#"(?i)import\s*"([^"]+)""#;
 
-    pub const GET_INCLUDE_VAR: &'static str = r#"(?i)^\s*include\s+"([^"]+)"\s*$"#;
+    pub const GET_IMPORT_LINE: &'static str = r#"(?i)^\s*import\s+"([^"]+)"\s*$"#;
 
     pub const GET_VAR_DEF: &'static str = r#"(?im)^\s*@var\s+([A-Za-z_][A-Za-z0-9_]*)\s+"([^"]*)"\s*$"#;
 

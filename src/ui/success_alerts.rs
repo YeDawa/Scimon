@@ -158,16 +158,6 @@ impl SuccessAlerts {
         );
     }
 
-    pub fn import(package: &str) {
-        let current_datetime = General.date_time();
-
-        println!(
-            "{} Importing package {}",
-            current_datetime.green().bold(),
-            package.blue(),
-        );
-    }
-
     pub fn generated_epub(file: &str) {
         let current_datetime = General.date_time();
 
