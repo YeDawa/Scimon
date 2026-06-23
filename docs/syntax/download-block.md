@@ -267,6 +267,26 @@ In this example:
 
 - The URL `https://example.com/file1.pdf` will be downloaded and saved as `new_name.pdf` instead of its original name.
 
+### Pipes (filters)
+
+You can chain PDF post-processing filters directly on a download entry using the pipe (`|`) character. Supported filter operations include:
+- `rotate <angle>`: Rotates the PDF pages by the specified angle (must be a multiple of 90).
+- `watermark "<text>"`: Adds a semi-transparent text watermark.
+- `watermark image "<path>"`: Stamps the PDF pages with an image.
+
+#### Example Usage:
+
+```scimon
+downloads {
+    https://example.com/document.pdf as "final.pdf" | rotate 90 | watermark "CONFIDENTIAL"
+}
+```
+
+In this example:
+- The file is downloaded and compiled/saved as `final.pdf`.
+- It is then rotated by 90 degrees.
+- Finally, it is stamped with a semi-transparent text watermark reading `"CONFIDENTIAL"`.
+
 ### Summary
 
 1. **Download URLs**: List URLs line by line. Append `!ignore` to skip specific URLs.
