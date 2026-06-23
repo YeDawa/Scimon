@@ -144,6 +144,14 @@ impl Validator {
                 }
             }
 
+            "split" => {
+                if matches(BlocksRegExp::GET_SPLIT_VAR) {
+                    None
+                } else {
+                    Some("expected: split \"input.pdf\" > \"output-{n}.pdf\"".to_string())
+                }
+            }
+
             "readme" => {
                 if matches(BlocksRegExp::GET_README_VAR) || matches(r"(?i)^readme\s*\{") {
                     None

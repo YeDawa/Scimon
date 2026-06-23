@@ -55,6 +55,8 @@ impl BlocksRegExp {
 
     pub const GET_CONVERT_VAR: &'static str = r#"convert\s+['"]([^'"]+)['"]\s*>\s*['"]?([^'"\s]+)['"]?"#;
 
+    pub const GET_SPLIT_VAR: &'static str = r#"split\s+['"]([^'"]+)['"]\s*>\s*['"]?([^'"\s]+)['"]?"#;
+
     pub const GET_PATTERNS_MONLIB_VARS: [&'static str; 7] = [
         r#"(?m)^\s*@name\s+"[^"]+""#,
         r#"(?m)^\s*@version\s+"[^"]+""#,

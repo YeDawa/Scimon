@@ -92,6 +92,17 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn split(file: &str, count: usize) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Split {} into {} pages",
+            current_datetime.green().bold(),
+            file.blue(),
+            count.to_string().blue(),
+        );
+    }
+
     pub fn merged(file: &str, count: usize) {
         let current_datetime = General.date_time();
 

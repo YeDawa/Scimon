@@ -38,6 +38,7 @@ use crate::{
     generator::{
         math::Math,
         merge::Merge,
+        split::Split,
         covers::Covers,
         convert::Convert,
         checksum::Checksum,
@@ -175,6 +176,7 @@ impl DownloadsBlock {
 
         let _ = AiBlock.generate_and_save_files(&contents).await;
         let _ = Merge::new(&contents).get();
+        let _ = Split::new(&contents).get();
 
         let _ = Covers::new(&contents).get().await;
         let _ = Compress::new(&contents).get();
@@ -218,6 +220,7 @@ impl DownloadsBlock {
 
         let _ = AiBlock.generate_and_save_files(&contents).await;
         let _ = Merge::new(&contents).get();
+        let _ = Split::new(&contents).get();
         let _ = Compress::new(&contents).get();
         let _ = Covers::new(&contents).get().await;
         let _ = TasksRaw.qr_codes(&contents, None).await;
