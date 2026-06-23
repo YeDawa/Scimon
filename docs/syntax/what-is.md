@@ -16,6 +16,7 @@ Everything is optional: since Scimon is no longer only about downloading PDFs, a
 - [Metadata](./metadata.md)
 - [Variables](./variables.md)
 - [Functions](./functions.md)
+- [Loops](./loops.md)
 - [Downloads Block](./download-block.md)
 - [Readme Block](./readme-block.md)
 - [Commands Block](./commands-block.md)

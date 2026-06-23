@@ -32,7 +32,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`), skipping (`!ignore`) and archive extraction (`!unzip`).
 - 🔁 **Ranges & fallbacks** — expand a numeric range into many downloads (`{2203.08877..08880}`), list mirror URLs with `||`, and retry flaky ones with `!retry(3)`.
-- 🧩 **Variables, functions & includes** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `@fn name(args) { ... }` templates, and split big lists across files with `include "other.mon"`.
+- 🧩 **Variables, functions, loops & includes** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `@fn name(args) { ... }` templates, `for x in [...] { ... }` expansion, and split big lists across files with `include "other.mon"`.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
 - 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown or rendered straight to PDF.
@@ -128,6 +128,11 @@ readme "https://gist.githubusercontent.com/Kremilly/5fd360d994bb0fe108b648d0e4c9
 
 downloads {
     @arxiv("2203.08877", "arxiv_paper.pdf")
+
+    for id in ["2106.09685", "1706.03762"] {
+        https://arxiv.org/pdf/${id} as "${id}.pdf"
+    }
+
     https://arxiv.org/pdf/{2405.01510..01513}
     https://primary.example/spec.pdf || https://mirror.example/spec.pdf as "spec.pdf" !retry(2)
     https://example.com/dataset.zip !unzip
