@@ -8,7 +8,6 @@ list.
 ```yaml
 # package.yml
 name: "Scimon"
-version: "1.0.0"
 description: "A collection of papers and resources."
 author: "YeDawa"
 license: "MIT"
@@ -16,10 +15,9 @@ privacy: "Public"
 homepage: "https://kremilly.com"
 ```
 
-| Field           | Description                                    |
-| --------------- | ---------------------------------------------- |
+| Field         | Description                                    |
+| ------------- | ---------------------------------------------- |
 | `name`        | Package name.                                  |
-| `version`     | Version string (e.g.`"1.0.0"`).              |
 | `description` | Short description of the list.                 |
 | `author`      | Author name, or a list of authors.             |
 | `license`     | License identifier (e.g.`"MIT"`).            |

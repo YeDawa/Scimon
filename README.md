@@ -98,7 +98,6 @@ Package metadata lives in a `package.yml` next to the list (like a crate's
 ```yaml
 # package.yml
 name: "Scimon"
-version: "1.0.0"
 description: "A simple and powerful tool for downloading files, generating QR codes, compressing folders, and more."
 author: "Kremilly"
 license: "MIT"
