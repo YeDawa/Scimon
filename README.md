@@ -37,6 +37,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 🔢 **Math to image** — render formulas straight to PNG.
 - 🔗 **Merge PDFs** — combine many PDFs into one with a glob (`merge "papers/*.pdf" > "out.pdf"`).
 - ✂️ **Split PDFs** — split a PDF into one file per page (`split "doc.pdf" > "pages/page-{n}.pdf"`).
+- 🔃 **Rotate PDFs** — rotate every page by a multiple of 90° (`rotate "scan.pdf" 90 > "out.pdf"`).
 - 🔄 **Convert files** — turn local files into other formats by extension (`convert "doc.md" > "doc.pdf"`): Markdown→PDF/HTML/EPUB, LaTeX→PDF, HTML→PDF.
 - 🔳 **QR codes & covers** — generate QR codes and extract document covers.
 - 🗜️ **Compression & scripts** — zip output folders and run Python/JavaScript/TypeScript steps (with a secure-by-default runner).
@@ -149,6 +150,8 @@ merge "${path}*.pdf" > "${path}all.pdf"
 
 split "${path}all.pdf" > "${path}pages/page-{n}.pdf"
 
+rotate "${path}all.pdf" 90 > "${path}all-rotated.pdf"
+
 convert "${path}report.md" > "${path}report.pdf"
 
 ai {
@@ -209,6 +212,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
   - [Convert](https://docs.scimon.dev/syntax/convert)
   - [Merge PDFs](https://docs.scimon.dev/syntax/merge)
   - [Split PDFs](https://docs.scimon.dev/syntax/split)
+  - [Rotate PDFs](https://docs.scimon.dev/syntax/rotate)
   - [Server](https://docs.scimon.dev/syntax/server)
 - [Markdown render](https://docs.scimon.dev/syntax/markdown-render)
 - [Configs](https://docs.scimon.dev/configs/scimon.yml-file)

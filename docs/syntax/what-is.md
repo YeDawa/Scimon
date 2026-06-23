@@ -31,6 +31,7 @@ Everything is optional: since Scimon is no longer only about downloading PDFs, a
 - [Math](./math.md)
 - [Merge PDFs](./merge.md)
 - [Split PDFs](./split.md)
+- [Rotate PDFs](./rotate.md)
 - [Convert](./convert.md)
 - [Server](./server.md)
 - [Markdown render](./markdown-render.md)
