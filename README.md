@@ -2,9 +2,7 @@
     <img src="https://static.monlib.net/logo.png"/>
 </div>
 
-<!--<p align='center'>
-    <img src='https://i.imgur.com/RRPMQ2j.png' />
-</p>-->
+<br>
 
 <p align='center'>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
