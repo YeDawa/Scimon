@@ -222,7 +222,7 @@ impl LaTex {
         html
     }
 
-    pub async fn create_pdf(&self, path: &str, url: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
+    pub async fn create_pdf(&self, path: &str, url: &str, custom_name: Option<&str>) -> Result<String, Box<dyn Error>> {
         let content = Remote.content(url).await?;
         let html = self.render(&content).await;
 
@@ -234,9 +234,9 @@ impl LaTex {
         };
 
         let output_path = FileUtils.get_output_path(path, &new_filename);
-        Pdf.create_pdf(&html, output_path, url).await?;
+        Pdf.create_pdf(&html, output_path.clone(), url).await?;
         SuccessAlerts::download_and_generated_pdf(&new_filename, url);
-        Ok(())
+        Ok(output_path.to_string_lossy().to_string())
     }
 
 }

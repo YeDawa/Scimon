@@ -94,7 +94,11 @@ impl DownloadsBlock {
 
             // A `{A..B}` range expands one line into several, one per value.
             for line in Ranges.expand_line(raw_line) {
-                let candidates: Vec<String> = line
+                let parts: Vec<&str> = line.split('|').collect();
+                let download_part = parts[0].trim();
+                let pipe_parts: Vec<String> = parts[1..].iter().map(|s| s.trim().to_string()).collect();
+
+                let candidates: Vec<String> = download_part
                     .split("||")
                     .filter_map(|segment| segment.trim().split_whitespace().next())
                     .map(|url| Providers::new(url).arxiv())
@@ -110,8 +114,8 @@ impl DownloadsBlock {
 
                 seen_urls.insert(primary.clone());
 
-                if !MacroHandler::handle_check_macro_line(&line, "ignore") {
-                    let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(&line) {
+                if !MacroHandler::handle_check_macro_line(download_part, "ignore") {
+                    let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(download_part) {
                         custom_name
                     } else {
                         "".to_string()
@@ -121,13 +125,22 @@ impl DownloadsBlock {
                         let contents = contents.to_string();
                         let path = group_path.clone();
                         let flags = flags.clone();
-                        let retries = MacroHandler::retry_count(&line);
+                        let retries = MacroHandler::retry_count(download_part);
                         let fallbacks: Vec<String> = candidates[1..].to_vec();
-                        let unzip = MacroHandler::handle_check_macro_line(&line, "unzip")
-                            || MacroHandler::handle_check_macro_line(&line, "extract");
+                        let unzip = MacroHandler::handle_check_macro_line(download_part, "unzip")
+                            || MacroHandler::handle_check_macro_line(download_part, "extract");
 
                         let task = task::spawn(async move {
-                            let _ = Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks, unzip).await;
+                            match Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks, unzip).await {
+                                Ok(file_path) => {
+                                    if !file_path.is_empty() && !pipe_parts.is_empty() {
+                                        if let Err(e) = Self::apply_pipes(&file_path, &pipe_parts) {
+                                            crate::ui::errors_alerts::ErrorsAlerts::generic(&format!("Error applying pipes to {}: {}", file_path, e));
+                                        }
+                                    }
+                                }
+                                Err(_) => {}
+                            }
                         });
 
                         tasks.push(task);
@@ -139,6 +152,40 @@ impl DownloadsBlock {
         }
 
         join_all(tasks).await;
+        Ok(())
+    }
+
+    fn apply_pipes(file_path: &str, pipe_parts: &[String]) -> Result<(), Box<dyn Error>> {
+        let current_path = file_path.to_string();
+
+        for pipe in pipe_parts {
+            let trimmed_pipe = pipe.trim();
+            if trimmed_pipe.is_empty() {
+                continue;
+            }
+
+            if trimmed_pipe.starts_with("rotate ") {
+                let angle_str = trimmed_pipe.strip_prefix("rotate ").unwrap().trim();
+                let angle = angle_str.parse::<i64>()?;
+                
+                let rotate = Rotate::new("");
+                rotate.rotate_one(&current_path, angle, &current_path)?;
+            } else if trimmed_pipe.starts_with("watermark ") {
+                let args = trimmed_pipe.strip_prefix("watermark ").unwrap().trim();
+                let watermark = Watermark::new("");
+                
+                if args.starts_with("image ") {
+                    let img_path = args.strip_prefix("image ").unwrap().trim().trim_matches('"').to_string();
+                    watermark.image(&current_path, &img_path, &current_path)?;
+                } else {
+                    let text = args.trim_matches('"').to_string();
+                    watermark.text(&current_path, &text, &current_path)?;
+                }
+            } else {
+                return Err(format!("Unknown pipe command: {}", trimmed_pipe).into());
+            }
+        }
+
         Ok(())
     }
 

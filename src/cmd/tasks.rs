@@ -28,6 +28,7 @@ use crate::{
 
     utils::{
         file::FileUtils,
+        remote::Remote,
         file_name_remote::FileNameRemote,
     },
     
@@ -129,43 +130,50 @@ impl Tasks {
         Ok(())
     }
 
-    pub async fn download(&self, contents: Option<&str>, url: &str, path: &str, custom_name: Option<&str>, flags: &Flags, retries: u32, fallbacks: &[String], unzip: bool) -> Result<(), Box<dyn Error>> {
+    pub async fn download(&self, contents: Option<&str>, url: &str, path: &str, custom_name: Option<&str>, flags: &Flags, retries: u32, fallbacks: &[String], unzip: bool) -> Result<String, Box<dyn Error>> {
         let mut line_url = Cow::Borrowed(
             url.trim()
         );
 
         Reporting.check_download_errors(&line_url).await?;
-        if !is_url(&line_url) { return Ok(()) }
+        if !is_url(&line_url) { return Ok("".to_string()) }
     
         match MacroHandler::handle_ignore_macro_flag(&line_url, flags.no_ignore) {
             Ok(new_line) => line_url = Cow::Owned(new_line),
-            Err(_) => return Ok(()),
+            Err(_) => return Ok("".to_string()),
         }
 
+        let mut output_path = "".to_string();
+
         if let Some(contents) = contents {
-            Markdown.create(contents, url, path, custom_name).await?;
+            if Remote.check_content_type(url, "text/markdown").await.unwrap_or(false) || url.contains(".md") {
+                output_path = Markdown.create(contents, url, path, custom_name).await?;
+            }
         }
 
         if line_url.ends_with(".tex") {
-            let _ = LaTex.create_pdf(path, &line_url, custom_name).await;
+            output_path = LaTex.create_pdf(path, &line_url, custom_name).await?;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-            ChatGPT::new(&line_url, path, custom_name).convert().await?;
+            output_path = ChatGPT::new(&line_url, path, custom_name).convert().await?;
         }
 
         if line_url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-            Gemini::new(&line_url, path, custom_name).convert().await?;
+            output_path = Gemini::new(&line_url, path, custom_name).convert().await?;
         }
 
         if !Providers::new(&line_url).check_provider_domain() {
             let mut candidates: Vec<String> = vec![line_url.to_string()];
             candidates.extend_from_slice(fallbacks);
 
-            MakeDownload.download_line(&candidates, url, path, custom_name, retries, unzip).await?;
+            let download_path = MakeDownload.download_line(&candidates, url, path, custom_name, retries, unzip).await?;
+            if !download_path.is_empty() {
+                output_path = download_path;
+            }
         }
 
-        Ok(())
+        Ok(output_path)
     }
 
 }

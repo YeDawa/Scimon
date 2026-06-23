@@ -83,7 +83,7 @@ impl Markdown {
         Ok(html_output)
     }
 
-    pub async fn create(&self, contents: &str, url: &str, path: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
+    pub async fn create(&self, contents: &str, url: &str, path: &str, custom_name: Option<&str>) -> Result<String, Box<dyn Error>> {
         if Remote.check_content_type(url, "text/markdown").await? || url.contains(".md") {
             let wants_epub = custom_name
                 .map(|name| name.to_lowercase().ends_with(".epub"))
@@ -107,6 +107,7 @@ impl Markdown {
                 Epub.create(&markdown_content, &title, &author, &output_path)?;
 
                 SuccessAlerts::generated_epub(&output_path);
+                return Ok(output_path);
             } else {
                 let html_content = self.render(url).await?;
                 let content = RenderInject.html_content(contents, html_content).await?;
@@ -115,12 +116,13 @@ impl Markdown {
                 let new_filename = FileUtils.replace_extension(&original_name, "pdf");
                 let output_path = FileUtils.get_output_path(path, &new_filename);
 
-                Pdf.create_pdf(&content, output_path, url).await?;
+                Pdf.create_pdf(&content, output_path.clone(), url).await?;
                 SuccessAlerts::download_and_generated_pdf(&new_filename, url);
+                return Ok(output_path.to_string_lossy().to_string());
             }
         }
 
-        Ok(())
+        Ok("".to_string())
     }
 
 }

@@ -57,7 +57,7 @@ impl Watermark {
         }
     }
 
-    fn text(&self, input: &str, text: &str, output: &str) -> Result<usize, Box<dyn Error>> {
+    pub fn text(&self, input: &str, text: &str, output: &str) -> Result<usize, Box<dyn Error>> {
         let mut doc = Document::load(input)?;
 
         let font_id = doc.add_object(Self::font());
@@ -102,7 +102,7 @@ impl Watermark {
         Ok(count)
     }
 
-    fn image(&self, input: &str, image_path: &str, output: &str) -> Result<usize, Box<dyn Error>> {
+    pub fn image(&self, input: &str, image_path: &str, output: &str) -> Result<usize, Box<dyn Error>> {
         let mut doc = Document::load(input)?;
 
         let stamp = lopdf::xobject::image(image_path)?;

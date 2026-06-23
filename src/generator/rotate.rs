@@ -44,7 +44,7 @@ impl Rotate {
         }
     }
 
-    fn rotate_one(&self, input: &str, angle: i64, output: &str) -> Result<usize, Box<dyn Error>> {
+    pub fn rotate_one(&self, input: &str, angle: i64, output: &str) -> Result<usize, Box<dyn Error>> {
         if angle % 90 != 0 {
             return Err(format!("Rotation must be a multiple of 90 degrees: {}", angle).into());
         }

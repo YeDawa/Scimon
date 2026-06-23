@@ -56,7 +56,7 @@ impl ChatGPT {
         }
     }
 
-    pub async fn convert(&self) -> Result<(), Box<dyn Error>> {
+    pub async fn convert(&self) -> Result<String, Box<dyn Error>> {
         let (file_name, html_content) = self.get_content().await?;
         
         let css_style = RenderInjectFiles.css_style().await;
@@ -70,7 +70,7 @@ impl ChatGPT {
         write(&path, pdf_contents)?;
 
         SuccessAlerts::download_and_generated_pdf(&file, &self.url);
-        Ok(())
+        Ok(path)
     }
 
 }
