@@ -12,6 +12,8 @@ use std::{
 };
 
 use crate::{
+    cmd::extract::Extract,
+
     ui::{
         ui_base::UI,
         errors_alerts::ErrorsAlerts,
@@ -34,6 +36,14 @@ use crate::{
 pub struct MakeDownload;
 
 impl MakeDownload {
+
+    // The archive's real filename (last URL path segment, without any query),
+    // so its extension survives for the extractor.
+    fn archive_name(url: &str) -> String {
+        url.split('?').next().unwrap_or(url)
+            .rsplit('/').next().unwrap_or("archive")
+            .to_string()
+    }
 
     async fn make(&self, url: &str, path: &str, final_name: &str) -> Result<String, Box<dyn Error>> {
         UrlMisc::check_url_status(url).await?;
@@ -66,7 +76,7 @@ impl MakeDownload {
         Ok(filename)
     }
 
-    pub async fn download_line(&self, urls: &[String], url: &str, path: &str, final_name: Option<&str>, retries: u32) -> Result<String, Box<dyn Error>> {
+    pub async fn download_line(&self, urls: &[String], url: &str, path: &str, final_name: Option<&str>, retries: u32, unzip: bool) -> Result<String, Box<dyn Error>> {
         let total = urls.len();
 
         // `urls` holds the primary plus any `||` fallbacks, in order. The first
@@ -74,22 +84,42 @@ impl MakeDownload {
         for (index, line_url) in urls.iter().enumerate() {
             let is_last = index + 1 == total;
 
-            let eligible = Pdf.is_pdf_file(line_url).await.unwrap_or(false)
+            // `!unzip` forces the download even for non-PDF archives.
+            let eligible = unzip
+                || Pdf.is_pdf_file(line_url).await.unwrap_or(false)
                 || (Providers::new(url).valid_provider_domain() && !line_url.contains(".md"));
 
             if !eligible {
                 continue;
             }
 
+            // Archives keep their real filename so extraction can detect the
+            // type (the PDF-oriented naming would otherwise append `.pdf`).
+            let name = if unzip && final_name.map_or(true, str::is_empty) {
+                Self::archive_name(line_url)
+            } else {
+                final_name.unwrap_or("").to_string()
+            };
+
             let mut attempt = 0;
 
             loop {
-                match self.make(line_url, path, final_name.unwrap_or("")).await {
+                match self.make(line_url, path, &name).await {
                     Ok(file) => {
                         let file_path = &format!("{}{}", &path, &file);
                         let password = Pdf.is_pdf_encrypted(file_path);
 
                         SuccessAlerts::download(&file, url, password);
+
+                        if unzip {
+                            let archive = FileUtils.get_output_path(path, &file);
+
+                            match Extract.run(&archive.to_string_lossy()) {
+                                Ok(count) => SuccessAlerts::extracted(&file, count),
+                                Err(e) => ErrorsAlerts::generic(&e.to_string()),
+                            }
+                        }
+
                         return Ok(file_path.to_string())
                     },
 

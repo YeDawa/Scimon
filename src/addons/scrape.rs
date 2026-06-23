@@ -66,7 +66,7 @@ impl Scrape {
                                     let url = &item.url;
 
                                     Tasks.download(
-                                        None, url, &path, None, flags, 0, &[],
+                                        None, url, &path, None, flags, 0, &[], false,
                                     ).await?;
                                 }
                             }

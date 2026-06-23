@@ -81,6 +81,17 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn extracted(file: &str, count: usize) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Extracted {} ({} files)",
+            current_datetime.green().bold(),
+            file.blue(),
+            count.to_string().blue(),
+        );
+    }
+
     pub fn merged(file: &str, count: usize) {
         let current_datetime = General.date_time();
 

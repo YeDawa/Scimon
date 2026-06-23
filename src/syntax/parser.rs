@@ -150,6 +150,8 @@ impl Parser {
 
                 let retries = MacroHandler::retry_count(trimmed);
                 let fallbacks = &candidates[1..];
+                let unzip = MacroHandler::handle_check_macro_line(trimmed, "unzip")
+                    || MacroHandler::handle_check_macro_line(trimmed, "extract");
 
                 Some(json!({
                     "url": url,
@@ -157,6 +159,7 @@ impl Parser {
                     "name": Extended.rename_on_the_fly(trimmed),
                     "ignore": MacroHandler::handle_check_macro_line(trimmed, "ignore"),
                     "retry": if retries > 0 { json!(retries) } else { Value::Null },
+                    "unzip": if unzip { json!(true) } else { Value::Null },
                 }))
             })
             .collect()

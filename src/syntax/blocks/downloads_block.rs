@@ -95,9 +95,11 @@ impl DownloadsBlock {
                         let flags = flags.clone();
                         let retries = MacroHandler::retry_count(&line);
                         let fallbacks: Vec<String> = candidates[1..].to_vec();
+                        let unzip = MacroHandler::handle_check_macro_line(&line, "unzip")
+                            || MacroHandler::handle_check_macro_line(&line, "extract");
 
                         let task = task::spawn(async move {
-                            let _ = Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks).await;
+                            let _ = Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks, unzip).await;
                         });
 
                         tasks.push(task);
