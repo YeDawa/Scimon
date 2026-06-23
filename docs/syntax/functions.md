@@ -1,7 +1,7 @@
 # Functions
 
 Functions are reusable, parametrized templates. You define one with `fn` and a
-parameter list, then call it as `@name(args)` — each call is replaced by the
+parameter list, then call it as `name(args)` — each call is replaced by the
 function body with `${param}` filled in. They build on
 [variables](./variables.md): a function body can use both its parameters and
 global `@var`s.
@@ -14,8 +14,8 @@ fn arxiv(id, name) {
 }
 
 downloads {
-    @arxiv("2203.08877", "paper1.pdf")
-    @arxiv("2405.01513", "paper2.pdf")
+    arxiv("2203.08877", "paper1.pdf")
+    arxiv("2405.01513", "paper2.pdf")
 }
 ```
 
@@ -30,7 +30,7 @@ downloads {
 
 - **Definition** — `fn name(p1, p2, …) { ... }`. The name starts with a letter
   or `_`; the body can span multiple lines.
-- **Call** — `@name("a", "b")`. Arguments are comma-separated; surrounding double
+- **Call** — `name("a", "b")`. Arguments are comma-separated; surrounding double
   quotes are stripped.
 - **Parameters** — referenced in the body with `${param}`, the same syntax as
   variables.
@@ -47,7 +47,7 @@ fn doc(path, name) {
 }
 
 downloads {
-    @doc("abc123/file.tex", "file.pdf")
+    doc("abc123/file.tex", "file.pdf")
 }
 ```
 
@@ -60,6 +60,6 @@ the call is resolved afterwards.
   validation or the served source.
 - Functions may call other functions; expansion repeats until stable (bounded,
   so a self-referential definition can't loop forever).
-- A call to an undefined function (e.g. `@missing(...)`) is left untouched,
+- A call to an undefined function (e.g. `missing(...)`) is left untouched,
   making typos easy to spot.
 - A missing argument expands to an empty string.

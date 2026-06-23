@@ -32,7 +32,7 @@ import "headers.mon"
 path "downloads/"
 
 downloads {
-    @arxiv("2203.08877", "paper.pdf")   # fn arxiv comes from headers.mon
+    arxiv("2203.08877", "paper.pdf")   # fn arxiv comes from headers.mon
 }
 ```
 

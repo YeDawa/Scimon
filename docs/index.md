@@ -103,7 +103,7 @@ print "Hello, World!"
 readme "https://gist.githubusercontent.com/Kremilly/5fd360d994bb0fe108b648d0e4c9e92f/raw/1ede0877f2bd023e77674eb89f4a0eb7d8f7e7da/readme-example.md"
 
 downloads {
-    @arxiv("2203.08877", "arxiv_paper.pdf")
+    arxiv("2203.08877", "arxiv_paper.pdf")
 
     for id in ["2106.09685", "1706.03762"] {
         https://arxiv.org/pdf/${id} as "${id}.pdf"

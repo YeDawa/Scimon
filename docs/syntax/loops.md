@@ -53,7 +53,7 @@ fn doc(slug, name) {
 
 downloads {
     for n in ["intro", "guide"] {
-        @doc("abc/${n}.md", "${n}.pdf")
+        doc("abc/${n}.md", "${n}.pdf")
     }
 }
 ```
