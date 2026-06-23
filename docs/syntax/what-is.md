@@ -35,4 +35,3 @@ Everything is optional: since Scimon is no longer only about downloading PDFs, a
 - [Watermark PDFs](./watermark.md)
 - [Convert](./convert.md)
 - [Server](./server.md)
-- [Markdown render](./markdown-render.md)
