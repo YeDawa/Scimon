@@ -19,12 +19,8 @@ use std::{
 
 use crate::{
     args_cli::Flags,
-    syntax::vars::Vars,
     server::serve::Serve,
-    syntax::loops::Loops,
-    syntax::comments::Comments,
-    syntax::includes::Includes,
-    syntax::functions::Functions,
+    configs::package::Package,
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
 
@@ -33,9 +29,17 @@ use crate::{
         tasks_raw::TasksRaw,
     },
 
-    syntax::blocks::{
-        runner_block::RunnerBlock,
-        downloads_block::DownloadsBlock
+    syntax::{
+        vars::Vars,
+        loops::Loops,
+        comments::Comments,
+        includes::Includes,
+        functions::Functions,
+
+        blocks::{
+            runner_block::RunnerBlock,
+            downloads_block::DownloadsBlock
+        }
     },
 };
 
@@ -75,6 +79,12 @@ impl Monset {
         }
 
         let raw = String::from_utf8_lossy(&buffer).to_string();
+        let raw = if is_url(&self.run) {
+            raw
+        } else {
+            format!("{}{}", Package.metadata_block(&self.run), Package.strip_inline(&raw))
+        };
+
         let clean = Comments.strip(&raw);
         let clean = Includes.expand(&clean);
         let clean = Loops.expand(&clean);
