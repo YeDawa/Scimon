@@ -67,7 +67,7 @@ impl Parser {
     }
 
     fn metadata(&self, contents: &str) -> Value {
-        let keys = ["name", "version", "description", "author", "license", "privacy", "homepage"];
+        let keys = ["name", "description", "author", "license", "privacy", "homepage"];
         let mut map = serde_json::Map::new();
 
         for key in keys {
