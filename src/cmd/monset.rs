@@ -22,6 +22,7 @@ use crate::{
     syntax::vars::Vars,
     server::serve::Serve,
     syntax::comments::Comments,
+    syntax::includes::Includes,
     syntax::functions::Functions,
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
@@ -74,6 +75,7 @@ impl Monset {
 
         let raw = String::from_utf8_lossy(&buffer).to_string();
         let clean = Comments.strip(&raw);
+        let clean = Includes.expand(&clean);
         let clean = Functions.expand(&clean);
         let clean = Vars.interpolate(&clean);
 
@@ -92,6 +94,7 @@ impl Monset {
 
     pub async fn downloads_raw(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
         let content = Comments.strip(&self.run);
+        let content = Includes.expand(&content);
         let content = Functions.expand(&content);
         let content = Vars.interpolate(&content);
 
@@ -110,6 +113,7 @@ impl Monset {
 
     pub async fn run_code_raw(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
         let content = Comments.strip(&self.run);
+        let content = Includes.expand(&content);
         let content = Functions.expand(&content);
         let content = Vars.interpolate(&content);
         RunnerBlock.read_lines_raw(&content, flags).await?;
