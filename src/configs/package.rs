@@ -6,17 +6,15 @@ use std::{
     path::Path,
 };
 
+use crate::consts::packages::Packages;
+
 pub struct Package;
 
 impl Package {
 
-    const KEYS: [&'static str; 6] = [
-        "name", "description", "author", "license", "privacy", "homepage",
-    ];
-
     pub fn strip_inline(&self, contents: &str) -> String {
         let pattern = Regex::new(
-            r"(?i)^\s*@(?:name|description|author|license|privacy|homepage)\b"
+            &format!(r"(?i)^\s*@(?:{})\b", Packages::KEYS.join("|"))
         ).unwrap();
 
         contents.lines()
@@ -38,8 +36,7 @@ impl Package {
         };
 
         let mut block = String::new();
-
-        for key in Self::KEYS {
+        for key in Packages::KEYS {
             let value = if key == "author" {
                 Self::read(&data["author"]).or_else(|| Self::read(&data["authors"]))
             } else {
