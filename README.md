@@ -186,6 +186,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
 - [Providers](https://docs.scimon.dev/providers)
 - [Compilers](https://docs.scimon.dev/compile)
     - [LaTeX Compiler](https://docs.scimon.dev/compile/latex)
+    - [Markdown Compiler](https://docs.scimon.dev/compile/markdown)
 - [Syntax](https://docs.scimon.dev/syntax/what-is)
   - [Comments](https://docs.scimon.dev/syntax/comments)
   - [Import](https://docs.scimon.dev/syntax/import)
