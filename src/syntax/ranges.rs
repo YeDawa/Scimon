@@ -33,6 +33,20 @@ impl Ranges {
         }
     }
 
+    // Resolves a `{A..B}` token to its list of values; returns the source
+    // unchanged (as a single item) when it isn't a valid range.
+    pub fn list(&self, source: &str) -> Vec<String> {
+        let pattern = Regex::new(BlocksRegExp::GET_RANGE).unwrap();
+
+        if let Some(caps) = pattern.captures(source) {
+            if let Some(values) = Self::values(caps.get(1).unwrap().as_str(), caps.get(2).unwrap().as_str()) {
+                return values;
+            }
+        }
+
+        vec![source.to_string()]
+    }
+
     fn values(start: &str, end: &str) -> Option<Vec<String>> {
         let width = end.len();
 

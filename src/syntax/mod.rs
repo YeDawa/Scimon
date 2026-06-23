@@ -1,4 +1,5 @@
 pub mod vars;
+pub mod loops;
 pub mod parser;
 pub mod ranges;
 pub mod includes;

@@ -96,6 +96,14 @@ impl Validator {
                 }
             }
 
+            "for" => {
+                if matches(BlocksRegExp::GET_FOR_LOOP) {
+                    None
+                } else {
+                    Some("expected: for name in [\"a\", \"b\"] { ... }".to_string())
+                }
+            }
+
             "path"     => var(BlocksRegExp::GET_PATH_VAR, "path"),
             "open"     => var(BlocksRegExp::GET_OPEN_VAR, "open"),
             "style"    => var(BlocksRegExp::GET_STYLE_VAR, "style"),
