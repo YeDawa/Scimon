@@ -28,7 +28,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`), skipping (`!ignore`), archive extraction (`!unzip`) and subfolders via `group "name" { ... }`.
 - 🔁 **Ranges & fallbacks** — expand a numeric range into many downloads (`{2203.08877..08880}`), list mirror URLs with `||`, and retry flaky ones with `!retry(3)`.
-- 🧩 **Variables, functions & loops** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `fn name(args) { ... }` templates, and `for x in [...] { ... }` expansion.
+- 🧩 **Variables, functions, loops & conditionals** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `fn name(args) { ... }` templates, `for x in [...] { ... }` expansion, and `if / else` conditional blocks.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
 - 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown or rendered straight to PDF.
@@ -205,6 +205,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
   - [Variables](https://docs.scimon.dev/syntax/variables)
   - [Functions](https://docs.scimon.dev/syntax/functions)
   - [Loops](https://docs.scimon.dev/syntax/loops)
+  - [Conditionals](https://docs.scimon.dev/syntax/conditionals)
   - [Downloads Block](https://docs.scimon.dev/syntax/download-block)
   - [Readme Block](https://docs.scimon.dev/syntax/readme-block)
   - [Commands Block](https://docs.scimon.dev/syntax/commands-block)

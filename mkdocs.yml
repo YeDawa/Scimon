@@ -42,6 +42,7 @@ nav:
     - Variables: syntax/variables.md
     - Functions: syntax/functions.md
     - Loops: syntax/loops.md
+    - Conditionals: syntax/conditionals.md
     - Downloads Block: syntax/download-block.md
     - Readme Block: syntax/readme-block.md
     - Commands Block: syntax/commands-block.md
