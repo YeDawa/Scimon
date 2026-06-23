@@ -189,6 +189,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
   - [Metadata](https://docs.scimon.dev/syntax/metadata)
   - [Variables](https://docs.scimon.dev/syntax/variables)
   - [Functions](https://docs.scimon.dev/syntax/functions)
+  - [Loops](https://docs.scimon.dev/syntax/loops)
   - [Downloads Block](https://docs.scimon.dev/syntax/download-block)
   - [Readme Block](https://docs.scimon.dev/syntax/readme-block)
   - [Commands Block](https://docs.scimon.dev/syntax/commands-block)
