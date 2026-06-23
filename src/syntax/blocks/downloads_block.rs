@@ -1,3 +1,4 @@
+use regex::Regex;
 use tokio::task;
 use is_url::is_url;
 use futures::future::join_all;
@@ -9,9 +10,10 @@ use std::{
 };
 
 use crate::{
-    args_cli::Flags, 
+    args_cli::Flags,
     utils::file::FileUtils,
     system::providers::Providers,
+    regexp::regex_blocks::BlocksRegExp,
 
     ui::{
         ui_base::UI,
@@ -51,18 +53,41 @@ impl DownloadsBlock {
         let mut tasks = Vec::new();
 
         let only_mode = MacroHandler::any(downloads_content, "only");
+        let group_open = Regex::new(BlocksRegExp::GET_GROUP_BLOCK).unwrap();
+
+        // Nesting of `group "name" { ... }` blocks; files inside go to the
+        // matching subdirectory of `path`.
+        let mut groups: Vec<String> = Vec::new();
+
         for raw_line in downloads_content.lines() {
             let trimmed = raw_line.trim();
 
             if trimmed.starts_with("downloads {") {
                 continue;
-            } else if trimmed.starts_with("}") {
-                break;
+            }
+
+            if let Some(caps) = group_open.captures(trimmed) {
+                groups.push(caps.get(1).unwrap().as_str().to_string());
+                FileUtils.create_path(&Self::group_path(path, &groups));
+                continue;
+            }
+
+            if trimmed.starts_with('}') {
+                // A group's closing brace pops the stack; the downloads block's
+                // own closing brace (stack empty) ends the loop.
+                if groups.is_empty() {
+                    break;
+                }
+
+                groups.pop();
+                continue;
             }
 
             if only_mode && !MacroHandler::handle_check_macro_line(raw_line, "only") {
                 continue;
             }
+
+            let group_path = Self::group_path(path, &groups);
 
             // A `{A..B}` range expands one line into several, one per value.
             for line in Ranges.expand_line(raw_line) {
@@ -91,7 +116,7 @@ impl DownloadsBlock {
 
                     if !primary.is_empty() && is_url(&primary) && primary.starts_with("http") {
                         let contents = contents.to_string();
-                        let path = path.to_string();
+                        let path = group_path.clone();
                         let flags = flags.clone();
                         let retries = MacroHandler::retry_count(&line);
                         let fallbacks: Vec<String> = candidates[1..].to_vec();
@@ -112,6 +137,16 @@ impl DownloadsBlock {
 
         join_all(tasks).await;
         Ok(())
+    }
+
+    // Joins the base path with the current group nesting, keeping a trailing
+    // slash so downstream `path + filename` concatenation stays valid.
+    fn group_path(path: &str, groups: &[String]) -> String {
+        if groups.is_empty() {
+            path.to_string()
+        } else {
+            format!("{}/{}/", path.trim_end_matches('/'), groups.join("/"))
+        }
     }
 
     pub async fn read_lines<R>(&self, reader: R, flags: &Flags) -> Result<(), Box<dyn Error>> where R: BufRead {

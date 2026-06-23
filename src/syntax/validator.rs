@@ -13,15 +13,20 @@ pub struct Validator;
 impl Validator {
 
     pub fn check(&self, contents: &str) -> Option<SyntaxError> {
-        let mut in_block = false;
+        // Depth tracks block nesting (e.g. `group { ... }` inside `downloads`),
+        // so only top-level directive lines are validated.
+        let mut depth: i32 = 0;
 
         for (index, raw) in contents.lines().enumerate() {
             let trimmed = raw.trim();
 
-            if in_block {
-                if trimmed == "}" {
-                    in_block = false;
+            if depth > 0 {
+                if trimmed.ends_with('{') {
+                    depth += 1;
+                } else if trimmed.starts_with('}') {
+                    depth -= 1;
                 }
+
                 continue;
             }
 
@@ -38,7 +43,7 @@ impl Validator {
             }
 
             if trimmed.ends_with('{') {
-                in_block = true;
+                depth += 1;
             }
         }
 

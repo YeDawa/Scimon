@@ -65,21 +65,27 @@ impl Tasks {
             // the marked lines get a QR code.
             let only_mode = MacroHandler::any(contents, "only");
 
-            let mut in_downloads_block = false;
+            // Depth tracks nested `group { ... }` blocks so their closing brace
+            // doesn't end the downloads block early.
+            let mut depth = 0;
             for line in contents.lines() {
                 let trimmed = line.trim();
 
-                if trimmed.starts_with("downloads {") {
-                    in_downloads_block = true;
+                if depth == 0 {
+                    if trimmed.starts_with("downloads {") {
+                        depth = 1;
+                    }
+
                     continue;
                 }
 
-                if in_downloads_block && trimmed == "}" {
-                    in_downloads_block = false;
+                if trimmed.ends_with('{') {
+                    depth += 1;
                     continue;
                 }
 
-                if !in_downloads_block {
+                if trimmed.starts_with('}') {
+                    depth -= 1;
                     continue;
                 }
 
