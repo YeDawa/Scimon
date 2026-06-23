@@ -62,6 +62,45 @@ In this example:
 
 - All downloaded files will be stored in the directory `path/to/folder`.
 
+### Groups (subfolders)
+
+Organize a list into subdirectories with `group "name" { ... }` inside the
+`downloads` block. Files declared in a group are saved under that subfolder of
+`path`:
+
+```scimon
+path "downloads/"
+
+downloads {
+    https://example.com/intro.pdf
+
+    group "papers" {
+        https://arxiv.org/pdf/2203.08877 as "a.pdf"
+        https://arxiv.org/pdf/2405.01513 as "b.pdf"
+    }
+
+    group "readmes" {
+        https://raw.githubusercontent.com/facebook/react/main/README.md
+    }
+}
+```
+
+This produces:
+
+```
+downloads/intro.pdf
+downloads/papers/a.pdf
+downloads/papers/b.pdf
+downloads/readmes/README.md
+```
+
+Notes:
+
+- Groups may be nested (`group "a" { group "b" { ... } }` → `path/a/b/`).
+- The subfolder is created automatically.
+- Everything else — `as "name"`, the macros, `||` fallbacks and ranges — works
+  the same inside a group.
+
 ### Ignoring Specific URLs
 
 The `!ignore` macro allows you to skip specific URLs in your download list. This is useful if you have certain files that you do not want to download during a particular operation.
