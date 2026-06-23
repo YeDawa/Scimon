@@ -173,9 +173,17 @@ impl Vars {
 
         for line in contents.lines() {
             if let Some(caps) = merge_pattern.captures(line) {
-                let glob = caps.get(1).map(|m| m.as_str().to_string()).unwrap();
+                let raw = caps.get(1).map(|m| m.as_str().trim().to_string()).unwrap();
+
+                // Keep a `[ ... ]` list intact; strip the quotes from a glob.
+                let source = if raw.starts_with('[') {
+                    raw
+                } else {
+                    raw.trim_matches(|c| c == '"' || c == '\'').to_string()
+                };
+
                 let output = caps.get(2).map(|m| m.as_str().to_string()).unwrap();
-                results.push((glob, output));
+                results.push((source, output));
             }
         }
 

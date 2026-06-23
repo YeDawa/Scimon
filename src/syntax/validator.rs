@@ -132,7 +132,7 @@ impl Validator {
                 if matches(BlocksRegExp::GET_MERGE_VAR) {
                     None
                 } else {
-                    Some("expected: merge \"pattern/*.pdf\" > \"output.pdf\"".to_string())
+                    Some("expected: merge \"pattern/*.pdf\" > \"output.pdf\" (or: merge [ \"a.pdf\", \"b.pdf\" ] > ...)".to_string())
                 }
             }
 

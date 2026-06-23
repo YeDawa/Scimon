@@ -50,12 +50,11 @@ impl Merge {
         }
     }
 
-    fn merge_one(&self, pattern: &str, output: &str) -> Result<usize, Box<dyn Error>> {
-        let mut paths: Vec<PathBuf> = glob(pattern)?.filter_map(Result::ok).collect();
-        paths.sort();
+    fn merge_one(&self, source: &str, output: &str) -> Result<usize, Box<dyn Error>> {
+        let paths = self.inputs(source);
 
         if paths.is_empty() {
-            return Err(format!("No files matched: {}", pattern).into());
+            return Err(format!("No files matched: {}", source).into());
         }
 
         let documents: Vec<Document> = paths.iter()
@@ -63,7 +62,7 @@ impl Merge {
             .collect();
 
         if documents.is_empty() {
-            return Err(format!("No readable PDFs matched: {}", pattern).into());
+            return Err(format!("No readable PDFs matched: {}", source).into());
         }
 
         let count = documents.len();
@@ -72,6 +71,28 @@ impl Merge {
 
         merged.save(output)?;
         Ok(count)
+    }
+
+    // Resolves the input list: a `[ "a.pdf", "b.pdf" ]` list keeps its order,
+    // while a `"glob"` pattern is expanded and sorted alphabetically.
+    fn inputs(&self, source: &str) -> Vec<PathBuf> {
+        if let Some(inner) = source.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
+            return self.split_items(inner).into_iter().map(PathBuf::from).collect();
+        }
+
+        let mut paths: Vec<PathBuf> = glob(source)
+            .map(|paths| paths.filter_map(Result::ok).collect())
+            .unwrap_or_default();
+
+        paths.sort();
+        paths
+    }
+
+    fn split_items(&self, raw: &str) -> Vec<String> {
+        raw.split(',')
+            .map(|item| item.trim().trim_matches(|c| c == '"' || c == '\'').to_string())
+            .filter(|item| !item.is_empty())
+            .collect()
     }
 
     fn merge_documents(documents: Vec<Document>) -> Option<Document> {

@@ -51,7 +51,7 @@ impl BlocksRegExp {
 
     pub const GET_MATH_VAR: &'static str = r#"math\s+['"]([^'"]+)['"]\s*>\s*(\S+)"#;
 
-    pub const GET_MERGE_VAR: &'static str = r#"merge\s+['"]([^'"]+)['"]\s*>\s*['"]?([^'"\s]+)['"]?"#;
+    pub const GET_MERGE_VAR: &'static str = r#"merge\s+(\[[^\]]*\]|['"][^'"]+['"])\s*>\s*['"]?([^'"\s]+)['"]?"#;
 
     pub const GET_CONVERT_VAR: &'static str = r#"convert\s+['"]([^'"]+)['"]\s*>\s*['"]?([^'"\s]+)['"]?"#;
 
