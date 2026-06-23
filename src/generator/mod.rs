@@ -1,10 +1,11 @@
 pub mod uuid;
 pub mod math;
+pub mod epub;
 pub mod merge;
 pub mod split;
-pub mod convert;
-pub mod epub;
 pub mod covers;
+pub mod rotate;
+pub mod convert;
 pub mod qr_code;
 pub mod checksum;
 pub mod file_name;

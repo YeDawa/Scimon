@@ -152,6 +152,14 @@ impl Validator {
                 }
             }
 
+            "rotate" => {
+                if matches(BlocksRegExp::GET_ROTATE_VAR) {
+                    None
+                } else {
+                    Some("expected: rotate \"input.pdf\" 90 > \"output.pdf\"".to_string())
+                }
+            }
+
             "readme" => {
                 if matches(BlocksRegExp::GET_README_VAR) || matches(r"(?i)^readme\s*\{") {
                     None

@@ -212,6 +212,22 @@ impl Vars {
         results
     }
 
+    pub fn get_all_rotate(&self, contents: &str) -> Vec<(String, i64, String)> {
+        let rotate_pattern = Regex::new(BlocksRegExp::GET_ROTATE_VAR).unwrap();
+        let mut results = Vec::new();
+
+        for line in contents.lines() {
+            if let Some(caps) = rotate_pattern.captures(line) {
+                let input = caps.get(1).map(|m| m.as_str().to_string()).unwrap();
+                let angle = caps.get(2).and_then(|m| m.as_str().parse::<i64>().ok()).unwrap_or(0);
+                let output = caps.get(3).map(|m| m.as_str().to_string()).unwrap();
+                results.push((input, angle, output));
+            }
+        }
+
+        results
+    }
+
     pub fn get_style(&self, contents: &str) -> Option<String> {
         let style_pattern = Regex::new(BlocksRegExp::GET_STYLE_VAR).unwrap();
     

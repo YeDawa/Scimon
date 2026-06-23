@@ -92,6 +92,18 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn rotated(file: &str, angle: i64, count: usize) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Rotated {} by {}° ({} pages)",
+            current_datetime.green().bold(),
+            file.blue(),
+            angle.to_string().blue(),
+            count.to_string().blue(),
+        );
+    }
+
     pub fn split(file: &str, count: usize) {
         let current_datetime = General.date_time();
 

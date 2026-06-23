@@ -103,6 +103,11 @@ impl Parser {
             .map(|(input, output)| json!({ "input": input, "output": output }))
             .collect();
 
+        let rotate: Vec<Value> = Vars.get_all_rotate(contents)
+            .into_iter()
+            .map(|(input, angle, output)| json!({ "input": input, "angle": angle, "output": output }))
+            .collect();
+
         json!({
             "path": self.capture(contents, BlocksRegExp::GET_PATH_VAR),
             "open": self.capture(contents, BlocksRegExp::GET_OPEN_VAR),
@@ -118,6 +123,7 @@ impl Parser {
             "math": math,
             "merge": merge,
             "split": split,
+            "rotate": rotate,
             "convert": convert,
         })
     }
