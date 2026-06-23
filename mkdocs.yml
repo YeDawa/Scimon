@@ -60,7 +60,7 @@ nav:
     - Rotate PDFs: syntax/rotate.md
     - Convert: syntax/convert.md
     - Server: syntax/server.md
-  - Markdown: syntax/markdown-render.md
+  - Markdown: markdown-render.md
   - Configs:
     - Scimon.yml file: configs/scimon.yml-file.md
     - .env file: configs/env-file.md
