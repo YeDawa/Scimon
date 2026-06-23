@@ -35,6 +35,7 @@ use crate::{
         imports::Imports,
         comments::Comments,
         functions::Functions,
+        conditionals::Conditionals,
 
         blocks::{
             runner_block::RunnerBlock,
@@ -90,6 +91,7 @@ impl Monset {
         let clean = Loops.expand(&clean);
         let clean = Functions.expand(&clean);
         let clean = Vars.interpolate(&clean);
+        let clean = Conditionals.expand(&clean);
 
         Ok(Cursor::new(clean.into_bytes()))
     }
@@ -110,6 +112,7 @@ impl Monset {
         let content = Loops.expand(&content);
         let content = Functions.expand(&content);
         let content = Vars.interpolate(&content);
+        let content = Conditionals.expand(&content);
 
         TasksRaw.prints(&content).await?;
         DownloadsBlock.read_lines_raw(&content, flags).await?;

@@ -93,6 +93,14 @@ impl Validator {
                 }
             }
 
+            "if" => {
+                if matches(BlocksRegExp::GET_IF_HEADER) {
+                    None
+                } else {
+                    Some("expected: if value1 == value2 { ... } (or: if value1 != value2 { ... })".to_string())
+                }
+            }
+
             "for" => {
                 if matches(BlocksRegExp::GET_FOR_LOOP) {
                     None

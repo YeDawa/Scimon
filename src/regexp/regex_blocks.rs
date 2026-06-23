@@ -49,6 +49,8 @@ impl BlocksRegExp {
 
     pub const GET_FN_CALL: &'static str = r"([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)";
 
+    pub const GET_IF_HEADER: &'static str = r#"(?m)^[ \t]*if\s+(['"][^'"]*['"]|[^ \t\r\n{]+)\s*(==|!=)\s*(['"][^'"]*['"]|[^ \t\r\n{]+)\s*\{"#;
+
     pub const GET_MATH_VAR: &'static str = r#"math\s+['"]([^'"]+)['"]\s*>\s*(\S+)"#;
 
     pub const GET_MERGE_VAR: &'static str = r#"merge\s+(\[[^\]]*\]|['"][^'"]+['"])\s*>\s*['"]?([^'"\s]+)['"]?"#;
