@@ -2,8 +2,6 @@
     <img src="https://static.monlib.net/logo.png"/>
 </div>
 
-<br>
-
 <p align='center'>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
     <img src="https://img.shields.io/badge/built%20with-Rust-orange.svg" alt="Built with Rust">
@@ -67,7 +65,6 @@ downloads {
 }
 ```
 
-> [!TIP]
 > Scimon supports `//` line comments and `/* ... */` block comments — see the
 > [comments guide](https://docs.scimon.dev/syntax/comments).
 
@@ -156,13 +153,11 @@ commands {
 server "8080"
 ```
 
-> [!NOTE]
 > The `ai` block generates documents using [OpenRouter](https://openrouter.ai).
 > Set your key with `scimon options write-env` (or edit the `.env` file) so that
 > `OPENROUTER_API_KEY="..."` is defined. Each entry takes a prompt and an output
 > file (`as "name.md"`): use a `.md` name to save raw Markdown or a `.pdf` name to
 > render a styled PDF. Add `with "provider/model"` to override the default model.
 
-> [!NOTE]
 > Save the file as `scimon.mon`, then run `scimon run scimon.mon`.
 > With `server "8080"`, the generated files are served at `http://127.0.0.1:8080` until you stop it with `Ctrl+C`.
