@@ -180,6 +180,7 @@ Full documentation is available at **[docs.scimon.dev](https://docs.scimon.dev)*
 - [Syntax](https://docs.scimon.dev/syntax/what-is)
   - [Comments](https://docs.scimon.dev/syntax/comments)
   - [Import](https://docs.scimon.dev/syntax/import)
+  - [Include](https://docs.scimon.dev/syntax/include)
   - [Metadata](https://docs.scimon.dev/syntax/metadata)
   - [Variables](https://docs.scimon.dev/syntax/variables)
   - [Functions](https://docs.scimon.dev/syntax/functions)
