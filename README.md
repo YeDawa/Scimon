@@ -30,7 +30,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 
 ## Features
 
-- 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`), skipping (`!ignore`) and archive extraction (`!unzip`).
+- 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`), skipping (`!ignore`), archive extraction (`!unzip`) and subfolders via `group "name" { ... }`.
 - 🔁 **Ranges & fallbacks** — expand a numeric range into many downloads (`{2203.08877..08880}`), list mirror URLs with `||`, and retry flaky ones with `!retry(3)`.
 - 🧩 **Variables, functions, loops & includes** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `@fn name(args) { ... }` templates, `for x in [...] { ... }` expansion, and split big lists across files with `include "other.mon"`.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
@@ -139,9 +139,12 @@ downloads {
     https://chatgpt.com/share/67c3f647-0bac-8005-abbb-012c3c1dafcc as "chatgpt_conversation.pdf"
     https://arxiv.org/pdf/2405.01513 !ignore
     https://www.sci-hub.se/10.1626/JCS.66.427
-    https://raw.githubusercontent.com/facebook/react/main/README.md
     https://cs.uwaterloo.ca/~jimmylin/publications/Busch_etal_ICDE2012.pdf
-    https://raw.githubusercontent.com/h4cknlearn/architecture101/main/README.md !ignore
+
+    group "readmes" {
+        https://raw.githubusercontent.com/facebook/react/main/README.md
+        https://raw.githubusercontent.com/h4cknlearn/architecture101/main/README.md !ignore
+    }
     https://pt.wikisource.org/wiki/Manifesto_da_Guerrilha_do_Livre_Acesso !ignore
 }
 
