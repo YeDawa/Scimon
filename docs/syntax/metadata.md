@@ -1,30 +1,44 @@
 # Metadata
 
-A Monset list can declare metadata at the top of the file. These variables
-describe the list as a package — they're used when publishing to Monlib with
-`scimon push` — and are ignored during a normal `run`.
+A list's metadata describes it as a package — it's used when publishing to
+Monlib with `scimon push` and is ignored during a normal `run`. Like a crate's
+`Cargo.toml`, metadata lives in a **`package.yml`** file next to your `.mon`
+list.
 
-| Variable       | Description                                  |
-| -------------- | -------------------------------------------- |
-| `@name`        | Package name.                                |
-| `@version`     | Version string (e.g. `"1.0.0"`).             |
-| `@description` | Short description of the list.               |
-| `@author`      | Author name.                                 |
-| `@license`     | License identifier (e.g. `"MIT"`).           |
-| `@privacy`     | Visibility, e.g. `"Public"` or `"Private"`.  |
-| `@homepage`    | Project or author homepage URL.              |
+```yaml
+# package.yml
+name: "Scimon"
+version: "1.0.0"
+description: "A collection of papers and resources."
+author: "Kremilly"
+license: "MIT"
+privacy: "Public"
+homepage: "https://kremilly.com"
+```
 
-## Example
+| Field         | Description                                  |
+| ------------- | -------------------------------------------- |
+| `name`        | Package name.                                |
+| `version`     | Version string (e.g. `"1.0.0"`).             |
+| `description` | Short description of the list.               |
+| `author`      | Author name.                                 |
+| `license`     | License identifier (e.g. `"MIT"`).           |
+| `privacy`     | Visibility, e.g. `"Public"` or `"Private"`.  |
+| `homepage`    | Project or author homepage URL.              |
+
+All fields are optional. `package.yml` is read from the same directory as the
+`.mon` file being run.
+
+## Example layout
+
+```
+my-list/
+├── package.yml
+└── scimon.mon
+```
 
 ```scimon
-@name "Scimon"
-@version "1.0.0"
-@description "A collection of papers and resources."
-@author "Kremilly"
-@license "MIT"
-@privacy "Public"
-@homepage "https://kremilly.com"
-
+# scimon.mon
 path "downloads/"
 
 downloads {
@@ -32,4 +46,5 @@ downloads {
 }
 ```
 
-Each value is a double-quoted string and each declaration goes on its own line.
+The `author` is reused elsewhere too — for example as the EPUB author when an
+`ai`/download entry produces an `.epub`.

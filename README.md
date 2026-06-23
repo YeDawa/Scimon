@@ -92,15 +92,22 @@ scimon run scimon.mon
 
 ## A fuller example
 
-```scimon
-@name "Scimon"
-@version "1.0.0"
-@description "A simple and powerful tool for downloading files, generating QR codes, compressing folders, and more."
-@author "Kremilly"
-@license "MIT"
-@privacy "Public"
-@homepage "https://kremilly.com"
+Package metadata lives in a `package.yml` next to the list (like a crate's
+`Cargo.toml`):
 
+```yaml
+# package.yml
+name: "Scimon"
+version: "1.0.0"
+description: "A simple and powerful tool for downloading files, generating QR codes, compressing folders, and more."
+author: "Kremilly"
+license: "MIT"
+privacy: "Public"
+homepage: "https://kremilly.com"
+```
+
+```scimon
+# scimon.mon
 @var path "downloads/"
 
 @fn arxiv(id, name) {
