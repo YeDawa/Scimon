@@ -32,7 +32,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`), skipping (`!ignore`) and archive extraction (`!unzip`).
 - 🔁 **Ranges & fallbacks** — expand a numeric range into many downloads (`{2203.08877..08880}`), list mirror URLs with `||`, and retry flaky ones with `!retry(3)`.
-- 🧩 **Variables & functions** — keep lists DRY with `@var name "..."` (used as `${name}`) and reusable `@fn name(args) { ... }` templates.
+- 🧩 **Variables, functions & includes** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `@fn name(args) { ... }` templates, and split big lists across files with `include "other.mon"`.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
 - 🤖 **AI-generated documents** — describe what you want in an `ai { ... }` block and Scimon writes the files for you via OpenRouter, as Markdown or rendered straight to PDF.

@@ -12,6 +12,7 @@ Everything is optional: since Scimon is no longer only about downloading PDFs, a
 
 - [Comments](./comments.md)
 - [Import](./import.md)
+- [Include](./include.md)
 - [Metadata](./metadata.md)
 - [Variables](./variables.md)
 - [Functions](./functions.md)
