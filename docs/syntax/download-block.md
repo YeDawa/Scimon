@@ -87,6 +87,7 @@ with `as "name"` and with each other.
 | `!only`      | Focus mode — when **any** line carries `!only`, only the marked lines run (others skip).|
 | `!no-qr`     | Exclude this line from QR code generation (when the `qrcode` directive is set).         |
 | `!retry(N)`  | Re-attempt the download up to `N` extra times if it fails.                              |
+| `!unzip`     | Extract the downloaded archive (`.zip`, `.tar.gz`, `.tgz`, `.tar`). Alias: `!extract`.  |
 
 #### `!only` (focus mode)
 
@@ -139,7 +140,21 @@ a `Retrying (n/N)` notice. A failed download stays non-fatal — the rest of the
 list keeps going. Retries apply to the actual file download; it combines freely
 with `as "name"` and the other macros.
 
-### Fallback URLs
+#### `!unzip` (or `!extract`)
+
+Download an archive and unpack it. Supported formats: `.zip`, `.tar.gz`, `.tgz`
+and `.tar`.
+
+```scimon
+downloads {
+    https://example.com/dataset.zip !unzip
+}
+```
+
+The archive is downloaded, then extracted into a folder named after it next to
+the file — `dataset.zip` unpacks into `dataset/`. `!unzip` also forces the
+download of non-PDF archives (which are otherwise skipped), and combines with
+`as "name"`, `!retry(N)` and `||` fallbacks. The archive itself is kept.
 
 List mirrors for the same file by separating URLs with `||`. Scimon tries them
 left to right and stops at the first one that downloads successfully:
