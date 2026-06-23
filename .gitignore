@@ -76,4 +76,4 @@ site/
 *.so
 *.dylib
 
-package*
+package.yml
