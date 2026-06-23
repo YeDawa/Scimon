@@ -12,7 +12,7 @@ impl Loops {
     // Expands `for name in [...] { ... }` (or `for name in {A..B} { ... }`) by
     // repeating the body once per item, substituting `${name}` with each value.
     // A preprocessing pass like functions/includes, so the body may reference
-    // global `@var`s and call `@fn`s (expanded afterwards).
+    // global `@var`s and call functions (expanded afterwards).
     pub fn expand(&self, contents: &str) -> String {
         let mut text = contents.to_string();
 

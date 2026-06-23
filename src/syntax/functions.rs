@@ -13,7 +13,7 @@ pub struct Functions;
 impl Functions {
 
     // Expands user-defined template functions: collects every
-    // `@fn name(params) { ... }` definition, removes those blocks, and replaces
+    // `fn name(params) { ... }` definition, removes those blocks, and replaces
     // each `@name(args)` call with the function body, substituting `${param}`
     // with the matching argument. Runs before variable interpolation so a body
     // may also reference global `@var`s. Unknown calls are left untouched.
@@ -46,7 +46,7 @@ impl Functions {
         body
     }
 
-    // Returns the parsed definitions and the source with the `@fn` blocks removed.
+    // Returns the parsed definitions and the source with the `fn` blocks removed.
     fn collect(&self, contents: &str) -> (HashMap<String, FnDef>, String) {
         let header = Regex::new(BlocksRegExp::GET_FN_DEF).unwrap();
 

@@ -45,7 +45,7 @@ impl BlocksRegExp {
 
     pub const GET_FOR_LOOP: &'static str = r"(?m)^\s*for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s+(\[[^\]]*\]|\{[^{}]*\})\s*\{";
 
-    pub const GET_FN_DEF: &'static str = r"@fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*\{";
+    pub const GET_FN_DEF: &'static str = r"(?m)^[ \t]*fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)\s*\{";
 
     pub const GET_FN_CALL: &'static str = r"@([A-Za-z_][A-Za-z0-9_]*)\s*\(([^)]*)\)";
 
