@@ -99,14 +99,14 @@ Package metadata lives in a `package.yml` next to the list (like a crate's
 # package.yml
 name: "Scimon"
 description: "A simple and powerful tool for downloading files, generating QR codes, compressing folders, and more."
-author: "Kremilly"
+author: "YeDawa"
 license: "MIT"
 privacy: "Public"
-homepage: "https://kremilly.com"
+homepage: "https://scimon.dev"
 ```
 
 ```scimon
-# scimon.mon
+// scimon.mon
 @var path "downloads/"
 
 @fn arxiv(id, name) {
@@ -117,7 +117,7 @@ path "${path}"
 
 copy "${path}backup/"
 
-open "https://github.com/kremilly"
+open "https://github.com/YeDawa/Scimon"
 
 compress "folder.zip"
 
