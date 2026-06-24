@@ -8,7 +8,7 @@ use std::{
 
 use crate::consts::{
     global::Global,
-    addons::Addons,
+    bundler::Bundler,
 };
 
 static AUTHOR: RwLock<Option<String>> = RwLock::new(None);
@@ -28,7 +28,7 @@ impl Package {
             return false;
         };
 
-        Addons::MONLIB_PACKAGE_MANAGER_KEYS.iter().any(|key| Self::read(&data[*key]).is_some())
+        Bundler::MONLIB_PACKAGE_MANAGER_KEYS.iter().any(|key| Self::read(&data[*key]).is_some())
             || Self::read(&data["authors"]).is_some()
     }
 
@@ -42,6 +42,16 @@ impl Package {
     fn read_author(mon_path: &str) -> Option<String> {
         let data = Self::document(mon_path)?;
         Self::read(&data["author"]).or_else(|| Self::read(&data["authors"]))
+    }
+
+    // The package name from `package.yml`, used to name the distributable bundle.
+    pub fn name(&self, mon_path: &str) -> Option<String> {
+        Self::document(mon_path).and_then(|data| Self::read(&data["name"]))
+    }
+
+    // The optional package version from `package.yml`.
+    pub fn version(&self, mon_path: &str) -> Option<String> {
+        Self::document(mon_path).and_then(|data| Self::read(&data["version"]))
     }
 
     fn document(mon_path: &str) -> Option<Value> {

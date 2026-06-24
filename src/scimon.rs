@@ -16,6 +16,7 @@ use crate::{
 
     cmd::{
         copy::Copy,
+        bundle::Bundle,
         monset::Monset,
         compile::Compile,
     },
@@ -135,6 +136,20 @@ impl Scimon {
                 Commands::Push { file } => {
                     UI::header();
                     let _ = MonlibPush.push(&file).await;
+                },
+
+                Commands::Pack { file } => {
+                    UI::header();
+                    if let Err(err) = Bundle.pack(&file) {
+                        ErrorsAlerts::generic(&err.to_string());
+                    }
+                },
+
+                Commands::Install { file } => {
+                    UI::header();
+                    if let Err(err) = Bundle.install(&file, &flags_clone).await {
+                        ErrorsAlerts::generic(&err.to_string());
+                    }
                 },
 
                 Commands::Scrape { url } => {

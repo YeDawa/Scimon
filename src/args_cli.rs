@@ -53,6 +53,18 @@ pub enum Commands {
         file: String,
     },
 
+    /// Pack a list and its assets into a distributable .smon bundle
+    Pack {
+        /// List file to pack
+        file: String,
+    },
+
+    /// Install a .smon bundle: extract it and run the list
+    Install {
+        /// Bundle file (.smon) to install
+        file: String,
+    },
+
     /// Scraping the web page for list of documents
     Scrape {
         /// Url to scrape

@@ -1,5 +1,6 @@
 pub mod copy;
 pub mod tasks;
+pub mod bundle;
 pub mod monset;
 pub mod extract;
 pub mod compile;

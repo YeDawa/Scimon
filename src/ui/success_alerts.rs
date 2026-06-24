@@ -190,11 +190,32 @@ impl SuccessAlerts {
   
     pub fn cover_generated(file: &str) {
         let current_datetime = General.date_time();
-    
+
         println!(
-            "{} Cover saved in {}", 
-            current_datetime.green().bold(), 
+            "{} Cover saved in {}",
+            current_datetime.green().bold(),
             file.blue(),
+        );
+    }
+
+    pub fn packed(file: &str, count: usize) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Packed {} ({} files)",
+            current_datetime.green().bold(),
+            file.blue(),
+            count.to_string().blue(),
+        );
+    }
+
+    pub fn installed(name: &str) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Installed {}",
+            current_datetime.green().bold(),
+            name.blue(),
         );
     }
 
