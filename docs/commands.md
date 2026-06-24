@@ -93,9 +93,8 @@ scimon pull my-list
 
 ## `push`
 
-Publish a Scimon list. The list's metadata variables (`@name`, `@version`,
-`@author`, …) describe the package being published. See
-[Metadata](./syntax/metadata.md).
+Publish a Scimon list. The package being published is described by a
+`package.yml` file next to the list. See [Metadata](./syntax/metadata.md).
 
 ```shell
 scimon push scimon.mon

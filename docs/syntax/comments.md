@@ -48,9 +48,7 @@ path /* output folder */ "downloads/"
 ## Example
 
 ```scimon
-@name "My list"   // metadata still works with comments
-
-path "downloads/"
+path "downloads/"   // comments work next to directives
 
 /*
    The arxiv paper is fetched and renamed,

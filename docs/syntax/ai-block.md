@@ -37,7 +37,7 @@ Each line inside the block is a prompt followed by the output file:
     [`style`](./style.md) variable is honored for the PDF's CSS, falling back to
     the default stylesheet.
   - `.epub` packages the generated Markdown as an EPUB. The book title comes from
-    the output file name and the author from the `@author` metadata.
+    the output file name and the author is set to `Scimon`.
 - The `.md` extension is added automatically if you omit it.
 - Files are written inside the folder defined by the [`path`](./what-is.md)
   variable, so they are also picked up by the [`server`](./server.md) command.

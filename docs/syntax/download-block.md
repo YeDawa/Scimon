@@ -46,7 +46,7 @@ downloads {
 }
 ```
 
-The book title comes from the output file name and the author from the `@author` metadata (falling back to `Scimon`).
+The book title comes from the output file name and the author is set to `Scimon`.
 
 ### Path Configuration
 

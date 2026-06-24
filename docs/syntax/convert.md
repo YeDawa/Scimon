@@ -51,6 +51,6 @@ convert "downloads/readme.md" > "downloads/readme.pdf"
 
 - Paths are resolved relative to the directory you run Scimon from.
 - `.md` → `.pdf`/`.html` honors the list's [`style`](./style.md) directive.
-- `.md` → `.epub` uses the output file name as the title and the `@author`
-  metadata as the author (falling back to `Scimon`).
+- `.md` → `.epub` uses the output file name as the title and `Scimon` as the
+  author.
 - Rendering to PDF uses a headless Chromium, the same as the rest of Scimon.
