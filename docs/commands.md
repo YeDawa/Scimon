@@ -38,13 +38,25 @@ handy in CI or pre-commit hooks:
 scimon check scimon.mon && scimon run scimon.mon
 ```
 
+## `init`
+
+Scaffold a new Scimon package in the current directory: a `scimon.yml` descriptor,
+a `main.mon` entry list, and a `.entry` pointer. Existing files are left untouched.
+
+```shell
+scimon init
+```
+
+See [Packages](./packages.md).
+
 ## `pack`
 
 Bundle a list, its imported `.mon` lists and its license into a single
 distributable **`.scpkg`** package.
 
 ```shell
-scimon pack scimon.mon
+scimon pack scimon.mon   # explicit entry list
+scimon pack              # use the entry recorded in .entry
 ```
 
 The bundle is named `<name>-<version>.scpkg` (lowercase) from the `package.yml`

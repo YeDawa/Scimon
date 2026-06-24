@@ -20,16 +20,34 @@ other referenced assets are **not** included — a package ships source lists, n
 build artifacts. Internally the bundle also records which list is the entry, so it
 always runs the right one.
 
+## `init`
+
+Scaffold a new package in the current directory:
+
+```shell
+scimon init
+```
+
+It creates three files (leaving any that already exist untouched):
+
+| File         | Description                                                       |
+| ------------ | ---------------------------------------------------------------- |
+| `scimon.yml` | A package descriptor template (`name`, `description`, `author`…). |
+| `main.mon`   | The entry list, ready to edit.                                    |
+| `.entry`     | Records the entry list (`main.mon`) so `pack` knows what to ship. |
+
 ## `pack`
 
 Build a bundle from an entry list:
 
 ```shell
-scimon pack scimon.mon
+scimon pack scimon.mon   # explicit entry
+scimon pack              # use the entry recorded in .entry
 ```
 
-Scimon reads the `package.yml` next to the list, gathers the entry and its
-imported `.mon` lists (followed transitively), adds the license, and writes
+With no argument, `pack` reads the project's `.entry` (created by `init`) to find
+the entry list. Scimon reads the `package.yml` next to the list, gathers the entry
+and its imported `.mon` lists (followed transitively), adds the license, and writes
 `<name>-<version>.scpkg`. The file name is always **lowercase**; `name` and
 `version` come from `package.yml`. Without a `version` the file is just
 `<name>.scpkg`, and without a `name` it falls back to the list's file name.
@@ -64,5 +82,6 @@ scimon run demo.scpkg
   packed too.
 - Remote (`http(s)`) and [Monlib](https://monlib.net) imports are resolved at run
   time, so they are not packed.
-- See [Metadata](./syntax/metadata.md) for the `package.yml` fields and
-  [Import](./syntax/import.md) for how lists pull in one another.
+- `init` writes the descriptor to `scimon.yml`, but the metadata read when packing
+  comes from `package.yml` — see [Metadata](./syntax/metadata.md).
+- See [Import](./syntax/import.md) for how lists pull in one another.

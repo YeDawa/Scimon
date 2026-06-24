@@ -195,11 +195,14 @@ the source lists — the `package.yml` manifest, the `LICENSE`, and the entry li
 plus every `.mon` it pulls in through `import`:
 
 ```bash
-scimon pack scimon.mon       # → <name>-<version>.scpkg (lowercase)
+scimon init                  # scaffold scimon.yml, main.mon and .entry
+scimon pack                  # → <name>-<version>.scpkg (lowercase), from .entry
 scimon run demo-1.0.0.scpkg  # extract a bundle and run its entry list
 ```
 
-See the [Packages guide](https://docs.scimon.dev/packages) for details.
+`scimon init` scaffolds a new package (a `scimon.yml` descriptor, a `main.mon`
+entry list and a `.entry` pointer); `scimon pack` reads `.entry` when no list is
+given. See the [Packages guide](https://docs.scimon.dev/packages) for details.
 
 ## Documentation
 
