@@ -34,5 +34,8 @@ impl Addons {
 
     // Security entropy threshold
     pub const MAX_SAFE_ENTROPY: f64 = 5.96;
+
+    // Monlib Package Manager
+    pub const MONLIB_PACKAGE_MANAGER_KEYS: [&str; 6] = ["name", "description", "author", "license", "privacy", "homepage"];
     
 }

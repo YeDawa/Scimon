@@ -6,7 +6,10 @@ use std::{
     sync::RwLock,
 };
 
-use crate::consts::global::Global;
+use crate::consts::{
+    global::Global,
+    addons::Addons,
+};
 
 static AUTHOR: RwLock<Option<String>> = RwLock::new(None);
 
@@ -20,6 +23,15 @@ impl Package {
         }
     }
 
+    pub fn has_metadata(&self, mon_path: &str) -> bool {
+        let Some(data) = Self::document(mon_path) else {
+            return false;
+        };
+
+        Addons::MONLIB_PACKAGE_MANAGER_KEYS.iter().any(|key| Self::read(&data[*key]).is_some())
+            || Self::read(&data["authors"]).is_some()
+    }
+
     pub fn author(&self) -> String {
         AUTHOR.read()
             .ok()
@@ -28,11 +40,14 @@ impl Package {
     }
 
     fn read_author(mon_path: &str) -> Option<String> {
+        let data = Self::document(mon_path)?;
+        Self::read(&data["author"]).or_else(|| Self::read(&data["authors"]))
+    }
+
+    fn document(mon_path: &str) -> Option<Value> {
         let dir = Path::new(mon_path).parent().unwrap_or_else(|| Path::new("."));
         let text = fs::read_to_string(dir.join("package.yml")).ok()?;
-        let data: Value = serde_yaml::from_str(&text).ok()?;
-
-        Self::read(&data["author"]).or_else(|| Self::read(&data["authors"]))
+        serde_yaml::from_str(&text).ok()
     }
 
     fn read(value: &Value) -> Option<String> {
