@@ -2,30 +2,24 @@ use serde_yaml::Value;
 
 use std::{
     fs,
-    sync::RwLock,
     path::Path,
+    sync::RwLock,
 };
 
 use crate::consts::global::Global;
 
-// Cache for the `author` read from the list's `package.yml`. It is loaded once
-// when the list is read and reused by every EPUB generated during the run.
 static AUTHOR: RwLock<Option<String>> = RwLock::new(None);
 
 pub struct Package;
 
 impl Package {
 
-    // Loads `author` (or its `authors` alias) from the `package.yml` sitting next
-    // to the list file, caching it for the rest of the run.
     pub fn load(&self, mon_path: &str) {
         if let Ok(mut guard) = AUTHOR.write() {
             *guard = Self::read_author(mon_path);
         }
     }
 
-    // The author for generated EPUBs: from `package.yml` when present, otherwise
-    // the application name.
     pub fn author(&self) -> String {
         AUTHOR.read()
             .ok()
