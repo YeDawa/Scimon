@@ -1,6 +1,3 @@
-use glob::glob;
-use regex::Regex;
-
 use tar::{
     Header,
     Archive,
@@ -33,8 +30,8 @@ use std::{
 
 use crate::{
     args_cli::Flags,
+    syntax::vars::Vars,
     cmd::monset::Monset,
-    consts::bundler::Bundler,
     configs::package::Package,
     syntax::blocks::readme_block::ReadMeBlock,
 
@@ -80,20 +77,31 @@ impl Bundle {
         let encoder = GzEncoder::new(File::create(&output)?, Compression::default());
         let mut tar = Builder::new(encoder);
 
-        // The list lives at the archive root; `.entry` records which list is the
-        // one to execute when the bundle is run or installed.
+        // The entry list lives at the archive root; `.entry` records which list
+        // is the one to execute when the bundle is run or installed.
         tar.append_path_with_name(mon, &mon_name)?;
         Self::append_entry(&mut tar, &mon_name)?;
         let mut count = 1;
 
+        // The manifest and the license describe the package.
         let manifest = dir.join("package.yml");
         if manifest.is_file() {
             tar.append_path_with_name(&manifest, "package.yml")?;
             count += 1;
         }
 
-        for (path, rel) in Self::detect_assets(dir, &contents) {
-            if rel == mon_name || rel == "package.yml" {
+        if let Some(license) = Self::find_license(dir) {
+            let license_name = license.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "LICENSE".to_string());
+
+            tar.append_path_with_name(&license, &license_name)?;
+            count += 1;
+        }
+
+        // Every `.mon` list reachable through `import` directives.
+        for (path, rel) in Self::detect_lists(dir, &contents) {
+            if rel == mon_name {
                 continue;
             }
 
@@ -192,53 +200,76 @@ impl Bundle {
             .filter(|text| !text.is_empty())
     }
 
-    fn detect_assets(dir: &Path, contents: &str) -> Vec<(PathBuf, String)> {
-        let pattern = Regex::new(Bundler::ASSETS_PATTERNS).unwrap();
+    // Collects the `.mon` lists reachable from the entry through `import`
+    // directives (transitively), skipping anything inside the output directory.
+    fn detect_lists(dir: &Path, contents: &str) -> Vec<(PathBuf, String)> {
+        let output = Self::output_prefix(contents);
 
         let mut seen = HashSet::new();
-        let mut assets = Vec::new();
+        let mut lists = Vec::new();
+        let mut stack = Vars.get_imports(contents);
 
-        for caps in pattern.captures_iter(contents) {
-            let value = caps.get(1)
-                .or_else(|| caps.get(2))
-                .map(|m| m.as_str().trim())
-                .unwrap_or("");
-
-            if value.is_empty()
-                || value.starts_with("http://")
-                || value.starts_with("https://")
-                || value.contains("..")
+        while let Some(source) = stack.pop() {
+            if source.starts_with("http://")
+                || source.starts_with("https://")
+                || source.contains("..")
+                || !source.ends_with(".mon")
             {
                 continue;
             }
 
-            if value.contains('*') || value.contains('?') || value.contains('[') {
-                let glob_pattern = dir.join(value).to_string_lossy().to_string();
-
-                if let Ok(paths) = glob(&glob_pattern) {
-                    for entry in paths.flatten().filter(|p| p.is_file()) {
-                        if let Ok(rel) = entry.strip_prefix(dir) {
-                            let rel = rel.to_string_lossy().replace('\\', "/");
-                            if seen.insert(rel.clone()) {
-                                assets.push((entry, rel));
-                            }
-                        }
-                    }
-                }
-
+            let rel = source.replace('\\', "/");
+            if Self::in_output(&rel, &output) {
                 continue;
             }
 
-            let path = dir.join(value);
-            if path.is_file() {
-                let rel = value.replace('\\', "/");
-                if seen.insert(rel.clone()) {
-                    assets.push((path, rel));
-                }
+            let path = dir.join(&source);
+            if !path.is_file() || !seen.insert(rel.clone()) {
+                continue;
             }
+
+            if let Ok(child) = fs::read_to_string(&path) {
+                stack.extend(Vars.get_imports(&child));
+            }
+
+            lists.push((path, rel));
         }
 
-        assets
+        lists
+    }
+
+    // Finds a license file next to the entry list, if any.
+    fn find_license(dir: &Path) -> Option<PathBuf> {
+        const NAMES: [&str; 6] = [
+            "LICENSE", "LICENSE.txt", "LICENSE.md", "license", "license.txt", "COPYING",
+        ];
+
+        NAMES.iter()
+            .map(|name| dir.join(name))
+            .find(|path| path.is_file())
+    }
+
+    // The list's output directory (`path` directive), normalised without a
+    // trailing slash; `None` when it is the current directory.
+    fn output_prefix(contents: &str) -> Option<String> {
+        let path = Vars.get_path(contents);
+        let normalised = path.trim()
+            .trim_end_matches(|c| c == '/' || c == '\\')
+            .replace('\\', "/");
+
+        if normalised.is_empty() || normalised == "." {
+            None
+        } else {
+            Some(normalised)
+        }
+    }
+
+    // True when a relative path sits inside the list's output directory.
+    fn in_output(rel: &str, output: &Option<String>) -> bool {
+        match output {
+            Some(prefix) => rel == prefix || rel.starts_with(&format!("{}/", prefix)),
+            None => false,
+        }
     }
 
     // Returns the file name of the first `.mon` list found at the root of `dir`.
