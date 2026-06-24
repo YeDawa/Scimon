@@ -20,9 +20,8 @@ impl Init {
     pub fn create(&self) -> Result<(), Box<dyn Error>> {
         UI::section_header("Init", "normal");
 
-        Self::write("scimon.yml", Bundler::MANIFEST)?;
+        Self::write("package.yml", Bundler::MANIFEST)?;
         Self::write("main.mon", Bundler::ENTRY_PACKAGE)?;
-        Self::write(".entry", "main.mon\n")?;
 
         Ok(())
     }
