@@ -44,7 +44,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 - 🗜️ **Compression & scripts** — zip output folders and run Python/JavaScript/TypeScript steps (with a secure-by-default runner).
 - 🌍 **Built-in web server** — browse and preview the generated files in your browser (lightbox for images/PDFs, dark mode), via the `serve` command or `server "PORT"` in a list.
 - 📦 **Composable packages** — `import "..."` splices another list into yours from a local file, a remote URL, or a [Monlib](https://monlib.net) package.
-- 🎁 **Distributable bundles** — pack a list, its imported `.mon` files and its license into a single `.scpkg` with `scimon pack`, then `scimon install` (or `scimon run`) it anywhere.
+- 🎁 **Distributable bundles** — pack a list, its imported `.mon` files and its license into a single `.scpkg` with `scimon pack`, then `scimon run` it anywhere.
 
 ## Requirements
 
@@ -195,9 +195,8 @@ the source lists — the `package.yml` manifest, the `LICENSE`, and the entry li
 plus every `.mon` it pulls in through `import`:
 
 ```bash
-scimon pack scimon.mon          # → <name>-<version>.scpkg (lowercase)
-scimon install demo-1.0.0.scpkg # extract into a folder and run the entry list
-scimon run demo-1.0.0.scpkg     # run a bundle directly
+scimon pack scimon.mon       # → <name>-<version>.scpkg (lowercase)
+scimon run demo-1.0.0.scpkg  # extract a bundle and run its entry list
 ```
 
 See the [Packages guide](https://docs.scimon.dev/packages) for details.

@@ -48,19 +48,8 @@ scimon pack scimon.mon
 ```
 
 The bundle is named `<name>-<version>.scpkg` (lowercase) from the `package.yml`
-next to the list. See [Packages](./packages.md).
-
-## `install`
-
-Install a `.scpkg` bundle: extract it into a folder named after it and run the
-entry list from there.
-
-```shell
-scimon install demo-1.0.0.scpkg
-```
-
-`run` also accepts a `.scpkg` directly (`scimon run demo-1.0.0.scpkg`), extracting
-and immediately executing the entry list. See [Packages](./packages.md).
+next to the list. Run it with `scimon run demo-1.0.0.scpkg`. See
+[Packages](./packages.md).
 
 ## `compile`
 
