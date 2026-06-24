@@ -16,6 +16,7 @@ use crate::{
 
     cmd::{
         copy::Copy,
+        init::Init,
         bundle::Bundle,
         monset::Monset,
         compile::Compile,
@@ -145,10 +146,26 @@ impl Scimon {
                     let _ = MonlibPush.push(&file).await;
                 },
 
+                Commands::Init => {
+                    UI::header();
+                    if let Err(err) = Init.create() {
+                        ErrorsAlerts::generic(&err.to_string());
+                    }
+                },
+
                 Commands::Pack { file } => {
                     UI::header();
-                    if let Err(err) = Bundle.pack(&file) {
-                        ErrorsAlerts::generic(&err.to_string());
+
+                    match Bundle.resolve_entry(file) {
+                        Some(entry) => {
+                            if let Err(err) = Bundle.pack(&entry) {
+                                ErrorsAlerts::generic(&err.to_string());
+                            }
+                        },
+
+                        None => ErrorsAlerts::generic(
+                            "No entry list to pack: pass a file or run `scimon init` first."
+                        ),
                     }
                 },
 

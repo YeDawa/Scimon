@@ -115,6 +115,12 @@ impl Bundle {
         Ok(output)
     }
 
+    // Resolves the entry list to pack: the given file, or the one recorded in a
+    // project-level `.entry` file (created by `scimon init`).
+    pub fn resolve_entry(&self, file: Option<String>) -> Option<String> {
+        file.or_else(|| Self::read_entry(Path::new(".")))
+    }
+
     // Runs a `.scpkg` bundle directly (`scimon run app.scpkg`): extracts it and
     // immediately executes the entry list, like running a plain `.mon` file.
     pub async fn run(&self, bundle: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {

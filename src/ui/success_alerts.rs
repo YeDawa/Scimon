@@ -198,6 +198,26 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn created(file: &str) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Created {}",
+            current_datetime.green().bold(),
+            file.blue(),
+        );
+    }
+
+    pub fn skipped(file: &str) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Skipped {} (already exists)",
+            current_datetime.yellow().bold(),
+            file.blue(),
+        );
+    }
+
     pub fn packed(file: &str, count: usize) {
         let current_datetime = General.date_time();
 

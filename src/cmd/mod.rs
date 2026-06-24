@@ -1,4 +1,5 @@
 pub mod copy;
+pub mod init;
 pub mod tasks;
 pub mod bundle;
 pub mod monset;

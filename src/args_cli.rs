@@ -53,10 +53,13 @@ pub enum Commands {
         file: String,
     },
 
+    /// Scaffold a new Scimon package in the current directory
+    Init,
+
     /// Pack a list and its assets into a distributable .scpkg bundle
     Pack {
-        /// Entry list file to pack
-        file: String,
+        /// Entry list file to pack (defaults to the project's .entry)
+        file: Option<String>,
     },
 
     /// Scraping the web page for list of documents
