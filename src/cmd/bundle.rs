@@ -115,17 +115,6 @@ impl Bundle {
         Ok(output)
     }
 
-    // Installs a `.scpkg` bundle: extracts it into a folder named after it and
-    // immediately runs the entry list.
-    pub async fn install(&self, bundle: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
-        UI::section_header("Installing", "normal");
-
-        let (dest, entry) = Self::unpack(bundle)?;
-        SuccessAlerts::installed(&dest.to_string_lossy());
-
-        Self::run_entry(&dest, &entry, flags).await
-    }
-
     // Runs a `.scpkg` bundle directly (`scimon run app.scpkg`): extracts it and
     // immediately executes the entry list, like running a plain `.mon` file.
     pub async fn run(&self, bundle: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {

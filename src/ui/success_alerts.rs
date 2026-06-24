@@ -209,14 +209,4 @@ impl SuccessAlerts {
         );
     }
 
-    pub fn installed(name: &str) {
-        let current_datetime = General.date_time();
-
-        println!(
-            "{} Installed {}",
-            current_datetime.green().bold(),
-            name.blue(),
-        );
-    }
-
 }

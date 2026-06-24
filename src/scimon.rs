@@ -152,13 +152,6 @@ impl Scimon {
                     }
                 },
 
-                Commands::Install { file } => {
-                    UI::header();
-                    if let Err(err) = Bundle.install(&file, &flags_clone).await {
-                        ErrorsAlerts::generic(&err.to_string());
-                    }
-                },
-
                 Commands::Scrape { url } => {
                     UI::header();
                     let _ = Scrape.get(&flags_clone, &url).await;
