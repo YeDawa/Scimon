@@ -59,12 +59,6 @@ pub enum Commands {
         file: String,
     },
 
-    /// Install a .scpkg bundle: extract it and run the entry list
-    Install {
-        /// Bundle file (.scpkg) to install
-        file: String,
-    },
-
     /// Scraping the web page for list of documents
     Scrape {
         /// Url to scrape

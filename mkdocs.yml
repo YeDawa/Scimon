@@ -28,6 +28,7 @@ nav:
   - How to build: build.md
   - Basic usage: basic-usage.md
   - Commands: commands.md
+  - Packages: packages.md
   - Scrape: scrape.md
   - Providers: providers.md
   - Compiler:

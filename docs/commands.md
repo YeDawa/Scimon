@@ -14,9 +14,12 @@ and renders any `readme`. Accepts a local path or a remote URL.
 ```shell
 scimon run scimon.mon
 scimon run https://example.com/scimon.mon
+scimon run demo-1.0.0.scpkg   # extract a package and run its entry list
 ```
 
-See [Basic usage](./basic-usage.md) and the [language syntax](./syntax/what-is.md).
+A `.scpkg` argument is treated as a [package](./packages.md): it is extracted and
+its entry list is executed. See [Basic usage](./basic-usage.md) and the
+[language syntax](./syntax/what-is.md).
 
 ## `check`
 
@@ -34,6 +37,30 @@ handy in CI or pre-commit hooks:
 ```shell
 scimon check scimon.mon && scimon run scimon.mon
 ```
+
+## `pack`
+
+Bundle a list, its imported `.mon` lists and its license into a single
+distributable **`.scpkg`** package.
+
+```shell
+scimon pack scimon.mon
+```
+
+The bundle is named `<name>-<version>.scpkg` (lowercase) from the `package.yml`
+next to the list. See [Packages](./packages.md).
+
+## `install`
+
+Install a `.scpkg` bundle: extract it into a folder named after it and run the
+entry list from there.
+
+```shell
+scimon install demo-1.0.0.scpkg
+```
+
+`run` also accepts a `.scpkg` directly (`scimon run demo-1.0.0.scpkg`), extracting
+and immediately executing the entry list. See [Packages](./packages.md).
 
 ## `compile`
 
