@@ -93,23 +93,30 @@ impl Scimon {
             match command {
                 Commands::Run { file } => {
                     UI::header();
-                    let monset = Monset::new(&file);
 
-                    let contents = monset.raw_contents().await.unwrap_or_default();
-
-                    if let Some(err) = Validator.check(&contents) {
-                        SyntaxAlerts::error(err.line, &err.content, &err.message);
-                    } else {
-                        let _ = monset.downloads(&flags_clone).await;
-                        let _ = monset.run_code(&flags_clone).await;
-                        ReadMeBlock.render_block_and_save_file(&file, &flags_clone).await;
-
-                        if let Err(err) = Copy::new(&contents).get() {
+                    if file.ends_with(".scmon") {
+                        if let Err(err) = Bundle.run(&file, &flags_clone).await {
                             ErrorsAlerts::generic(&err.to_string());
                         }
+                    } else {
+                        let monset = Monset::new(&file);
 
-                        if let Err(err) = monset.server().await {
-                            ErrorsAlerts::generic(&err.to_string());
+                        let contents = monset.raw_contents().await.unwrap_or_default();
+
+                        if let Some(err) = Validator.check(&contents) {
+                            SyntaxAlerts::error(err.line, &err.content, &err.message);
+                        } else {
+                            let _ = monset.downloads(&flags_clone).await;
+                            let _ = monset.run_code(&flags_clone).await;
+                            ReadMeBlock.render_block_and_save_file(&file, &flags_clone).await;
+
+                            if let Err(err) = Copy::new(&contents).get() {
+                                ErrorsAlerts::generic(&err.to_string());
+                            }
+
+                            if let Err(err) = monset.server().await {
+                                ErrorsAlerts::generic(&err.to_string());
+                            }
                         }
                     }
                 },

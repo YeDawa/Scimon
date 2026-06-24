@@ -46,6 +46,7 @@ credentials.json
 *.xz
 *.bz2
 *.smon
+*.scmon
 
 # Ignore script & styles files
 *.py
