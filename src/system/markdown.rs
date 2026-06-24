@@ -14,7 +14,6 @@ use pulldown_cmark::{
 
 use crate::{
     system::pdf::Pdf,
-    syntax::vars::Vars,
     consts::global::Global,
     generator::epub::Epub,
     configs::settings::Settings,
@@ -100,8 +99,7 @@ impl Markdown {
                     .map(|stem| stem.to_string_lossy().to_string())
                     .unwrap_or_else(|| name.to_string());
 
-                let author = Vars.get_metadata(contents, "author")
-                    .unwrap_or_else(|| Global::APP_NAME.to_string());
+                let author = Global::APP_NAME.to_string();
 
                 let markdown_content = Remote.content(url).await?;
                 Epub.create(&markdown_content, &title, &author, &output_path)?;

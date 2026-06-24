@@ -91,8 +91,7 @@ impl Convert {
             .map(|stem| stem.to_string_lossy().to_string())
             .unwrap_or_else(|| output.to_string());
 
-        let author = Vars.get_metadata(&self.contents, "author")
-            .unwrap_or_else(|| Global::APP_NAME.to_string());
+        let author = Global::APP_NAME.to_string();
 
         Epub.create(&markdown, &title, &author, output)?;
         Ok(())

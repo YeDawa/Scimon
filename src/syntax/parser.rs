@@ -25,7 +25,6 @@ impl Parser {
         let contents = Comments.strip(raw);
 
         let ast = json!({
-            "metadata": self.metadata(&contents),
             "directives": self.directives(&contents),
             "blocks": self.blocks(&contents),
         });
@@ -64,22 +63,6 @@ impl Parser {
             Value::Object(map) => map.is_empty(),
             _ => false,
         }
-    }
-
-    fn metadata(&self, contents: &str) -> Value {
-        let keys = ["name", "description", "author", "license", "privacy", "homepage"];
-        let mut map = serde_json::Map::new();
-
-        for key in keys {
-            let value = match Vars.get_metadata(contents, key) {
-                Some(v) => Value::String(v),
-                None => Value::Null,
-            };
-
-            map.insert(key.to_string(), value);
-        }
-
-        Value::Object(map)
     }
 
     fn directives(&self, contents: &str) -> Value {

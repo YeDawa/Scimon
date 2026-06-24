@@ -149,8 +149,7 @@ impl AiBlock {
                     .map(|stem| stem.to_string_lossy().to_string())
                     .unwrap_or_else(|| entry.file.clone());
 
-                let author = Vars.get_metadata(&list_contents, "author")
-                    .unwrap_or_else(|| Global::APP_NAME.to_string());
+                let author = Global::APP_NAME.to_string();
 
                 match Epub.create(&markdown, &title, &author, &output_path) {
                     Ok(()) => SuccessAlerts::generated_epub(&output_path),

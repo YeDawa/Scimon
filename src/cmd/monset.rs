@@ -20,7 +20,6 @@ use std::{
 use crate::{
     args_cli::Flags,
     server::serve::Serve,
-    configs::package::Package,
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
 
@@ -80,11 +79,6 @@ impl Monset {
         }
 
         let raw = String::from_utf8_lossy(&buffer).to_string();
-        let raw = if is_url(&self.run) {
-            raw
-        } else {
-            format!("{}{}", Package.metadata_block(&self.run), Package.strip_inline(&raw))
-        };
 
         let clean = Comments.strip(&raw);
         let clean = Imports.expand(&clean).await;
