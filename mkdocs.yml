@@ -27,9 +27,9 @@ nav:
   - Overview: index.md
   - How to build: build.md
   - Usage:
-    - Overview: basic-usage.md
-    - Commands: commands.md
-    - Scrape: scrape.md
+    - Overview: usage/basic-usage.md
+    - Commands: usage/commands.md
+    - Scrape: usage/scrape.md
   - Packages: packages.md
   - Providers: providers.md
   - Compiler:
