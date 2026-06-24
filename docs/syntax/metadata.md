@@ -1,9 +1,9 @@
 # Metadata
 
 A list's metadata describes it as a package — it's used when publishing to
-Monlib with `scimon push` and is ignored during a normal `run`. Like a crate's
-`Cargo.toml`, metadata lives in a **`package.yml`** file next to your `.mon`
-list.
+Monlib with `scimon push`. During a normal `run` only the `author` is read (it
+becomes the author of any generated EPUB). Like a crate's `Cargo.toml`, metadata
+lives in a **`package.yml`** file next to your `.mon` list.
 
 ```yaml
 # package.yml
