@@ -10,7 +10,7 @@ use crate::{
     generator::epub::Epub,
     system::latex::LaTex,
     system::markdown::Markdown,
-    consts::global::Global,
+    configs::package::Package,
     render::render_inject::RenderInject,
 
     ui::{
@@ -91,7 +91,7 @@ impl Convert {
             .map(|stem| stem.to_string_lossy().to_string())
             .unwrap_or_else(|| output.to_string());
 
-        let author = Global::APP_NAME.to_string();
+        let author = Package.author();
 
         Epub.create(&markdown, &title, &author, output)?;
         Ok(())

@@ -20,6 +20,7 @@ use std::{
 use crate::{
     args_cli::Flags,
     server::serve::Serve,
+    configs::package::Package,
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
 
@@ -76,6 +77,9 @@ impl Monset {
 
             let mut file = File::open(&self.run)?;
             file.read_to_end(&mut buffer)?;
+
+            // Metadata lives in `package.yml`; the author is reused for EPUBs.
+            Package.load(&self.run);
         }
 
         let raw = String::from_utf8_lossy(&buffer).to_string();

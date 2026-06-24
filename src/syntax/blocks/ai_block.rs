@@ -10,8 +10,8 @@ use std::{
 
 use crate::{
     syntax::vars::Vars,
-    consts::global::Global,
     generator::epub::Epub,
+    configs::package::Package,
     utils::file::FileUtils,
     render::render::Render,
     system::markdown::Markdown,
@@ -149,7 +149,7 @@ impl AiBlock {
                     .map(|stem| stem.to_string_lossy().to_string())
                     .unwrap_or_else(|| entry.file.clone());
 
-                let author = Global::APP_NAME.to_string();
+                let author = Package.author();
 
                 match Epub.create(&markdown, &title, &author, &output_path) {
                     Ok(()) => SuccessAlerts::generated_epub(&output_path),
