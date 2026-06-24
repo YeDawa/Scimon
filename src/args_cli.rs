@@ -53,15 +53,15 @@ pub enum Commands {
         file: String,
     },
 
-    /// Pack a list and its assets into a distributable .scmon bundle
+    /// Pack a list and its assets into a distributable .scpkg bundle
     Pack {
         /// Entry list file to pack
         file: String,
     },
 
-    /// Install a .scmon bundle: extract it and run the entry list
+    /// Install a .scpkg bundle: extract it and run the entry list
     Install {
-        /// Bundle file (.scmon) to install
+        /// Bundle file (.scpkg) to install
         file: String,
     },
 

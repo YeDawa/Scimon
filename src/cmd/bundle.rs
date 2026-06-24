@@ -69,9 +69,9 @@ impl Bundle {
 
         let name = Package.name(mon_path).unwrap_or(stem);
         let bundle_name = match Package.version(mon_path) {
-            Some(version) => format!("{}-{}.scmon", name, version),
-            None => format!("{}.scmon", name),
-        };
+            Some(version) => format!("{}-{}.scpkg", name, version),
+            None => format!("{}.scpkg", name),
+        }.to_lowercase();
 
         let output = PathBuf::from(&bundle_name);
         let encoder = GzEncoder::new(File::create(&output)?, Compression::default());
@@ -115,7 +115,7 @@ impl Bundle {
         Ok(output)
     }
 
-    // Installs a `.scmon` bundle: extracts it into a folder named after it and
+    // Installs a `.scpkg` bundle: extracts it into a folder named after it and
     // immediately runs the entry list.
     pub async fn install(&self, bundle: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
         UI::section_header("Installing", "normal");
@@ -126,7 +126,7 @@ impl Bundle {
         Self::run_entry(&dest, &entry, flags).await
     }
 
-    // Runs a `.scmon` bundle directly (`scimon run app.scmon`): extracts it and
+    // Runs a `.scpkg` bundle directly (`scimon run app.scpkg`): extracts it and
     // immediately executes the entry list, like running a plain `.mon` file.
     pub async fn run(&self, bundle: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
         UI::section_header("Running", "normal");

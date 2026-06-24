@@ -45,8 +45,7 @@ credentials.json
 *.gz
 *.xz
 *.bz2
-*.smon
-*.scmon
+*.scpkg
 
 # Ignore script & styles files
 *.py

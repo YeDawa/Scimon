@@ -94,7 +94,7 @@ impl Scimon {
                 Commands::Run { file } => {
                     UI::header();
 
-                    if file.ends_with(".scmon") {
+                    if file.ends_with(".scpkg") {
                         if let Err(err) = Bundle.run(&file, &flags_clone).await {
                             ErrorsAlerts::generic(&err.to_string());
                         }
