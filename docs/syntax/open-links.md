@@ -25,4 +25,4 @@ In this example:
 
 By utilizing the `open` variable, you can seamlessly provide users with additional information and resources to enhance their understanding and engagement with the processed tasks or projects.
 
-> Use the [`--no-open-link`](../commands.md#global-flags) flag to disable this behavior.
+> Use the [`--no-open-link`](../usage/commands.md#global-flags) flag to disable this behavior.

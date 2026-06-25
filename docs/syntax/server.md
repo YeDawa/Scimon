@@ -46,5 +46,5 @@ server "8080"
   [epub.js](https://github.com/futurepress/epub.js)). It loads the reader from a CDN, so it
   needs network access the first time.
 - It honors your system dark/light theme, with a toggle in the corner.
-- This is the same server as the [`serve`](../commands.md#serve) command — use
+- This is the same server as the [`serve`](../usage/commands.md#serve) command — use
   the command for an arbitrary directory, or `server "PORT"` to wire it into a list.

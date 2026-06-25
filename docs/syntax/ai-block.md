@@ -33,7 +33,7 @@ Each line inside the block is a prompt followed by the output file:
 - The output extension decides the format:
   - `.md` (or no extension) saves the raw generated Markdown.
   - `.pdf` renders the generated Markdown to a styled PDF using the generic
-    template (same pipeline as [Markdown render](./markdown-render.md)). The
+    template (same pipeline as [Markdown render](../markdown-render.md)). The
     [`style`](./style.md) variable is honored for the PDF's CSS, falling back to
     the default stylesheet.
   - `.epub` packages the generated Markdown as an EPUB. The book title comes from
@@ -78,7 +78,7 @@ ai {
 - The model is asked to reply with the Markdown body only (no surrounding code
   fence), so the output is ready to use as-is.
 - Combine it with the [`readme`](./readme-block.md) or
-  [`markdown render`](./markdown-render.md) features to turn the generated
+  [`markdown render`](../markdown-render.md) features to turn the generated
   Markdown into styled PDF.
 - The block runs after downloads but before [`merge`](./merge.md),
   [`covers`](./covers.md) and [`compress`](./compress.md), so generated PDFs are

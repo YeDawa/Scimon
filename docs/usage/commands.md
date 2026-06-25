@@ -19,7 +19,7 @@ scimon run demo-1.0.0.scpkg   # extract a package and run its entry list
 
 A `.scpkg` argument is treated as a [package](../packages.md): it is extracted and
 its entry list is executed. See [Basic usage](./basic-usage.md) and the
-[language syntax](./syntax/what-is.md).
+[language syntax](../syntax/what-is.md).
 
 ## `check`
 
@@ -47,7 +47,7 @@ a `main.mon` entry list, and a `.entry` pointer. Existing files are left untouch
 scimon init
 ```
 
-See [Packages](./packages.md).
+See [Packages](../packages.md).
 
 ## `pack`
 
@@ -88,7 +88,7 @@ scimon compile https://example.com/readme.md
 ```
 
 Markdown is rendered with the generic template (MathJax/Mermaid supported) and
-printed to PDF. See the [Compiler](./compile.md) page for the full feature list.
+printed to PDF. See the [Compiler](../compile.md) page for the full feature list.
 
 ## `serve`
 
@@ -133,7 +133,7 @@ scimon pull my-list
 ## `push`
 
 Publish a Scimon list. The package being published is described by a
-`package.yml` file next to the list. See [Metadata](./syntax/metadata.md).
+`package.yml` file next to the list. See [Metadata](../syntax/metadata.md).
 
 ```shell
 scimon push scimon.mon
@@ -157,7 +157,7 @@ scimon options open-settings
 scimon options view-env
 ```
 
-See [Scimon.yml file](./configs/scimon.yml-file.md) and [.env file](./configs/env-file.md).
+See [Scimon.yml file](../configs/scimon.yml-file.md) and [.env file](../configs/env-file.md).
 
 ## `auth`
 

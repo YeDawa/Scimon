@@ -58,7 +58,7 @@ commands {
 By default the runner inspects each script before executing it: scripts with
 unusually high entropy (a sign of obfuscation) or that trip the built-in
 security rules are blocked. You can turn this off with the
-[`--no-secure`](../commands.md#global-flags) flag — only do so for scripts you
+[`--no-secure`](../usage/commands.md#global-flags) flag — only do so for scripts you
 trust.
 
 ### Scripts files locations in Operations Systems:
