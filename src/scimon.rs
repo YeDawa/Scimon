@@ -153,7 +153,7 @@ impl Scimon {
 
                 Commands::Init => {
                     UI::header();
-                    if let Err(err) = Init.create() {
+                    if let Err(err) = Init.create().await {
                         ErrorsAlerts::generic(&err.to_string());
                     }
                 },

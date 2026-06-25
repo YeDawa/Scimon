@@ -1,4 +1,5 @@
 use colored::*;
+use chrono::Local;
 
 use std::{
     fs,
@@ -17,6 +18,7 @@ use std::{
 
 use crate::{
     cmd::bundle::Bundle,
+    consts::addons::Addons,
     consts::bundler::Bundler,
 
     ui::{
@@ -25,62 +27,117 @@ use crate::{
     },
 };
 
+// The answers collected from the interactive prompts.
+struct Answers {
+    name: String,
+    description: String,
+    author: String,
+    license: String,
+    body: String,
+}
+
 pub struct Init;
 
 impl Init {
 
-    pub fn create(&self) -> Result<(), Box<dyn Error>> {
+    // Scaffolds a new Scimon package in its own folder: asks for the manifest
+    // fields and writes `package.yml`, `main.mon`, `README.md` and a `LICENSE`.
+    pub async fn create(&self) -> Result<(), Box<dyn Error>> {
         UI::section_header("Init", "normal");
 
-        let (name, description, manifest) = Self::prompt_manifest();
-        let folder = {
-            let slug = Bundle::slugify(&name);
+        let answers = Self::prompt();
 
-            if slug.is_empty() {
-                "package".to_string()
-            } else {
-                slug
-            }
+        let folder = {
+            let slug = Bundle::slugify(&answers.name);
+            if slug.is_empty() { "package".to_string() } else { slug }
         };
 
         let dir = PathBuf::from(&folder);
         fs::create_dir_all(&dir)?;
 
-        Self::write(&dir.join("package.yml"), &manifest)?;
+        Self::write(&dir.join("package.yml"), &answers.body)?;
         Self::write(&dir.join("main.mon"), Bundler::ENTRY_PACKAGE)?;
-        Self::write(&dir.join("README.md"), &format!("# {}\n\n{}\n", name, description))?;
+        Self::write(&dir.join("README.md"), &format!("# {}\n\n{}\n", answers.name, answers.description))?;
+
+        if !answers.license.is_empty() {
+            match Self::license_text(&answers.license, &answers.author).await {
+                Some(text) => Self::write(&dir.join("LICENSE"), &text)?,
+                None => println!(
+                    "  {} could not fetch '{}' license text; skipping LICENSE",
+                    "!".yellow().bold(),
+                    answers.license,
+                ),
+            }
+        }
 
         println!("\n  {} cd {}", "→".dimmed(), folder.blue().bold());
 
         Ok(())
     }
 
-    fn prompt_manifest() -> (String, String, String) {
+    // Asks for each field (with a default) and builds the package.yml body,
+    // omitting fields left empty.
+    fn prompt() -> Answers {
         let name = Self::ask("Package name", "my-package");
         let description = Self::ask("Description", "A Scimon package.");
+        let version = Self::ask("Version", "0.1.0");
+        let author = Self::ask("Author", "");
+        let license = Self::ask("License", "MIT");
+        let homepage = Self::ask("Homepage", "");
+        let privacy = Self::ask("Privacy", "Public");
 
         let fields = [
-            ("name", name.clone()),
-            ("version", Self::ask("Version", "0.1.0")),
-            ("description", description.clone()),
-            ("author", Self::ask("Author", "")),
-            ("license", Self::ask("License", "MIT")),
-            ("homepage", Self::ask("Homepage", "")),
-            ("privacy", Self::ask("Privacy", "Public")),
+            ("name", name.as_str()),
+            ("version", version.as_str()),
+            ("description", description.as_str()),
+            ("author", author.as_str()),
+            ("license", license.as_str()),
+            ("homepage", homepage.as_str()),
+            ("privacy", privacy.as_str()),
         ];
 
-        let mut manifest = String::from("# Scimon package metadata\n");
+        let mut body = String::from("# Scimon package metadata\n");
         for (key, value) in fields {
             if value.is_empty() {
                 continue;
             }
 
-            manifest.push_str(&format!("{}: \"{}\"\n", key, value.replace('"', "'")));
+            body.push_str(&format!("{}: \"{}\"\n", key, value.replace('"', "'")));
         }
 
-        (name, description, manifest)
+        Answers { name, description, author, license, body }
     }
 
+    // Downloads the chosen license text from the SPDX license list and fills in
+    // the copyright year and holder. Returns `None` if the license is unknown or
+    // the download fails.
+    async fn license_text(license: &str, author: &str) -> Option<String> {
+        let url = Addons::SPDX_LICENSE_TEXT.replace("%s", license);
+
+        let response = reqwest::get(&url).await.ok()?;
+        if !response.status().is_success() {
+            return None;
+        }
+
+        let text = response.text().await.ok()?;
+
+        let year = Local::now().format("%Y").to_string();
+        let holder = if author.is_empty() { "the authors" } else { author };
+
+        let text = text
+            .replace("<year>", &year)
+            .replace("[yyyy]", &year)
+            .replace("<copyright holders>", holder)
+            .replace("<copyright holder>", holder)
+            .replace("[name of copyright owner]", holder)
+            .replace("<name of author>", holder)
+            .replace("<owner>", holder);
+
+        Some(text)
+    }
+
+    // Prints a prompt (showing the default) and reads a trimmed line, falling
+    // back to the default when the input is empty.
     fn ask(label: &str, default: &str) -> String {
         let label = format!("{}:", label).blue().bold();
 
