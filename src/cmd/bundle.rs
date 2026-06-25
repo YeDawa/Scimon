@@ -332,9 +332,6 @@ impl Bundle {
         lists
     }
 
-    // Turns a package name into a shell-friendly file stem: lowercase, with runs
-    // of spaces and other unfriendly characters collapsed into single hyphens
-    // (`.` and `_` are kept so version numbers stay intact).
     fn slugify(value: &str) -> String {
         let mut slug = String::new();
         let mut prev_dash = false;
