@@ -16,7 +16,7 @@ Replace `https://example.com` with the page you want to scan.
 1. Scimon sends the URL to its scrape service, which returns the list of
    documents found on the page.
 2. Each non-encrypted item in the result is downloaded, reusing the normal
-   download pipeline (so [providers](./providers.md) like ChatGPT/Gemini/Arxiv
+   download pipeline (so [providers](../providers.md) like ChatGPT/Gemini/Arxiv
    are handled automatically).
 3. Files are saved to the Scimon scrape folder.
 

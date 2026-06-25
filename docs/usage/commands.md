@@ -17,7 +17,7 @@ scimon run https://example.com/scimon.mon
 scimon run demo-1.0.0.scpkg   # extract a package and run its entry list
 ```
 
-A `.scpkg` argument is treated as a [package](./packages.md): it is extracted and
+A `.scpkg` argument is treated as a [package](../packages.md): it is extracted and
 its entry list is executed. See [Basic usage](./basic-usage.md) and the
 [language syntax](./syntax/what-is.md).
 
@@ -59,9 +59,20 @@ scimon pack scimon.mon   # explicit entry list
 scimon pack              # use the entry recorded in .entry
 ```
 
-The bundle is named `<name>-<version>.scpkg` (lowercase) from the `package.yml`
+The bundle is named `<name>-<version>.scpkg` (slugified) from the `package.yml`
 next to the list. Run it with `scimon run demo-1.0.0.scpkg`. See
-[Packages](./packages.md).
+[Packages](../packages.md).
+
+## `info`
+
+Show a `.scpkg` bundle's metadata and contents **without extracting it** — the
+manifest fields, the entry list, and the packed files.
+
+```shell
+scimon info demo-1.0.0.scpkg
+```
+
+See [Packages](../packages.md).
 
 ## `compile`
 
@@ -91,9 +102,9 @@ scimon serve ./downloads -p 9000
 ```
 
 | Argument / flag    | Description                                                  |
-| ------------------ | ----------------------------------------------------------- |
-| `[path]`           | Directory to serve. Defaults to the Scimon downloads folder. |
-| `-p`, `--port`     | Port to listen on (default: `8080`).                         |
+| ------------------ | ------------------------------------------------------------ |
+| `[path]`         | Directory to serve. Defaults to the Scimon downloads folder. |
+| `-p`, `--port` | Port to listen on (default:`8080`).                        |
 
 The server binds to `127.0.0.1` (local only), shows a directory listing for
 folders, serves files with the right `Content-Type` (PDFs and images preview
@@ -132,14 +143,14 @@ scimon push scimon.mon
 
 Manage configuration files (`scimon.yml` and `.env`).
 
-| Option              | Action                                          |
-| ------------------- | ----------------------------------------------- |
-| `view-env`          | Print the current environment variables.        |
-| `open-env`          | Open the `.env` file in your text editor.        |
-| `open-settings`     | Open the `scimon.yml` file in your text editor.  |
+| Option                | Action                                           |
+| --------------------- | ------------------------------------------------ |
+| `view-env`          | Print the current environment variables.         |
+| `open-env`          | Open the`.env` file in your text editor.       |
+| `open-settings`     | Open the`scimon.yml` file in your text editor. |
 | `write-env`         | Add a new environment variable interactively.    |
-| `download-env`      | (Re)download the default `.env` file.            |
-| `download-settings` | (Re)download the default `scimon.yml` file.      |
+| `download-env`      | (Re)download the default`.env` file.           |
+| `download-settings` | (Re)download the default`scimon.yml` file.     |
 
 ```shell
 scimon options open-settings
@@ -170,12 +181,12 @@ scimon settings push
 
 These flags apply to every command:
 
-| Flag             | Description                                            |
-| ---------------- | ----------------------------------------------------- |
-| `--no-ignore`    | Process every line, ignoring the `!ignore` directive.  |
-| `--no-open-link` | Disable the `open` variable (don't open URLs).         |
-| `--no-readme`    | Skip rendering `readme` blocks.                         |
-| `--no-secure`    | Disable secure mode for the `commands {}` runner.      |
+| Flag               | Description                                            |
+| ------------------ | ------------------------------------------------------ |
+| `--no-ignore`    | Process every line, ignoring the`!ignore` directive. |
+| `--no-open-link` | Disable the`open` variable (don't open URLs).        |
+| `--no-readme`    | Skip rendering`readme` blocks.                       |
+| `--no-secure`    | Disable secure mode for the`commands {}` runner.     |
 
 ```shell
 scimon run scimon.mon --no-ignore --no-readme

@@ -196,7 +196,8 @@ plus every `.mon` it pulls in through `import`:
 
 ```bash
 scimon init                  # scaffold scimon.yml, main.mon and .entry
-scimon pack                  # → <name>-<version>.scpkg (lowercase), from .entry
+scimon pack                  # → <name>-<version>.scpkg (slugified), from .entry
+scimon info demo-1.0.0.scpkg # show a bundle's metadata and contents
 scimon run demo-1.0.0.scpkg  # extract a bundle and run its entry list
 ```
 

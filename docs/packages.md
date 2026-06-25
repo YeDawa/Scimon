@@ -9,11 +9,11 @@ license and the `.mon` lists.
 
 A `.scpkg` contains **only**:
 
-| File          | Description                                                       |
-| ------------- | ---------------------------------------------------------------- |
-| `package.yml` | The package [metadata](./syntax/metadata.md) manifest.           |
-| `LICENSE`     | The license file sitting next to the list, when present.         |
-| `*.mon`       | The entry list plus every list it pulls in through `import`.     |
+| File            | Description                                                   |
+| --------------- | ------------------------------------------------------------- |
+| `package.yml` | The package [metadata](./syntax/metadata.md) manifest.          |
+| `LICENSE`     | The license file sitting next to the list, when present.      |
+| `*.mon`       | The entry list plus every list it pulls in through`import`. |
 
 Generated output (the folder declared with [`path`](./syntax/what-is.md)) and
 other referenced assets are **not** included — a package ships source lists, not
@@ -30,11 +30,11 @@ scimon init
 
 It creates three files (leaving any that already exist untouched):
 
-| File         | Description                                                       |
-| ------------ | ---------------------------------------------------------------- |
+| File           | Description                                                              |
+| -------------- | ------------------------------------------------------------------------ |
 | `scimon.yml` | A package descriptor template (`name`, `description`, `author`…). |
-| `main.mon`   | The entry list, ready to edit.                                    |
-| `.entry`     | Records the entry list (`main.mon`) so `pack` knows what to ship. |
+| `main.mon`   | The entry list, ready to edit.                                           |
+| `.entry`     | Records the entry list (`main.mon`) so `pack` knows what to ship.    |
 
 ## `pack`
 
@@ -48,9 +48,10 @@ scimon pack              # use the entry recorded in .entry
 With no argument, `pack` reads the project's `.entry` (created by `init`) to find
 the entry list. Scimon reads the `package.yml` next to the list, gathers the entry
 and its imported `.mon` lists (followed transitively), adds the license, and writes
-`<name>-<version>.scpkg`. The file name is always **lowercase**; `name` and
-`version` come from `package.yml`. Without a `version` the file is just
-`<name>.scpkg`, and without a `name` it falls back to the list's file name.
+`<name>-<version>.scpkg`. The file name is **slugified** (lowercase, with spaces
+and other characters turned into hyphens); `name` and `version` come from
+`package.yml`. Without a `version` the file is just `<name>.scpkg`, and without a
+`name` it falls back to the list's file name.
 
 ```
 my-list/
@@ -63,6 +64,33 @@ my-list/
 ```shell
 scimon pack main.mon
 # → demo.scpkg   (package.yml, LICENSE, main.mon, lib.mon)
+```
+
+## `info`
+
+Inspect a bundle's metadata and contents **without extracting it**:
+
+```shell
+scimon info demo-1.0.0.scpkg
+```
+
+It reads the manifest and file list straight from the archive and prints the
+metadata, the entry list and the packed files:
+
+```
+PACKAGE INFO
+  Name:        demo
+  Version:     1.0.0
+  Description: A collection of papers.
+  Author:      YeDawa
+  License:     MIT
+  Homepage:    https://scimon.dev
+  Entry:       main.mon
+  Files:       4
+    - main.mon
+    - package.yml
+    - LICENSE
+    - lib.mon
 ```
 
 ## Running a bundle directly
