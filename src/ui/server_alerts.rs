@@ -31,7 +31,16 @@ impl ServerAlerts {
 
     pub fn to_quit() {
         println!(
-            "{}", "Press Ctrl+C again to quit.".dimmed(), 
+            "{}", "Press Ctrl+C to stop the server.".dimmed(),
+        );
+    }
+
+    pub fn stopped() {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Server stopped.",
+            current_datetime.yellow().bold(),
         );
     }
 

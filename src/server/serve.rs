@@ -1,11 +1,12 @@
 use std::{
     thread,
     fs::read,
-    sync::Arc,
     error::Error,
+    time::Duration,
 
     io::{
         BufRead,
+        ErrorKind,
         BufReader,
     },
 
@@ -17,6 +18,14 @@ use std::{
     path::{
         Path,
         PathBuf
+    },
+
+    sync::{
+        Arc,
+        atomic::{
+            Ordering,
+            AtomicBool,
+        },
     },
 };
 
@@ -100,19 +109,41 @@ impl Serve {
         ServerAlerts::started(self.port, url);
         ServerAlerts::to_quit();
 
-        for stream in listener.incoming() {
-            let Ok(stream) = stream else { continue };
-            let root = root.clone();
-            let source = self.source.clone();
-            let files = self.files.clone();
-            let archive = self.archive.clone();
-            let scripts = self.scripts.clone();
+        // Ctrl+C flips this flag; the accept loop is non-blocking so it can
+        // notice the request and shut the server down gracefully.
+        let running = Arc::new(AtomicBool::new(true));
+        let flag = running.clone();
+        ctrlc::set_handler(move || flag.store(false, Ordering::SeqCst))?;
 
-            thread::spawn(move || {
-                let _ = Self::handle(stream, &root, source, files, archive, scripts);
-            });
+        listener.set_nonblocking(true)?;
+
+        while running.load(Ordering::SeqCst) {
+            match listener.accept() {
+                Ok((stream, _)) => {
+                    // The accepted socket inherits non-blocking mode; restore
+                    // blocking I/O so the handler's reads behave normally.
+                    let _ = stream.set_nonblocking(false);
+
+                    let root = root.clone();
+                    let source = self.source.clone();
+                    let files = self.files.clone();
+                    let archive = self.archive.clone();
+                    let scripts = self.scripts.clone();
+
+                    thread::spawn(move || {
+                        let _ = Self::handle(stream, &root, source, files, archive, scripts);
+                    });
+                }
+
+                Err(ref e) if e.kind() == ErrorKind::WouldBlock => {
+                    thread::sleep(Duration::from_millis(100));
+                }
+
+                Err(_) => {}
+            }
         }
 
+        ServerAlerts::stopped();
         Ok(())
     }
 
