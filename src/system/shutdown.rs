@@ -25,10 +25,9 @@ impl Shutdown {
                 process::exit(0);
             }
 
-            let now = General.date_time();
             println!(
-                "\n{} Interrupting… press Ctrl+C again to force quit.",
-                now.yellow().bold(),
+                "\n{} Interrupting… Press Ctrl+C again to force quit.",
+                General.date_time().yellow().bold(),
             );
         });
     }
