@@ -332,7 +332,7 @@ impl Bundle {
         lists
     }
 
-    fn slugify(value: &str) -> String {
+    pub fn slugify(value: &str) -> String {
         let mut slug = String::new();
         let mut prev_dash = false;
 
