@@ -13,6 +13,7 @@ A `.scpkg` contains **only**:
 | --------------- | ------------------------------------------------------------- |
 | `package.yml` | The package [metadata](./syntax/metadata.md) manifest.          |
 | `LICENSE`     | The license file sitting next to the list, when present.      |
+| `README`      | The README file sitting next to the list, when present.       |
 | `*.mon`       | The entry list plus every list it pulls in through`import`. |
 
 Generated output (the folder declared with [`path`](./syntax/what-is.md)) and
