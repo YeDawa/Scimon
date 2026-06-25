@@ -35,13 +35,4 @@ impl ServerAlerts {
         );
     }
 
-    pub fn stopped() {
-        let current_datetime = General.date_time();
-
-        println!(
-            "{} Server stopped.",
-            current_datetime.yellow().bold(),
-        );
-    }
-
 }

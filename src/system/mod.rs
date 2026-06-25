@@ -5,5 +5,6 @@ pub mod scripts;
 pub mod markdown;
 pub mod providers;
 pub mod reporting;
+pub mod shutdown;
 pub mod plataforms;
 pub mod make_download;

@@ -12,6 +12,7 @@ use std::{
 use crate::{
     args_cli::Flags,
     utils::file::FileUtils,
+    system::shutdown::Shutdown,
     system::providers::Providers,
     regexp::regex_blocks::BlocksRegExp,
 
@@ -47,6 +48,15 @@ use crate::{
     },
 };
 
+// Stops the step sequence early when a graceful shutdown has been requested.
+macro_rules! stop_if_cancelled {
+    () => {
+        if Shutdown.cancelled() {
+            return Ok(());
+        }
+    };
+}
+
 pub struct DownloadsBlock;
 
 impl DownloadsBlock {
@@ -63,6 +73,11 @@ impl DownloadsBlock {
         let mut groups: Vec<String> = Vec::new();
 
         for raw_line in downloads_content.lines() {
+            // Stop queuing new downloads once a shutdown has been requested.
+            if Shutdown.cancelled() {
+                break;
+            }
+
             let trimmed = raw_line.trim();
 
             if trimmed.starts_with("downloads {") {
@@ -131,6 +146,10 @@ impl DownloadsBlock {
                             || MacroHandler::handle_check_macro_line(download_part, "extract");
 
                         let task = task::spawn(async move {
+                            if Shutdown.cancelled() {
+                                return;
+                            }
+
                             match Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks, unzip).await {
                                 Ok(file_path) => {
                                     if !file_path.is_empty() && !pipe_parts.is_empty() {
@@ -223,18 +242,29 @@ impl DownloadsBlock {
             }
         }
 
+        stop_if_cancelled!();
         let _ = AiBlock.generate_and_save_files(&contents).await;
+        stop_if_cancelled!();
         let _ = Merge::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Split::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Rotate::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Watermark::new(&contents).get();
 
+        stop_if_cancelled!();
         let _ = Covers::new(&contents).get().await;
+        stop_if_cancelled!();
         let _ = Compress::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Tasks.qr_codes(&contents, None).await;
+        stop_if_cancelled!();
         let _ = Math::new(&contents).render().await;
+        stop_if_cancelled!();
         let _ = Convert::new(&contents).run().await;
 
+        stop_if_cancelled!();
         Vars.get_open(&contents, flags.no_open_link).await;
         let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
 
@@ -269,17 +299,28 @@ impl DownloadsBlock {
             }
         }
 
+        stop_if_cancelled!();
         let _ = AiBlock.generate_and_save_files(&contents).await;
+        stop_if_cancelled!();
         let _ = Merge::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Split::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Rotate::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Watermark::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Compress::new(&contents).get();
+        stop_if_cancelled!();
         let _ = Covers::new(&contents).get().await;
+        stop_if_cancelled!();
         let _ = TasksRaw.qr_codes(&contents, None).await;
+        stop_if_cancelled!();
         let _ = Math::new(&contents).render().await;
+        stop_if_cancelled!();
         let _ = Convert::new(&contents).run().await;
 
+        stop_if_cancelled!();
         Vars.get_open(&contents, flags.no_open_link).await;
         let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
 

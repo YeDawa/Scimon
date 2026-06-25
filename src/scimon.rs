@@ -5,6 +5,7 @@ use crate::{
     args_cli::*,
     server::serve::Serve,
     addons::scrape::Scrape,
+    system::shutdown::Shutdown,
     syntax::validator::Validator,
     syntax::blocks::readme_block::ReadMeBlock,
 
@@ -77,6 +78,10 @@ impl Scimon {
     }
 
     pub async fn init(&self) {
+        // Register the single Ctrl+C handler up front so every step can stop
+        // gracefully.
+        Shutdown.init();
+
         let (print, force_mode) = (false, false);
 
         if let Err(err) = DownloadConfigsFiles.env_file(print, force_mode).await {

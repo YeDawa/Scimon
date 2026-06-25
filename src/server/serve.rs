@@ -20,18 +20,13 @@ use std::{
         PathBuf
     },
 
-    sync::{
-        Arc,
-        atomic::{
-            Ordering,
-            AtomicBool,
-        },
-    },
+    sync::Arc,
 };
 
 use crate::{
     utils::file::FileUtils,
     syntax::parser::Parser,
+    system::shutdown::Shutdown,
     generator::checksum::Checksum,
 
     ui::{
@@ -109,15 +104,11 @@ impl Serve {
         ServerAlerts::started(self.port, url);
         ServerAlerts::to_quit();
 
-        // Ctrl+C flips this flag; the accept loop is non-blocking so it can
-        // notice the request and shut the server down gracefully.
-        let running = Arc::new(AtomicBool::new(true));
-        let flag = running.clone();
-        ctrlc::set_handler(move || flag.store(false, Ordering::SeqCst))?;
-
+        // The accept loop is non-blocking so it can notice a graceful shutdown
+        // request (Ctrl+C) and stop serving cleanly.
         listener.set_nonblocking(true)?;
 
-        while running.load(Ordering::SeqCst) {
+        while !Shutdown.cancelled() {
             match listener.accept() {
                 Ok((stream, _)) => {
                     // The accepted socket inherits non-blocking mode; restore
@@ -143,7 +134,6 @@ impl Serve {
             }
         }
 
-        ServerAlerts::stopped();
         Ok(())
     }
 

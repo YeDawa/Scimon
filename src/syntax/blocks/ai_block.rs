@@ -15,6 +15,7 @@ use crate::{
     utils::file::FileUtils,
     render::render::Render,
     system::markdown::Markdown,
+    system::shutdown::Shutdown,
     addons::openrouter::OpenRouter,
     render::render_inject::RenderInject,
     regexp::regex_blocks::BlocksRegExp,
@@ -118,6 +119,10 @@ impl AiBlock {
     }
 
     async fn process_entry(entry: AiEntry, path: String, list_contents: String) {
+        if Shutdown.cancelled() {
+            return;
+        }
+
         let output_path = FileUtils
             .get_output_path(&path, &entry.file)
             .to_string_lossy()
@@ -180,6 +185,10 @@ impl AiBlock {
         let mut tasks = Vec::new();
 
         for line in block.lines() {
+            if Shutdown.cancelled() {
+                break;
+            }
+
             let trimmed = line.trim();
 
             if trimmed.is_empty() {

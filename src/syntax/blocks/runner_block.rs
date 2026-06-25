@@ -7,6 +7,7 @@ use crate::{
     ui::ui_base::UI,
     args_cli::Flags,
     system::scripts::Scripts,
+    system::shutdown::Shutdown,
 };
 
 pub struct RunnerBlock;
@@ -29,6 +30,10 @@ impl RunnerBlock {
             let commands_content = &contents[start_index + "commands ".len()..end_index];
 
             for line in commands_content.lines() {
+                if Shutdown.cancelled() {
+                    break;
+                }
+
                 let line_trimmed = line.trim();
 
                 if line.trim().starts_with("commands {") {
@@ -61,6 +66,10 @@ impl RunnerBlock {
             let commands_content = &contents[start_index + "commands ".len()..end_index];
 
             for line in commands_content.lines() {
+                if Shutdown.cancelled() {
+                    break;
+                }
+
                 let line_trimmed = line.trim();
 
                 if line.trim().starts_with("commands {") {
