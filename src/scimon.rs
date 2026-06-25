@@ -158,19 +158,10 @@ impl Scimon {
                     }
                 },
 
-                Commands::Pack { file } => {
+                Commands::Pack => {
                     UI::header();
-
-                    match Bundle.resolve_entry(file) {
-                        Some(entry) => {
-                            if let Err(err) = Bundle.pack(&entry) {
-                                ErrorsAlerts::generic(&err.to_string());
-                            }
-                        },
-
-                        None => ErrorsAlerts::generic(
-                            "No entry list to pack: pass a file or run `scimon init` first."
-                        ),
+                    if let Err(err) = Bundle.pack() {
+                        ErrorsAlerts::generic(&err.to_string());
                     }
                 },
 

@@ -56,11 +56,8 @@ pub enum Commands {
     /// Scaffold a new Scimon package in the current directory
     Init,
 
-    /// Pack a list and its assets into a distributable .scpkg bundle
-    Pack {
-        /// Entry list file to pack (defaults to the project's .entry)
-        file: Option<String>,
-    },
+    /// Pack the current package (its main.mon) into a distributable .scpkg bundle
+    Pack,
 
     /// Show a .scpkg bundle's metadata and contents without extracting it
     Info {

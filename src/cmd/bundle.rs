@@ -1,8 +1,6 @@
 use tar::{
-    Header,
     Archive,
     Builder,
-    EntryType,
 };
 
 use colored::*;
@@ -16,13 +14,9 @@ use flate2::{
 
 use std::{
     env,
+    io::Read,
     error::Error,
     collections::HashSet,
-
-    io::{
-        Read,
-        Write,
-    },
 
     fs::{
         self,
@@ -57,33 +51,28 @@ pub struct Bundle;
 
 impl Bundle {
 
-    pub fn pack(&self, mon_path: &str) -> Result<PathBuf, Box<dyn Error>> {
+    // Every package's entry list is named `main.mon`.
+    const ENTRY: &'static str = "main.mon";
+
+    pub fn pack(&self) -> Result<PathBuf, Box<dyn Error>> {
         UI::section_header("Packing", "normal");
 
-        let mon = Path::new(mon_path);
+        let mon = Path::new(Self::ENTRY);
         if !mon.is_file() {
-            return Err(format!("File not found: {}", mon_path).into());
+            return Err(
+                format!("Entry list '{}' not found in the current directory.", Self::ENTRY).into()
+            );
         }
 
-        let dir = mon.parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or_else(|| Path::new("."));
-
+        let dir = Path::new(".");
         let contents = fs::read_to_string(mon)?;
-        let mon_name = mon.file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| "list.mon".to_string());
 
-        let stem = mon.file_stem()
-            .map(|s| s.to_string_lossy().to_string())
+        let name = Package.name(Self::ENTRY)
+            .map(|n| Self::slugify(&n))
+            .filter(|n| !n.is_empty())
             .unwrap_or_else(|| "package".to_string());
 
-        let mut name = Self::slugify(&Package.name(mon_path).unwrap_or(stem));
-        if name.is_empty() {
-            name = "package".to_string();
-        }
-
-        let bundle_name = match Package.version(mon_path).map(|v| Self::slugify(&v)).filter(|v| !v.is_empty()) {
+        let bundle_name = match Package.version(Self::ENTRY).map(|v| Self::slugify(&v)).filter(|v| !v.is_empty()) {
             Some(version) => format!("{}-{}.scpkg", name, version),
             None => format!("{}.scpkg", name),
         };
@@ -92,8 +81,7 @@ impl Bundle {
         let encoder = GzEncoder::new(File::create(&output)?, Compression::default());
         let mut tar = Builder::new(encoder);
 
-        tar.append_path_with_name(mon, &mon_name)?;
-        Self::append_entry(&mut tar, &mon_name)?;
+        tar.append_path_with_name(mon, Self::ENTRY)?;
         let mut count = 1;
 
         let manifest = dir.join("package.yml");
@@ -111,8 +99,17 @@ impl Bundle {
             count += 1;
         }
 
+        if let Some(readme) = Self::find_readme(dir) {
+            let readme_name = readme.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "README.md".to_string());
+
+            tar.append_path_with_name(&readme, &readme_name)?;
+            count += 1;
+        }
+
         for (path, rel) in Self::detect_lists(dir, &contents) {
-            if rel == mon_name {
+            if rel == Self::ENTRY {
                 continue;
             }
 
@@ -124,10 +121,6 @@ impl Bundle {
         SuccessAlerts::packed(&bundle_name, count);
 
         Ok(output)
-    }
-
-    pub fn resolve_entry(&self, file: Option<String>) -> Option<String> {
-        file.or_else(|| Self::read_entry(Path::new(".")))
     }
 
     // Prints a bundle's metadata, entry and file list without extracting it.
@@ -143,16 +136,13 @@ impl Bundle {
 
         let mut files = Vec::new();
         let mut manifest = String::new();
-        let mut entry = String::new();
 
         for item in archive.entries()? {
             let mut item = item?;
             let name = item.path()?.to_string_lossy().replace('\\', "/");
 
-            match name.as_str() {
-                "package.yml" => { item.read_to_string(&mut manifest)?; }
-                ".entry" => { item.read_to_string(&mut entry)?; }
-                _ => {}
+            if name == "package.yml" {
+                item.read_to_string(&mut manifest)?;
             }
 
             files.push(name);
@@ -177,16 +167,10 @@ impl Bundle {
             }
         }
 
-        let entry = entry.trim();
-        if !entry.is_empty() {
-            Self::row("Entry", entry);
-        }
+        Self::row("Entry", Self::ENTRY);
 
-        // The `.entry` pointer is an internal marker, not user content.
-        let listed: Vec<&String> = files.iter().filter(|f| f.as_str() != ".entry").collect();
-
-        Self::row("Files", &listed.len().to_string());
-        for file in listed {
+        Self::row("Files", &files.len().to_string());
+        for file in &files {
             println!("    {} {}", "-".dimmed(), file);
         }
 
@@ -223,11 +207,11 @@ impl Bundle {
     pub async fn run(&self, bundle: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
         UI::section_header("Running", "normal");
 
-        let (dest, entry) = Self::unpack(bundle)?;
-        Self::run_entry(&dest, &entry, flags).await
+        let dest = Self::unpack(bundle)?;
+        Self::run_entry(&dest, Self::ENTRY, flags).await
     }
 
-    fn unpack(bundle: &str) -> Result<(PathBuf, String), Box<dyn Error>> {
+    fn unpack(bundle: &str) -> Result<PathBuf, Box<dyn Error>> {
         let bundle_path = Path::new(bundle);
         if !bundle_path.is_file() {
             return Err(format!("Bundle not found: {}", bundle).into());
@@ -243,12 +227,13 @@ impl Bundle {
         let mut archive = Archive::new(GzDecoder::new(File::open(bundle_path)?));
         archive.unpack(&dest)?;
 
-        let entry = Self::read_entry(&dest)
-            .filter(|name| dest.join(name).is_file())
-            .or_else(|| Self::find_list(&dest))
-            .ok_or_else(|| format!("No entry list found in {}", bundle))?;
+        if !dest.join(Self::ENTRY).is_file() {
+            return Err(
+                format!("Bundle '{}' has no '{}' entry list.", bundle, Self::ENTRY).into()
+            );
+        }
 
-        Ok((dest, entry))
+        Ok(dest)
     }
 
     async fn run_entry(dest: &Path, entry: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
@@ -273,27 +258,6 @@ impl Bundle {
         env::set_current_dir(previous)?;
 
         Ok(())
-    }
-
-    fn append_entry<W: Write>(tar: &mut Builder<W>, entry: &str) -> Result<(), Box<dyn Error>> {
-        let data = entry.as_bytes();
-
-        let mut header = Header::new_gnu();
-        header.set_size(data.len() as u64);
-        header.set_mode(0o644);
-        header.set_entry_type(EntryType::Regular);
-        header.set_cksum();
-
-        tar.append_data(&mut header, ".entry", data)?;
-
-        Ok(())
-    }
-
-    fn read_entry(dir: &Path) -> Option<String> {
-        fs::read_to_string(dir.join(".entry"))
-            .ok()
-            .map(|text| text.trim().to_string())
-            .filter(|text| !text.is_empty())
     }
 
     fn detect_lists(dir: &Path, contents: &str) -> Vec<(PathBuf, String)> {
@@ -359,6 +323,16 @@ impl Bundle {
             .find(|path| path.is_file())
     }
 
+    fn find_readme(dir: &Path) -> Option<PathBuf> {
+        const NAMES: [&str; 4] = [
+            "README.md", "README", "README.txt", "readme.md",
+        ];
+
+        NAMES.iter()
+            .map(|name| dir.join(name))
+            .find(|path| path.is_file())
+    }
+
     fn output_prefix(contents: &str) -> Option<String> {
         let path = Vars.get_path(contents);
         let normalised = path.trim()
@@ -377,14 +351,6 @@ impl Bundle {
             Some(prefix) => rel == prefix || rel.starts_with(&format!("{}/", prefix)),
             None => false,
         }
-    }
-
-    fn find_list(dir: &Path) -> Option<String> {
-        fs::read_dir(dir).ok()?
-            .flatten()
-            .map(|entry| entry.path())
-            .find(|path| path.extension().map(|ext| ext == "mon").unwrap_or(false))
-            .and_then(|path| path.file_name().map(|n| n.to_string_lossy().to_string()))
     }
 
 }

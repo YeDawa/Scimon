@@ -32,7 +32,7 @@ impl Init {
     pub fn create(&self) -> Result<(), Box<dyn Error>> {
         UI::section_header("Init", "normal");
 
-        let (name, manifest) = Self::prompt_manifest();
+        let (name, description, manifest) = Self::prompt_manifest();
         let folder = {
             let slug = Bundle::slugify(&name);
 
@@ -48,19 +48,21 @@ impl Init {
 
         Self::write(&dir.join("package.yml"), &manifest)?;
         Self::write(&dir.join("main.mon"), Bundler::ENTRY_PACKAGE)?;
+        Self::write(&dir.join("README.md"), &format!("# {}\n\n{}\n", name, description))?;
 
         println!("\n  {} cd {}", "→".dimmed(), folder.blue().bold());
 
         Ok(())
     }
 
-    fn prompt_manifest() -> (String, String) {
+    fn prompt_manifest() -> (String, String, String) {
         let name = Self::ask("Package name", "my-package");
+        let description = Self::ask("Description", "A Scimon package.");
 
         let fields = [
             ("name", name.clone()),
             ("version", Self::ask("Version", "0.1.0")),
-            ("description", Self::ask("Description", "A Scimon package.")),
+            ("description", description.clone()),
             ("author", Self::ask("Author", "")),
             ("license", Self::ask("License", "MIT")),
             ("homepage", Self::ask("Homepage", "")),
@@ -76,7 +78,7 @@ impl Init {
             manifest.push_str(&format!("{}: \"{}\"\n", key, value.replace('"', "'")));
         }
 
-        (name, manifest)
+        (name, description, manifest)
     }
 
     fn ask(label: &str, default: &str) -> String {
