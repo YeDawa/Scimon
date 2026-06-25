@@ -5,6 +5,9 @@ use tar::{
     EntryType,
 };
 
+use colored::*;
+use serde_yaml::Value;
+
 use flate2::{
     Compression,
     read::GzDecoder,
@@ -13,9 +16,13 @@ use flate2::{
 
 use std::{
     env,
-    io::Write,
     error::Error,
     collections::HashSet,
+
+    io::{
+        Read,
+        Write,
+    },
 
     fs::{
         self,
@@ -71,11 +78,15 @@ impl Bundle {
             .map(|s| s.to_string_lossy().to_string())
             .unwrap_or_else(|| "package".to_string());
 
-        let name = Package.name(mon_path).unwrap_or(stem);
-        let bundle_name = match Package.version(mon_path) {
+        let mut name = Self::slugify(&Package.name(mon_path).unwrap_or(stem));
+        if name.is_empty() {
+            name = "package".to_string();
+        }
+
+        let bundle_name = match Package.version(mon_path).map(|v| Self::slugify(&v)).filter(|v| !v.is_empty()) {
             Some(version) => format!("{}-{}.scpkg", name, version),
             None => format!("{}.scpkg", name),
-        }.to_lowercase();
+        };
 
         let output = PathBuf::from(&bundle_name);
         let encoder = GzEncoder::new(File::create(&output)?, Compression::default());
@@ -117,6 +128,96 @@ impl Bundle {
 
     pub fn resolve_entry(&self, file: Option<String>) -> Option<String> {
         file.or_else(|| Self::read_entry(Path::new(".")))
+    }
+
+    // Prints a bundle's metadata, entry and file list without extracting it.
+    pub fn info(&self, bundle: &str) -> Result<(), Box<dyn Error>> {
+        UI::section_header("Package Info", "normal");
+
+        let bundle_path = Path::new(bundle);
+        if !bundle_path.is_file() {
+            return Err(format!("Bundle not found: {}", bundle).into());
+        }
+
+        let mut archive = Archive::new(GzDecoder::new(File::open(bundle_path)?));
+
+        let mut files = Vec::new();
+        let mut manifest = String::new();
+        let mut entry = String::new();
+
+        for item in archive.entries()? {
+            let mut item = item?;
+            let name = item.path()?.to_string_lossy().replace('\\', "/");
+
+            match name.as_str() {
+                "package.yml" => { item.read_to_string(&mut manifest)?; }
+                ".entry" => { item.read_to_string(&mut entry)?; }
+                _ => {}
+            }
+
+            files.push(name);
+        }
+
+        let data: Value = serde_yaml::from_str(&manifest).unwrap_or(Value::Null);
+
+        for (label, key) in [
+            ("Name", "name"),
+            ("Version", "version"),
+            ("Description", "description"),
+            ("Author", "author"),
+            ("License", "license"),
+            ("Homepage", "homepage"),
+        ] {
+            let value = Self::manifest_field(&data, key).or_else(|| {
+                if key == "author" { Self::manifest_field(&data, "authors") } else { None }
+            });
+
+            if let Some(value) = value {
+                Self::row(label, &value);
+            }
+        }
+
+        let entry = entry.trim();
+        if !entry.is_empty() {
+            Self::row("Entry", entry);
+        }
+
+        // The `.entry` pointer is an internal marker, not user content.
+        let listed: Vec<&String> = files.iter().filter(|f| f.as_str() != ".entry").collect();
+
+        Self::row("Files", &listed.len().to_string());
+        for file in listed {
+            println!("    {} {}", "-".dimmed(), file);
+        }
+
+        Ok(())
+    }
+
+    // Prints a left-aligned, coloured "Label: value" row.
+    fn row(label: &str, value: &str) {
+        let label = format!("{:<12}", format!("{}:", label));
+        println!("  {} {}", label.blue().bold(), value);
+    }
+
+    // Reads a manifest field as a string, joining a list into a comma list.
+    fn manifest_field(data: &Value, key: &str) -> Option<String> {
+        let value = &data[key];
+
+        if let Some(text) = value.as_str() {
+            return Some(text.to_string());
+        }
+
+        if let Some(items) = value.as_sequence() {
+            let joined: Vec<String> = items.iter()
+                .filter_map(|item| item.as_str().map(|s| s.to_string()))
+                .collect();
+
+            if !joined.is_empty() {
+                return Some(joined.join(", "));
+            }
+        }
+
+        None
     }
 
     pub async fn run(&self, bundle: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
@@ -229,6 +330,26 @@ impl Bundle {
         }
 
         lists
+    }
+
+    // Turns a package name into a shell-friendly file stem: lowercase, with runs
+    // of spaces and other unfriendly characters collapsed into single hyphens
+    // (`.` and `_` are kept so version numbers stay intact).
+    fn slugify(value: &str) -> String {
+        let mut slug = String::new();
+        let mut prev_dash = false;
+
+        for ch in value.trim().chars() {
+            if ch.is_ascii_alphanumeric() || ch == '.' || ch == '_' {
+                slug.push(ch.to_ascii_lowercase());
+                prev_dash = false;
+            } else if !prev_dash {
+                slug.push('-');
+                prev_dash = true;
+            }
+        }
+
+        slug.trim_matches('-').to_string()
     }
 
     fn find_license(dir: &Path) -> Option<PathBuf> {

@@ -62,6 +62,12 @@ pub enum Commands {
         file: Option<String>,
     },
 
+    /// Show a .scpkg bundle's metadata and contents without extracting it
+    Info {
+        /// Bundle file (.scpkg) to inspect
+        file: String,
+    },
+
     /// Scraping the web page for list of documents
     Scrape {
         /// Url to scrape

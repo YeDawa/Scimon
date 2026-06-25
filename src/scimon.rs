@@ -174,6 +174,13 @@ impl Scimon {
                     }
                 },
 
+                Commands::Info { file } => {
+                    UI::header();
+                    if let Err(err) = Bundle.info(&file) {
+                        ErrorsAlerts::generic(&err.to_string());
+                    }
+                },
+
                 Commands::Scrape { url } => {
                     UI::header();
                     let _ = Scrape.get(&flags_clone, &url).await;
