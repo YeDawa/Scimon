@@ -13,27 +13,27 @@ impl BlocksRegExp {
 
     pub const GET_AI_ENTRY: &'static str = r#"(?i)^"(?P<prompt>(?:[^"\\]|\\.)*)"\s+as\s+"(?P<file>[^"]+)"(?:\s+with\s+"(?P<model>[^"]+)")?"#;
 
-    pub const GET_PATH_VAR: &'static str = r#"(?i)path\s*"([^"]+)""#;
+    pub const GET_PATH_VAR: &'static str = r#"(?im)^\s*path\s+"([^"]+)""#;
 
-    pub const GET_OPEN_VAR: &'static str = r#"(?i)open\s*"([^"]+)""#;
+    pub const GET_OPEN_VAR: &'static str = r#"(?im)^\s*open\s+"([^"]+)""#;
     
-    pub const GET_STYLE_VAR: &'static str = r#"(?i)style\s*"([^"]+)""#;
+    pub const GET_STYLE_VAR: &'static str = r#"(?im)^\s*style\s+"([^"]+)""#;
     
-    pub const GET_PRINT_VAR: &'static str = r#"(?i)print\s*"([^"]+)""#;
+    pub const GET_PRINT_VAR: &'static str = r#"(?im)^\s*print\s+"([^"]+)""#;
     
-    pub const GET_README_VAR: &'static str = r#"(?i)readme\s*"([^"]+)""#;
+    pub const GET_README_VAR: &'static str = r#"(?im)^\s*readme\s+"([^"]+)""#;
     
-    pub const GET_COVERS_VAR: &'static str = r#"(?i)covers\s*"([^"]+)""#;
+    pub const GET_COVERS_VAR: &'static str = r#"(?im)^\s*covers\s+"([^"]+)""#;
     
-    pub const GET_QRCODE_VAR: &'static str = r#"(?i)qrcode\s*"([^"]+)""#;
+    pub const GET_QRCODE_VAR: &'static str = r#"(?im)^\s*qrcode\s+"([^"]+)""#;
 
-    pub const GET_SERVER_VAR: &'static str = r#"(?i)server\s*"([^"]+)""#;
+    pub const GET_SERVER_VAR: &'static str = r#"(?im)^\s*server\s+"([^"]+)""#;
 
-    pub const GET_COMPRESS_VAR: &'static str = r#"(?i)compress\s*"([^"]+)""#;
+    pub const GET_COMPRESS_VAR: &'static str = r#"(?im)^\s*compress\s+"([^"]+)""#;
 
-    pub const GET_COPY_VAR: &'static str = r#"(?i)copy\s*"([^"]+)""#;
+    pub const GET_COPY_VAR: &'static str = r#"(?im)^\s*copy\s+"([^"]+)""#;
 
-    pub const GET_IMPORT_VAR: &'static str = r#"(?i)import\s*"([^"]+)""#;
+    pub const GET_IMPORT_VAR: &'static str = r#"(?im)^\s*import\s+"([^"]+)""#;
 
     pub const GET_IMPORT_LINE: &'static str = r#"(?i)^\s*import\s+"([^"]+)"\s*$"#;
 
