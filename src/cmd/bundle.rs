@@ -31,12 +31,17 @@ use std::{
 use crate::{
     args_cli::Flags,
     syntax::vars::Vars,
-    cmd::monset::Monset,
     configs::package::Package,
     syntax::blocks::readme_block::ReadMeBlock,
 
+    cmd::{
+        copy::Copy,
+        monset::Monset,
+    },
+
     ui::{
         ui_base::UI,
+        errors_alerts::ErrorsAlerts,
         success_alerts::SuccessAlerts,
     },
 };
@@ -58,7 +63,6 @@ impl Bundle {
             .unwrap_or_else(|| Path::new("."));
 
         let contents = fs::read_to_string(mon)?;
-
         let mon_name = mon.file_name()
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_else(|| "list.mon".to_string());
@@ -77,13 +81,10 @@ impl Bundle {
         let encoder = GzEncoder::new(File::create(&output)?, Compression::default());
         let mut tar = Builder::new(encoder);
 
-        // The entry list lives at the archive root; `.entry` records which list
-        // is the one to execute when the bundle is run or installed.
         tar.append_path_with_name(mon, &mon_name)?;
         Self::append_entry(&mut tar, &mon_name)?;
         let mut count = 1;
 
-        // The manifest and the license describe the package.
         let manifest = dir.join("package.yml");
         if manifest.is_file() {
             tar.append_path_with_name(&manifest, "package.yml")?;
@@ -99,7 +100,6 @@ impl Bundle {
             count += 1;
         }
 
-        // Every `.mon` list reachable through `import` directives.
         for (path, rel) in Self::detect_lists(dir, &contents) {
             if rel == mon_name {
                 continue;
@@ -115,14 +115,10 @@ impl Bundle {
         Ok(output)
     }
 
-    // Resolves the entry list to pack: the given file, or the one recorded in a
-    // project-level `.entry` file (created by `scimon init`).
     pub fn resolve_entry(&self, file: Option<String>) -> Option<String> {
         file.or_else(|| Self::read_entry(Path::new(".")))
     }
 
-    // Runs a `.scpkg` bundle directly (`scimon run app.scpkg`): extracts it and
-    // immediately executes the entry list, like running a plain `.mon` file.
     pub async fn run(&self, bundle: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
         UI::section_header("Running", "normal");
 
@@ -130,8 +126,6 @@ impl Bundle {
         Self::run_entry(&dest, &entry, flags).await
     }
 
-    // Extracts a bundle into a folder named after it and resolves the entry list
-    // recorded in `.entry` (falling back to the first `.mon` found).
     fn unpack(bundle: &str) -> Result<(PathBuf, String), Box<dyn Error>> {
         let bundle_path = Path::new(bundle);
         if !bundle_path.is_file() {
@@ -156,23 +150,30 @@ impl Bundle {
         Ok((dest, entry))
     }
 
-    // Runs the entry list from inside the package directory so its assets resolve
-    // at their original relative paths.
     async fn run_entry(dest: &Path, entry: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
         let previous = env::current_dir()?;
         env::set_current_dir(dest)?;
 
         let monset = Monset::new(entry);
+        let contents = monset.raw_contents().await.unwrap_or_default();
+
         let _ = monset.downloads(flags).await;
         let _ = monset.run_code(flags).await;
         ReadMeBlock.render_block_and_save_file(entry, flags).await;
+
+        if let Err(err) = Copy::new(&contents).get() {
+            ErrorsAlerts::generic(&err.to_string());
+        }
+
+        if let Err(err) = monset.server().await {
+            ErrorsAlerts::generic(&err.to_string());
+        }
 
         env::set_current_dir(previous)?;
 
         Ok(())
     }
 
-    // Writes the `.entry` pointer (the entry list's file name) into the archive.
     fn append_entry<W: Write>(tar: &mut Builder<W>, entry: &str) -> Result<(), Box<dyn Error>> {
         let data = entry.as_bytes();
 
@@ -187,7 +188,6 @@ impl Bundle {
         Ok(())
     }
 
-    // Reads the `.entry` pointer written at pack time.
     fn read_entry(dir: &Path) -> Option<String> {
         fs::read_to_string(dir.join(".entry"))
             .ok()
@@ -195,8 +195,6 @@ impl Bundle {
             .filter(|text| !text.is_empty())
     }
 
-    // Collects the `.mon` lists reachable from the entry through `import`
-    // directives (transitively), skipping anything inside the output directory.
     fn detect_lists(dir: &Path, contents: &str) -> Vec<(PathBuf, String)> {
         let output = Self::output_prefix(contents);
 
@@ -233,7 +231,6 @@ impl Bundle {
         lists
     }
 
-    // Finds a license file next to the entry list, if any.
     fn find_license(dir: &Path) -> Option<PathBuf> {
         const NAMES: [&str; 6] = [
             "LICENSE", "LICENSE.txt", "LICENSE.md", "license", "license.txt", "COPYING",
@@ -244,8 +241,6 @@ impl Bundle {
             .find(|path| path.is_file())
     }
 
-    // The list's output directory (`path` directive), normalised without a
-    // trailing slash; `None` when it is the current directory.
     fn output_prefix(contents: &str) -> Option<String> {
         let path = Vars.get_path(contents);
         let normalised = path.trim()
@@ -259,7 +254,6 @@ impl Bundle {
         }
     }
 
-    // True when a relative path sits inside the list's output directory.
     fn in_output(rel: &str, output: &Option<String>) -> bool {
         match output {
             Some(prefix) => rel == prefix || rel.starts_with(&format!("{}/", prefix)),
@@ -267,7 +261,6 @@ impl Bundle {
         }
     }
 
-    // Returns the file name of the first `.mon` list found at the root of `dir`.
     fn find_list(dir: &Path) -> Option<String> {
         fs::read_dir(dir).ok()?
             .flatten()

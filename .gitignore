@@ -79,3 +79,6 @@ site/
 
 .entry
 package.yml
+
+# Others
+scimon/*
