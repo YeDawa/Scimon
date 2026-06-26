@@ -1,6 +1,6 @@
 use crate::{
     utils::remote::Remote,
-    handlers::static_files::MonlibStaticFiles,
+    handlers::monlib_static_files::MonlibStaticFiles,
 };
 
 pub struct RenderInjectFiles;

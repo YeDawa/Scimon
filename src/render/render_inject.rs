@@ -4,7 +4,7 @@ use std::error::Error;
 use crate::{
     syntax::vars::Vars,
     utils::remote::Remote,
-    handlers::static_files::MonlibStaticFiles,
+    handlers::monlib_static_files::MonlibStaticFiles,
     templates::generic::TemplateGeneric,
 };
 
