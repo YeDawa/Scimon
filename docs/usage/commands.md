@@ -14,12 +14,12 @@ and renders any `readme`. Accepts a local path or a remote URL.
 ```shell
 scimon run scimon.mon
 scimon run https://example.com/scimon.mon
-scimon run demo-1.0.0.scpkg   # extract a package and run its entry list
+scimon run demo-1.0.0.scpkg   # extract a package and run its main.mon
 ```
 
 A `.scpkg` argument is treated as a [package](../packages.md): it is extracted and
-its entry list is executed. See [Basic usage](./basic-usage.md) and the
-[language syntax](../syntax/what-is.md).
+its `main.mon` is executed (an error is reported if the bundle has no `main.mon`).
+See [Basic usage](./basic-usage.md) and the [language syntax](../syntax/what-is.md).
 
 ## `check`
 
@@ -40,8 +40,10 @@ scimon check scimon.mon && scimon run scimon.mon
 
 ## `init`
 
-Scaffold a new Scimon package in the current directory: a `scimon.yml` descriptor,
-a `main.mon` entry list, and a `.entry` pointer. Existing files are left untouched.
+Scaffold a new Scimon package. `init` asks for the manifest fields and creates a
+new folder named after the package, containing `package.yml`, a `main.mon` entry
+list, a `README.md`, and a `LICENSE` (the chosen license's text, downloaded from
+SPDX). Existing files are left untouched.
 
 ```shell
 scimon init
@@ -51,17 +53,16 @@ See [Packages](../packages.md).
 
 ## `pack`
 
-Bundle a list, its imported `.mon` lists and its license into a single
-distributable **`.scpkg`** package.
+Bundle the current package — its `main.mon`, manifest, license, README and every
+imported `.mon` list — into a single distributable **`.scpkg`**.
 
 ```shell
-scimon pack scimon.mon   # explicit entry list
-scimon pack              # use the entry recorded in .entry
+scimon pack
 ```
 
-The bundle is named `<name>-<version>.scpkg` (slugified) from the `package.yml`
-next to the list. Run it with `scimon run demo-1.0.0.scpkg`. See
-[Packages](../packages.md).
+It reads `main.mon` from the current directory and writes
+`<name>-<version>.scpkg` (slugified), with `name`/`version` from `package.yml`.
+Run it with `scimon run <name>-<version>.scpkg`. See [Packages](../packages.md).
 
 ## `info`
 
@@ -123,12 +124,17 @@ See [Scrape](./scrape.md).
 
 ## `pull`
 
-Pull a Scimon list (and its referenced assets) from a remote location into your
-workspace.
+Download a package's `.scpkg` from [Monlib](https://monlib.net), run it, and then
+remove the downloaded archive — leaving only the extracted package.
 
 ```shell
-scimon pull my-list
+scimon pull demo            # latest version
+scimon pull demo@1.0.0      # a specific version
 ```
+
+Without a version it fetches the latest non-yanked release; `demo@1.0.0` pins an
+exact one. A private package can only be pulled by its owner. See
+[Packages](../packages.md).
 
 ## `push`
 

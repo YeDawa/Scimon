@@ -2,69 +2,80 @@
 
 A Scimon **package** is a single distributable file — a **`.scpkg`** bundle — that
 carries a list and everything needed to share or publish it. It is a
-gzip-compressed tar archive (like a Rust `.crate`) holding the manifest, the
-license and the `.mon` lists.
+gzip-compressed tar archive (like a Rust `.crate`). The entry list is always
+**`main.mon`**.
 
 ## What's inside
 
-A `.scpkg` contains **only**:
+A `.scpkg` contains **only** the source:
 
-| File            | Description                                                   |
-| --------------- | ------------------------------------------------------------- |
-| `package.yml` | The package [metadata](./syntax/metadata.md) manifest.          |
-| `LICENSE`     | The license file sitting next to the list, when present.      |
-| `README`      | The README file sitting next to the list, when present.       |
-| `*.mon`       | The entry list plus every list it pulls in through`import`. |
+| File          | Description                                                       |
+| ------------- | ---------------------------------------------------------------- |
+| `package.yml` | The package [metadata](./syntax/metadata.md) manifest.           |
+| `LICENSE`     | The license file sitting next to the list, when present.         |
+| `README`      | The README file sitting next to the list, when present.          |
+| `main.mon`    | The entry list — always run first.                               |
+| `*.mon`       | Every other list `main.mon` pulls in through `import`.           |
 
 Generated output (the folder declared with [`path`](./syntax/what-is.md)) and
 other referenced assets are **not** included — a package ships source lists, not
-build artifacts. Internally the bundle also records which list is the entry, so it
-always runs the right one.
+build artifacts.
 
 ## `init`
 
-Scaffold a new package in the current directory:
+Scaffold a new package. `init` asks for the manifest fields and creates a new
+folder named after the package:
 
 ```shell
 scimon init
 ```
 
-It creates three files (leaving any that already exist untouched):
+```
+Package name: (my-package) demo
+Description:  (A Scimon package.) A collection of papers
+Version:      (0.1.0) 1.0.0
+Author:       YeDawa
+License:      (MIT)
+Homepage:
+Privacy:      (Public)
+```
 
-| File           | Description                                                              |
-| -------------- | ------------------------------------------------------------------------ |
-| `scimon.yml` | A package descriptor template (`name`, `description`, `author`…). |
-| `main.mon`   | The entry list, ready to edit.                                           |
-| `.entry`     | Records the entry list (`main.mon`) so `pack` knows what to ship.    |
+It writes four files into `demo/` (leaving any that already exist untouched):
+
+| File          | Description                                                       |
+| ------------- | ---------------------------------------------------------------- |
+| `package.yml` | The manifest, filled from your answers.                          |
+| `main.mon`    | The entry list, ready to edit.                                   |
+| `README.md`   | `# <name>` plus the description.                                 |
+| `LICENSE`     | The chosen license's full text, downloaded from the SPDX list with the year and author filled in. |
 
 ## `pack`
 
-Build a bundle from an entry list:
+Bundle the current package — its `main.mon`, manifest, license, README and every
+imported `.mon` list — into a `.scpkg`:
 
 ```shell
-scimon pack scimon.mon   # explicit entry
-scimon pack              # use the entry recorded in .entry
+scimon pack
 ```
 
-With no argument, `pack` reads the project's `.entry` (created by `init`) to find
-the entry list. Scimon reads the `package.yml` next to the list, gathers the entry
-and its imported `.mon` lists (followed transitively), adds the license, and writes
-`<name>-<version>.scpkg`. The file name is **slugified** (lowercase, with spaces
-and other characters turned into hyphens); `name` and `version` come from
-`package.yml`. Without a `version` the file is just `<name>.scpkg`, and without a
-`name` it falls back to the list's file name.
+Scimon reads `main.mon` from the current directory, gathers the lists it imports
+(followed transitively), and writes `<name>-<version>.scpkg`. The file name is
+**slugified** (lowercase, with spaces and other characters turned into hyphens);
+`name` and `version` come from `package.yml`. Without a `version` the file is just
+`<name>.scpkg`.
 
 ```
-my-list/
+demo/
 ├── package.yml      # name: "demo", version: "1.0.0"
 ├── LICENSE
+├── README.md
 ├── main.mon         # import "lib.mon"
 └── lib.mon
 ```
 
 ```shell
-scimon pack main.mon
-# → demo.scpkg   (package.yml, LICENSE, main.mon, lib.mon)
+cd demo && scimon pack
+# → demo-1.0.0.scpkg   (package.yml, LICENSE, README.md, main.mon, lib.mon)
 ```
 
 ## `info`
@@ -76,7 +87,7 @@ scimon info demo-1.0.0.scpkg
 ```
 
 It reads the manifest and file list straight from the archive and prints the
-metadata, the entry list and the packed files:
+metadata, the entry and the packed files:
 
 ```
 PACKAGE INFO
@@ -87,30 +98,44 @@ PACKAGE INFO
   License:     MIT
   Homepage:    https://scimon.dev
   Entry:       main.mon
-  Files:       4
+  Files:       5
     - main.mon
     - package.yml
     - LICENSE
+    - README.md
     - lib.mon
 ```
 
-## Running a bundle directly
+## Running a bundle
 
-`run` also accepts a `.scpkg`: it extracts the bundle and immediately runs the
-entry list, just like running a plain `.mon` file.
+`run` also accepts a `.scpkg`: it extracts the bundle into a folder named after it
+and runs `main.mon` from there, just like running a plain list.
 
 ```shell
-scimon run demo.scpkg
+scimon run demo-1.0.0.scpkg
 ```
+
+If the bundle has no `main.mon`, `run` reports an error.
+
+## `pull`
+
+Download a package from [Monlib](https://monlib.net), run it, and drop the
+downloaded archive — leaving only the extracted package:
+
+```shell
+scimon pull demo            # latest version
+scimon pull demo@1.0.0      # a specific version
+```
+
+`pull demo` fetches the latest non-yanked version; `pull demo@1.0.0` pins an exact
+one. A private package can only be pulled by its owner.
 
 ## Notes
 
-- The **entry** is the list you pass to `pack`; it is the one executed on
-  `run`.
+- The entry is **always `main.mon`** — `pack` packs it, and `run`/`pull` execute it.
 - Imports are followed **transitively** — a list imported by an imported list is
   packed too.
-- Remote (`http(s)`) and [Monlib](https://monlib.net) imports are resolved at run
-  time, so they are not packed.
-- `init` writes the descriptor to `scimon.yml`, but the metadata read when packing
-  comes from `package.yml` — see [Metadata](./syntax/metadata.md).
-- See [Import](./syntax/import.md) for how lists pull in one another.
+- Remote (`http(s)`) and Monlib imports are resolved at run time, so they are not
+  packed.
+- See [Metadata](./syntax/metadata.md) for the `package.yml` fields and
+  [Import](./syntax/import.md) for how lists pull in one another.
