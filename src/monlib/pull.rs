@@ -10,14 +10,13 @@ use std::{
 
 use crate::{
     consts::addons::Addons,
+    handlers::monlib_errors::*,
     monlib::request::MonlibRequest,
 
     ui::{
         errors_alerts::ErrorsAlerts,
         success_alerts::SuccessAlerts,
     },
-
-    handlers::monlib_errors::*,
 };
 
 pub struct MonlibPull;
