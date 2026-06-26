@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::consts::{
-    addons::Addons,
+    ai::AI,
     global::Global,
     folders::Folders,
 };
@@ -25,7 +25,7 @@ impl OpenRouter {
     pub fn new(model: Option<String>) -> Self {
         let model = model
             .filter(|m| !m.trim().is_empty())
-            .unwrap_or_else(|| Addons::OPENROUTER_DEFAULT_MODEL.to_string());
+            .unwrap_or_else(|| AI::OPENROUTER_DEFAULT_MODEL.to_string());
 
         Self { model }
     }
@@ -35,10 +35,10 @@ impl OpenRouter {
             Folders::APP_FOLDER.join(".env")
         ).ok();
 
-        env::var(Addons::OPENROUTER_API_ENV).map_err(|_| {
+        env::var(AI::OPENROUTER_API_ENV).map_err(|_| {
             format!(
                 "{} is not set. Add it to your .env file (scimon options open-env).",
-                Addons::OPENROUTER_API_ENV
+                AI::OPENROUTER_API_ENV
             ).into()
         })
     }
@@ -62,7 +62,7 @@ impl OpenRouter {
         });
 
         let response = client
-            .post(Addons::OPENROUTER_API_REQUEST)
+            .post(AI::OPENROUTER_API_REQUEST)
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .header("X-Title", Global::APP_NAME)

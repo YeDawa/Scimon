@@ -4,9 +4,9 @@ use std::{
 };
 
 use crate::{
-    consts::addons::Addons,
-    utils::scraping::Scraping,
+    consts::ai::AI,
     render::render::Render,
+    utils::scraping::Scraping,
     ui::success_alerts::SuccessAlerts,
     render::render_images::RenderImages,
     templates::generic::TemplateGeneric,
@@ -34,7 +34,7 @@ impl Gemini {
         let content = scraping.get_html().await?;
 
         let title = scraping.title(&content);
-        let html_content = scraping.content(&content, Addons::GEMINI_CONTENT_CLASS);
+        let html_content = scraping.content(&content, AI::GEMINI_CONTENT_CLASS);
         
         Ok((title, html_content))
     }

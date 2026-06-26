@@ -4,9 +4,9 @@ use std::{
 };
 
 use crate::{
-    consts::addons::Addons,
-    utils::scraping::Scraping,
+    consts::ai::AI,
     render::render::Render,
+    utils::scraping::Scraping,
     ui::success_alerts::SuccessAlerts,
     render::render_images::RenderImages,
     templates::generic::TemplateGeneric,
@@ -35,7 +35,7 @@ impl ChatGPT {
         let content = scraping.get_html().await?;
 
         let title = scraping.title(&content);
-        let html_content = scraping.content(&content, Addons::CHATGPT_CONTENT_CLASS);
+        let html_content = scraping.content(&content, AI::CHATGPT_CONTENT_CLASS);
 
         let stripped_html_header = ChatGPTCleaner.strip_html_header(&html_content);
         let stripped_reasoning_text = ChatGPTCleaner.strip_reasoning_text(&stripped_html_header);
