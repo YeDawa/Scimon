@@ -4,7 +4,7 @@ use std::error::Error;
 use crate::{
     syntax::vars::Vars,
     utils::remote::Remote,
-    handlers::static_files::StaticFiles,
+    handlers::static_files::MonlibStaticFiles,
     templates::generic::TemplateGeneric,
 };
 
@@ -16,7 +16,7 @@ impl RenderInject {
         let css_cdn = if let Some(url) = Vars.get_style(contents) {
             url
         } else {
-            StaticFiles.get_default_css_style().to_string()
+            MonlibStaticFiles.get_default_css_style().to_string()
         };
 
         let css_style = Remote.content(&css_cdn).await?;

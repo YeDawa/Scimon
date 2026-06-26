@@ -1,8 +1,8 @@
 use crate::consts::addons::Addons;
 
-pub struct StaticFiles;
+pub struct MonlibStaticFiles;
 
-impl StaticFiles {
+impl MonlibStaticFiles {
 
     pub fn get_default_css_style(&self) -> &'static str {
         Addons::DEFAULT_CSS_STYLE
