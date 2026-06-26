@@ -23,12 +23,10 @@ impl RunnerBlock {
         };
 
         let end_index = contents.rfind("}");
-
         if let (Some(start_index), Some(end_index)) = (start_index, end_index) {
             UI::section_header("Running", "warning");
     
             let commands_content = &contents[start_index + "commands ".len()..end_index];
-
             for line in commands_content.lines() {
                 if Shutdown.cancelled() {
                     break;
