@@ -2,6 +2,7 @@ pub struct Addons;
 
 impl Addons {
 
+    // Download setting's file
     pub const DOWNLOAD_FILES_URI: &'static str = "https://raw.githubusercontent.com/YeDawa/Scimon/main/";
 
     // Styles & Scripts
