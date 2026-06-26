@@ -10,9 +10,6 @@ impl Bundler {
     // The entry file template for a Scimon package.
     pub const ENTRY_PACKAGE: &'static str = "\
 // main.mon — package entry file
-path \"downloads/\"
-
-downloads {}
-";
+print \"hello, world!\"";
 
 }
