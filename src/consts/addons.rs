@@ -8,8 +8,8 @@ impl Addons {
     pub const DEFAULT_LATEX_JS_SCRIPT: &'static str = "https://static.monlib.net/latex.js";
 
     // Scimon
+    pub const SCIMON_URLFILTER_API_ENDPOINT: &'static str = "https://monlib.net/external?url=";
     pub const SCIMON_SCRAPE_API_ENDPOINT: &'static str = "https://addons.scimon.dev/pdfscrape?url=";
-    pub const SCIMON_URLFILTER_API_ENDPOINT: &'static str = "https://addons.scimon.dev/urlfilter?url=";
 
     // SPDX license texts (%s = license identifier, e.g. MIT, Apache-2.0)
     pub const SPDX_LICENSE_TEXT: &'static str = "https://raw.githubusercontent.com/spdx/license-list-data/main/text/%s.txt";
