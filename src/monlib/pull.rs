@@ -16,6 +16,7 @@ use crate::{
     monlib::request::MonlibRequest,
 
     ui::{
+        ui_base::UI,
         errors_alerts::ErrorsAlerts,
         success_alerts::SuccessAlerts,
     },
@@ -26,6 +27,8 @@ pub struct MonlibPull;
 impl MonlibPull {
 
     pub async fn pull(&self, run: &str, flags: &Flags) -> Result<String, Box<dyn Error>> {
+        UI::section_header("Pulling", "normal");
+
         let (package, version) = match run.split_once('@') {
             Some((package, version)) => (package, Some(version)),
             None => (run, None),
