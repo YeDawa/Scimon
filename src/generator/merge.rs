@@ -3,7 +3,11 @@ use std::collections::BTreeMap;
 
 use std::{
     error::Error,
-    path::PathBuf,
+
+    path::{
+        Path,
+        PathBuf,
+    },
 };
 
 use lopdf::{
@@ -43,6 +47,12 @@ impl Merge {
 
         UI::section_header("Merging PDFs", "normal");
         for (pattern, output) in jobs {
+            // Don't overwrite an existing output — skip the job instead.
+            if Path::new(&output).exists() {
+                SuccessAlerts::skipped(&output);
+                continue;
+            }
+
             match self.merge_one(&pattern, &output) {
                 Ok(count) => SuccessAlerts::merged(&output, count),
                 Err(e) => ErrorsAlerts::generic(&e.to_string()),
