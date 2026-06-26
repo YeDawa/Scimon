@@ -143,7 +143,7 @@ impl Scimon {
 
                 Commands::Pull { file } => {
                     UI::header();
-                    let _ = MonlibPull.pull(&file, &flags_clone).await;
+                    let _ = MonlibPull.pull(&file).await;
                 },
 
                 Commands::Push { file } => {

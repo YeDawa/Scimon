@@ -218,6 +218,16 @@ impl SuccessAlerts {
         );
     }
 
+    pub fn pulled(file: &str) {
+        let current_datetime = General.date_time();
+
+        println!(
+            "{} Pulled {}",
+            current_datetime.green().bold(),
+            file.blue(),
+        );
+    }
+
     pub fn packed(file: &str, count: usize) {
         let current_datetime = General.date_time();
 

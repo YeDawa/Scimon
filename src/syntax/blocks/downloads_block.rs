@@ -23,8 +23,7 @@ use crate::{
 
     cmd::{
         tasks::Tasks,
-        compress::Compress, 
-        tasks_raw::TasksRaw,
+        compress::Compress,
     },
 
     syntax::{
@@ -259,62 +258,6 @@ impl DownloadsBlock {
         let _ = Compress::new(&contents).get();
         stop_if_cancelled!();
         let _ = Tasks.qr_codes(&contents, None).await;
-        stop_if_cancelled!();
-        let _ = Math::new(&contents).render().await;
-        stop_if_cancelled!();
-        let _ = Convert::new(&contents).run().await;
-
-        stop_if_cancelled!();
-        Vars.get_open(&contents, flags.no_open_link).await;
-        let _ = ReadMeBlock.render_var_and_save_file(&contents, flags).await;
-
-        if downloaded {
-            let _ = Checksum::new(Some(contents)).files();
-        }
-
-        Ok(())
-    }
-
-    pub async fn read_lines_raw(&self, contents: &str, flags: &Flags) -> Result<(), Box<dyn Error>> {
-        let contents = contents.lines().collect::<Vec<_>>().join("\n");
-        let path = Vars.get_path(&contents);
-
-        let start_index = match (contents.find("downloads {"), contents.find("downloads{")) {
-            (Some(idx1), Some(idx2)) => Some(idx1.min(idx2)),
-            (Some(idx), None) | (None, Some(idx)) => Some(idx),
-            (None, None) => None,
-        };
-
-        let mut downloaded = false;
-        let end_index = contents.rfind("}");
-
-        if let (Some(start_index), Some(end_index)) = (start_index, end_index) {
-            let downloads_content = &contents[start_index + "downloads ".len()..end_index];
-
-            if !downloads_content.trim().starts_with("commands {") {
-                FileUtils.create_path(&path);
-                UI::section_header("downloads", "normal");
-                self.block(&contents, downloads_content, &path, flags).await?;
-                downloaded = true;
-            }
-        }
-
-        stop_if_cancelled!();
-        let _ = AiBlock.generate_and_save_files(&contents).await;
-        stop_if_cancelled!();
-        let _ = Merge::new(&contents).get();
-        stop_if_cancelled!();
-        let _ = Split::new(&contents).get();
-        stop_if_cancelled!();
-        let _ = Rotate::new(&contents).get();
-        stop_if_cancelled!();
-        let _ = Watermark::new(&contents).get();
-        stop_if_cancelled!();
-        let _ = Compress::new(&contents).get();
-        stop_if_cancelled!();
-        let _ = Covers::new(&contents).get().await;
-        stop_if_cancelled!();
-        let _ = TasksRaw.qr_codes(&contents, None).await;
         stop_if_cancelled!();
         let _ = Math::new(&contents).render().await;
         stop_if_cancelled!();

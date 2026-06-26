@@ -24,10 +24,7 @@ use crate::{
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
 
-    cmd::{
-        tasks::Tasks,
-        tasks_raw::TasksRaw,
-    },
+    cmd::tasks::Tasks,
 
     syntax::{
         vars::Vars,
@@ -104,34 +101,9 @@ impl Monset {
         Ok(())
     }
 
-    pub async fn downloads_raw(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
-        let content = Comments.strip(&self.run);
-        let content = Imports.expand(&content).await;
-        let content = Loops.expand(&content);
-        let content = Functions.expand(&content);
-        let content = Vars.interpolate(&content);
-        let content = Conditionals.expand(&content);
-
-        TasksRaw.prints(&content).await?;
-        DownloadsBlock.read_lines_raw(&content, flags).await?;
-
-        Ok(())
-    }
-
     pub async fn run_code(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
         let mut reader = self.read_file().await?;
         RunnerBlock.read_lines(&mut reader, flags).await?;
-
-        Ok(())
-    }
-
-    pub async fn run_code_raw(&self, flags: &Flags) -> Result<(), Box<dyn Error>> {
-        let content = Comments.strip(&self.run);
-        let content = Imports.expand(&content).await;
-        let content = Loops.expand(&content);
-        let content = Functions.expand(&content);
-        let content = Vars.interpolate(&content);
-        RunnerBlock.read_lines_raw(&content, flags).await?;
 
         Ok(())
     }

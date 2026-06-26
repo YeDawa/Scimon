@@ -1,102 +1,91 @@
 extern crate reqwest;
 
-use serde_json::{
-    Value,
-    from_str,
-};
+use reqwest::Response;
+use serde_json::from_str;
 
 use std::{
+    fs,
     error::Error,
-    
-    io::{
-        Cursor,
-        BufRead,
-    }
 };
 
 use crate::{
-    args_cli::Flags,
-    cmd::monset::Monset,
     consts::addons::Addons,
     monlib::request::MonlibRequest,
-    syntax::blocks::readme_block::ReadMeBlock,
 
     ui::{
-        panic_alerts::PanicAlerts,
         errors_alerts::ErrorsAlerts,
+        success_alerts::SuccessAlerts,
     },
 
-    handlers::{
-        monlib_errors::*,
-        monlib_handlers::MonlibHandlers,
-    },
+    handlers::monlib_errors::*,
 };
 
 pub struct MonlibPull;
 
 impl MonlibPull {
 
-    pub async fn pull(&self, run: &str, flags: &Flags) -> Result<String, Box<dyn Error>> {
+    // Downloads a package's `.scpkg` bundle from Monlib. `run` is the package id,
+    // optionally pinned to a version: `package` (latest) or `package@version`.
+    pub async fn pull(&self, run: &str) -> Result<String, Box<dyn Error>> {
+        let (package, version) = match run.split_once('@') {
+            Some((package, version)) => (package, Some(version)),
+            None => (run, None),
+        };
+
+        // GET /packages/:id/download (latest) or /packages/:id/:version/download.
         let mut url = Addons::MONLIB_API_REQUEST.to_owned();
-    
         url.push_str("packages/");
-        url.push_str(run);
-        url.push_str("/raw");
+        url.push_str(package);
 
-        let response = MonlibRequest::new().get(url.as_str()).await?;
-        if response.status().is_success() {
-            let result = String::new();
-            let mut is_json = true;
-            let data = response.text().await?;
-    
-            if let Ok(json_data) = serde_json::from_str::<Value>(&data) {
-                if let Some(message) = json_data.get("message") {
-                    if let Some(message_str) = message.as_str() {
-                        return Ok(message_str.to_string());
-                    }
-                }
-            } else {
-                is_json = false;
-            }
-    
-            if !is_json {
-                let lines_iter = Cursor::new(&data).lines();
-                let collected_lines: Result<String, _> = lines_iter.collect();
+        if let Some(version) = version {
+            url.push('/');
+            url.push_str(version);
+        }
 
-                if let Ok(validated_content) = collected_lines {
-                    if !MonlibHandlers.validator_lib(&validated_content) {
-                        PanicAlerts::monlib_invalid_lib();
-                        return Ok(String::new());
-                    }
-                } else {
-                    PanicAlerts::monlib_invalid_lib();
-                    return Ok(String::new());
-                }
+        url.push_str("/download");
 
-                let monset = Monset::new(&data);
+        let response = MonlibRequest::new().get(&url).await?;
+        let status = response.status();
 
-                monset.downloads_raw(flags).await?;
-                let _ = monset.run_code_raw(flags).await;
-                ReadMeBlock.render_block_and_save_file(&url, flags).await;
-            }
-    
-            Ok(result)
+        if !status.is_success() {
+            let code = status.as_u16() as i32;
+            let text = response.text().await.unwrap_or_default();
+
+            let message = from_str::<ErrorResponse>(&text)
+                .map(|error| error.message)
+                .unwrap_or_else(|_| "Error: internal server error".to_string());
+
+            ErrorsAlerts::monlib(code, &message);
+            return Ok(message);
+        }
+
+        // Prefer the name the server suggests, falling back to the package/version.
+        let filename = Self::filename(&response).unwrap_or_else(|| match version {
+            Some(version) => format!("{}-{}.scpkg", package, version),
+            None => format!("{}.scpkg", package),
+        });
+
+        let bytes = response.bytes().await?;
+        fs::write(&filename, &bytes)?;
+
+        SuccessAlerts::pulled(&filename);
+        Ok(filename)
+    }
+
+    // Reads the suggested file name from the `Content-Disposition` header.
+    fn filename(response: &Response) -> Option<String> {
+        let value = response.headers()
+            .get("content-disposition")?
+            .to_str()
+            .ok()?;
+
+        let raw = value.split("filename=").nth(1)?;
+        let name = raw.split(';').next()?.trim().trim_matches('"');
+
+        if name.is_empty() {
+            None
         } else {
-            let status = response.status().as_u16() as i32;
-            let response_text = response.text().await?;
-            
-            if let Ok(error_response) = from_str::<ErrorResponse>(&response_text) {
-                let message = ApiError::Message(error_response.message);
-                ErrorsAlerts::monlib(status, &message.to_string());
-    
-                Ok(message.to_string())
-            } else {
-                Err(
-                    ApiError::Message(
-                        "Error: internal server error".to_string()
-                    ).into()
-                )
-            }
+            Some(name.to_string())
         }
     }
 
