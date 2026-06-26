@@ -24,15 +24,12 @@ pub struct MonlibPull;
 
 impl MonlibPull {
 
-    // Downloads a package's `.scpkg` bundle from Monlib. `run` is the package id,
-    // optionally pinned to a version: `package` (latest) or `package@version`.
     pub async fn pull(&self, run: &str) -> Result<String, Box<dyn Error>> {
         let (package, version) = match run.split_once('@') {
             Some((package, version)) => (package, Some(version)),
             None => (run, None),
         };
 
-        // GET /packages/:id/download (latest) or /packages/:id/:version/download.
         let mut url = Addons::MONLIB_API_REQUEST.to_owned();
         url.push_str("packages/");
         url.push_str(package);
@@ -59,7 +56,6 @@ impl MonlibPull {
             return Ok(message);
         }
 
-        // Prefer the name the server suggests, falling back to the package/version.
         let filename = Self::filename(&response).unwrap_or_else(|| match version {
             Some(version) => format!("{}-{}.scpkg", package, version),
             None => format!("{}.scpkg", package),
@@ -72,7 +68,6 @@ impl MonlibPull {
         Ok(filename)
     }
 
-    // Reads the suggested file name from the `Content-Disposition` header.
     fn filename(response: &Response) -> Option<String> {
         let value = response.headers()
             .get("content-disposition")?
