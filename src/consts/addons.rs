@@ -3,6 +3,8 @@ pub struct Addons;
 impl Addons {
 
     pub const DOWNLOAD_FILES_URI: &'static str = "https://raw.githubusercontent.com/YeDawa/Scimon/main/";
+
+    // Styles & Scripts
     pub const DEFAULT_CSS_STYLE: &'static str = "https://static.monlib.net/md-default.css";
     pub const DEFAULT_LATEX_CSS_STYLE: &'static str = "https://static.monlib.net/latex.css";
     pub const DEFAULT_LATEX_JS_SCRIPT: &'static str = "https://static.monlib.net/latex.js";
