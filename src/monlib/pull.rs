@@ -9,6 +9,8 @@ use std::{
 };
 
 use crate::{
+    args_cli::Flags,
+    cmd::bundle::Bundle,
     consts::addons::Addons,
     handlers::monlib_errors::*,
     monlib::request::MonlibRequest,
@@ -23,7 +25,7 @@ pub struct MonlibPull;
 
 impl MonlibPull {
 
-    pub async fn pull(&self, run: &str) -> Result<String, Box<dyn Error>> {
+    pub async fn pull(&self, run: &str, flags: &Flags) -> Result<String, Box<dyn Error>> {
         let (package, version) = match run.split_once('@') {
             Some((package, version)) => (package, Some(version)),
             None => (run, None),
@@ -64,6 +66,13 @@ impl MonlibPull {
         fs::write(&filename, &bytes)?;
 
         SuccessAlerts::pulled(&filename);
+
+        // Pull also runs the package: extract the bundle and execute its entry,
+        // then drop the downloaded archive (the extracted folder is what stays).
+        let result = Bundle.run(&filename, flags).await;
+        let _ = fs::remove_file(&filename);
+        result?;
+
         Ok(filename)
     }
 
