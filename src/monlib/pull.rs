@@ -44,7 +44,6 @@ impl MonlibPull {
         }
 
         url.push_str("/download");
-
         let response = MonlibRequest::new().get(&url).await?;
         let status = response.status();
 
@@ -69,9 +68,6 @@ impl MonlibPull {
         fs::write(&filename, &bytes)?;
 
         SuccessAlerts::pulled(&filename);
-
-        // Pull also runs the package: extract the bundle and execute its entry,
-        // then drop the downloaded archive (the extracted folder is what stays).
         let result = Bundle.run(&filename, flags).await;
         let _ = fs::remove_file(&filename);
         result?;
