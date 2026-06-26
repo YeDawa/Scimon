@@ -190,20 +190,27 @@ server "8080"
 ## Packages
 
 Bundle a list and everything needed to share it into a single distributable
-**`.scpkg`** file (a gzip-compressed tar, like a `.crate`). A bundle ships only
-the source lists — the `package.yml` manifest, the `LICENSE`, and the entry list
-plus every `.mon` it pulls in through `import`:
+**`.scpkg`** file (a gzip-compressed tar, like a `.crate`). The entry list is
+always **`main.mon`**, and a bundle ships the source only — the `package.yml`
+manifest, the `LICENSE`, the `README`, and `main.mon` plus every `.mon` it pulls
+in through `import`:
 
 ```bash
-scimon init                  # scaffold scimon.yml, main.mon and .entry
-scimon pack                  # → <name>-<version>.scpkg (slugified), from .entry
-scimon info demo-1.0.0.scpkg # show a bundle's metadata and contents
-scimon run demo-1.0.0.scpkg  # extract a bundle and run its entry list
+scimon init                  # interactive: scaffold <name>/ with package.yml,
+                             #   main.mon, README.md and a LICENSE (from SPDX)
+scimon pack                  # → <name>-<version>.scpkg (slugified) from main.mon
+scimon info <name>.scpkg     # show a bundle's metadata and contents
+scimon run <name>.scpkg      # extract a bundle and run its main.mon
+
+scimon pull <package>          # download from Monlib, run it, drop the archive
+scimon pull <package>@<version># pull a specific version
 ```
 
-`scimon init` scaffolds a new package (a `scimon.yml` descriptor, a `main.mon`
-entry list and a `.entry` pointer); `scimon pack` reads `.entry` when no list is
-given. See the [Packages guide](https://docs.scimon.dev/packages) for details.
+`scimon init` asks for the package fields and creates a new folder named after
+the package. `scimon pack` packs the current directory's `main.mon`. `scimon pull`
+fetches the `.scpkg` from Monlib (latest, or a pinned `@version`), runs it, and
+removes the downloaded archive — leaving only the extracted package. See the
+[Packages guide](https://docs.scimon.dev/packages) for details.
 
 ## Documentation
 
