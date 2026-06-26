@@ -1,5 +1,9 @@
 use lopdf::Document;
-use std::error::Error;
+
+use std::{
+    error::Error,
+    path::Path,
+};
 
 use crate::{
     syntax::vars::Vars,
@@ -53,6 +57,13 @@ impl Split {
         // Keeping one page is done by cloning the document and deleting all the
         // others, so each output keeps that page's resources intact.
         for &page in &pages {
+            let output = Self::output_for(template, page);
+
+            // Don't overwrite an existing page file — leave it as is.
+            if Path::new(&output).exists() {
+                continue;
+            }
+
             let mut doc = base.clone();
 
             let others: Vec<u32> = pages.iter().copied().filter(|&n| n != page).collect();
@@ -60,7 +71,7 @@ impl Split {
             doc.prune_objects();
             doc.compress();
 
-            doc.save(Self::output_for(template, page))?;
+            doc.save(&output)?;
             count += 1;
         }
 

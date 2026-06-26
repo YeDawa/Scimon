@@ -27,6 +27,7 @@ use crate::{
     ui::{
         ui_base::UI,
         panic_alerts::PanicAlerts,
+        success_alerts::SuccessAlerts,
         compress_alerts::CompressAlerts,
     },
 };
@@ -58,6 +59,12 @@ impl Compress {
     pub fn get(&self) -> IoResult<()> {
         if let Some(zip_file) = Vars.get_compress(&self.contents) {
             UI::section_header("Compressing files", "normal");
+
+            // Don't overwrite an existing archive — skip it.
+            if Path::new(&zip_file).exists() {
+                SuccessAlerts::skipped(&zip_file);
+                return Ok(());
+            }
 
             let folder_path = Vars.get_path(&self.contents);
             let compress_level = self.compress_level();

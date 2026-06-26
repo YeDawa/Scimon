@@ -1,4 +1,7 @@
-use std::error::Error;
+use std::{
+    error::Error,
+    path::Path,
+};
 
 use lopdf::{
     Document,
@@ -37,6 +40,11 @@ impl Rotate {
         UI::section_header("Rotating PDFs", "normal");
 
         for (input, angle, output) in jobs {
+            if Path::new(&output).exists() {
+                SuccessAlerts::skipped(&output);
+                continue;
+            }
+
             match self.rotate_one(&input, angle, &output) {
                 Ok(count) => SuccessAlerts::rotated(&output, angle, count),
                 Err(e) => ErrorsAlerts::generic(&e.to_string()),

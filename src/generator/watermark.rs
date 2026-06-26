@@ -1,4 +1,7 @@
-use std::error::Error;
+use std::{
+    error::Error,
+    path::Path,
+};
 
 use lopdf::{
     Object,
@@ -44,6 +47,11 @@ impl Watermark {
         UI::section_header("Watermarking PDFs", "normal");
 
         for (input, mode, content, output) in jobs {
+            if Path::new(&output).exists() {
+                SuccessAlerts::skipped(&output);
+                continue;
+            }
+
             let result = if mode == "image" {
                 self.image(&input, &content, &output)
             } else {

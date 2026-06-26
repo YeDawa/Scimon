@@ -42,6 +42,11 @@ impl Convert {
         UI::section_header("Converting", "normal");
 
         for (input, output) in jobs {
+            if Path::new(&output).exists() {
+                SuccessAlerts::skipped(&output);
+                continue;
+            }
+
             match self.convert_one(&input, &output).await {
                 Ok(()) => SuccessAlerts::converted(&input, &output),
                 Err(e) => ErrorsAlerts::generic(&e.to_string()),

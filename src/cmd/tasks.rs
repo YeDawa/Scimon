@@ -3,6 +3,7 @@ use is_url::is_url;
 use std::{
     borrow::Cow,
     io::BufRead,
+    path::Path,
     error::Error,
 };
 
@@ -25,6 +26,7 @@ use crate::{
     },
     
     ui::ui_base::UI,
+    ui::success_alerts::SuccessAlerts,
 
     utils::{
         file::FileUtils,
@@ -121,8 +123,12 @@ impl Tasks {
 
                         let name_pdf = FileUtils.replace_extension(&qr_code_name, "png");
                         let file_path = format!("{}{}", qrcode_path, name_pdf);
-                        
-                        GenQrCode::new(url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
+
+                        if Path::new(&file_path).exists() {
+                            SuccessAlerts::skipped(&file_path);
+                        } else {
+                            GenQrCode::new(url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
+                        }
                     }
             }
         }

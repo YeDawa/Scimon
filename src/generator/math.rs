@@ -4,6 +4,7 @@ use futures::future::join_all;
 
 use std::{
     fs::write,
+    path::Path,
     error::Error,
 };
 
@@ -42,6 +43,11 @@ impl Math {
         let mut tasks = Vec::new();
         for (expression, file_name) in math_expressions {
             let file_name = file_name.clone();
+
+            if Path::new(&file_name).exists() {
+                SuccessAlerts::skipped(&file_name);
+                continue;
+            }
 
             let result = match renderer.render(expression) {
                 Ok(result) => result,

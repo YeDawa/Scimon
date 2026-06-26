@@ -130,6 +130,11 @@ impl Covers {
         let ext = Path::new(&href).extension().and_then(|e| e.to_str()).unwrap_or("jpg");
         let output_file = format!("{}{}.{}", covers_path, stem, ext);
 
+        if Path::new(&output_file).exists() {
+            SuccessAlerts::skipped(&output_file);
+            return Ok(());
+        }
+
         fs::write(&output_file, bytes)?;
         SuccessAlerts::cover_generated(&output_file);
 
@@ -163,6 +168,12 @@ impl Covers {
                     let output_path = PathBuf::from(format!("{}{}", covers_path, new_name));
 
                     let output_file = format!("{}{}", covers_path, new_name);
+
+                    if output_path.exists() {
+                        SuccessAlerts::skipped(&output_file);
+                        continue;
+                    }
+
                     let _ = Self::render(&pdfium, path, &output_path, &output_file).await;
                 } else if ext == "epub" {
                     let _ = Self::epub_cover(path, &covers_path);
