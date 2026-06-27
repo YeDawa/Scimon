@@ -19,7 +19,7 @@ impl Addons {
 
     // Monlib Package Manager
     pub const MONLIB_API_ENV: &'static str = "MONLIB_API_KEY";
-    pub const MONLIB_API_REQUEST: &'static str = "https://system.monlib.net/";
+    pub const MONLIB_API_REQUEST: &'static str = "https://api.monlib.net/";
 
     // Security entropy threshold
     pub const MAX_SAFE_ENTROPY: f64 = 5.96;
