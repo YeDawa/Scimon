@@ -41,17 +41,14 @@ pub enum Commands {
         file: String,
     },
 
-    /// Get datasets of the links from the web
+    /// Download a package from Monlib and run it (name or name@version)
     Pull {
-        /// File or task to be executed
-        file: String,
+        /// Package to pull, optionally pinned: <name> or <name>@<version>
+        package: String,
     },
 
-    /// Get datasets of the links from the web
-    Push {
-        /// File or task to be executed
-        file: String,
-    },
+    /// Publish the current package (its main.mon) to Monlib
+    Push,
 
     /// Scaffold a new Scimon package in the current directory
     Init,

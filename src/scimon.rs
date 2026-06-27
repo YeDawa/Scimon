@@ -141,14 +141,14 @@ impl Scimon {
                     }
                 },
 
-                Commands::Pull { file } => {
+                Commands::Pull { package } => {
                     UI::header();
-                    let _ = MonlibPull.pull(&file, &flags_clone).await;
+                    let _ = MonlibPull.pull(&package, &flags_clone).await;
                 },
 
-                Commands::Push { file } => {
+                Commands::Push => {
                     UI::header();
-                    let _ = MonlibPush.push(&file).await;
+                    let _ = MonlibPush.push().await;
                 },
 
                 Commands::Init => {
