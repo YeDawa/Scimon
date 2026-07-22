@@ -11,7 +11,6 @@ use image::ImageFormat;
 
 use crate::{
     args_cli::Flags,
-    consts::uris::Uris,
     configs::settings::Settings,
     generator::qr_code::GenQrCode,
 
@@ -20,10 +19,7 @@ use crate::{
         providers::Providers,
     },
 
-    addons::{
-        gemini::Gemini,
-        chatgpt::ChatGPT,
-    },
+
     
     ui::ui_base::UI,
     ui::success_alerts::SuccessAlerts,
@@ -60,7 +56,7 @@ impl Tasks {
         Ok(())
     }
 
-    pub async fn qr_codes(&self, contents: &str, custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
+    pub async fn qr_codes(&self, contents: &str, _custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
         if let Some(qrcode_path) = Vars.get_qrcode(contents) {
             UI::section_header("QR Codes", "normal");
 
@@ -108,19 +104,7 @@ impl Tasks {
                         let value = Settings.get("general.qrcode_size", "INT");
                         let qrcode_size = value.as_i64().expect("Invalid qrcode_size value. Must be an integer.") as usize;
             
-                        let name = FileNameRemote::new(url).get();
-                        let qr_code_name = if url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-                            ChatGPT::new(url, "", custom_name).title().await
-                                .map(|t| t.to_string().replace(" ", "_"))
-                                .unwrap_or_else(|_| name.clone())
-                        } else if url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-                            Gemini::new(url, "", custom_name).title().await
-                                .map(|t| t.to_string().replace(" ", "_"))
-                                .unwrap_or_else(|_| name.clone())
-                        } else {
-                            name.clone()
-                        };
-
+                        let qr_code_name = FileNameRemote::new(url).get();
                         let name_pdf = FileUtils.replace_extension(&qr_code_name, "png");
                         let file_path = format!("{}{}", qrcode_path, name_pdf);
 
@@ -161,13 +145,7 @@ impl Tasks {
             output_path = LaTex.create_pdf(path, &line_url, custom_name).await?;
         }
 
-        if line_url.contains(Uris::PROVIDERS_DOMAINS[6]) {
-            output_path = ChatGPT::new(&line_url, path, custom_name).convert().await?;
-        }
 
-        if line_url.contains(Uris::PROVIDERS_DOMAINS[7]) {
-            output_path = Gemini::new(&line_url, path, custom_name).convert().await?;
-        }
 
         if !Providers::new(&line_url).check_provider_domain() {
             let mut candidates: Vec<String> = vec![line_url.to_string()];

@@ -15,16 +15,16 @@ use crate::consts::{
     folders::Folders,
 };
 
-pub struct Gemini {
+pub struct OpenAI {
     model: String,
 }
 
-impl Gemini {
+impl OpenAI {
 
     pub fn new(model: Option<String>) -> Self {
         let model = model
             .filter(|m| !m.trim().is_empty())
-            .unwrap_or_else(|| AI::GEMINI_DEFAULT_MODEL.to_string());
+            .unwrap_or_else(|| AI::OPENAI_DEFAULT_MODEL.to_string());
 
         Self { model }
     }
@@ -34,10 +34,10 @@ impl Gemini {
             Folders::APP_FOLDER.join(".env")
         ).ok();
 
-        env::var(AI::GEMINI_API_ENV).map_err(|_| {
+        env::var(AI::OPENAI_API_ENV).map_err(|_| {
             format!(
                 "{} is not set. Add it to your .env file (scimon options open-env).",
-                AI::GEMINI_API_ENV
+                AI::OPENAI_API_ENV
             ).into()
         })
     }
@@ -47,33 +47,22 @@ impl Gemini {
         let client = reqwest::Client::new();
 
         let body = json!({
-            "contents": [
+            "model": self.model,
+            "messages": [
                 {
-                    "parts": [
-                        {
-                            "text": prompt
-                        }
-                    ]
+                    "role": "system",
+                    "content": "You are a helpful assistant that writes well-structured documents in Markdown. Reply only with the Markdown body, without wrapping the whole answer in a code fence."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
                 }
-            ],
-            "systemInstruction": {
-                "parts": [
-                    {
-                        "text": "You are a helpful assistant that writes well-structured documents in Markdown. Reply only with the Markdown body, without wrapping the whole answer in a code fence."
-                    }
-                ]
-            }
+            ]
         });
 
-        let url = format!(
-            "{}{}:generateContent?key={}",
-            AI::GEMINI_API_REQUEST,
-            self.model,
-            api_key
-        );
-
         let response = client
-            .post(&url)
+            .post(AI::OPENAI_API_REQUEST)
+            .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .json(&body)
             .send()
@@ -88,13 +77,13 @@ impl Gemini {
                 .unwrap_or("unknown error");
 
             return Err(
-                format!("Gemini API error ({}): {}", status, message).into()
+                format!("OpenAI API error ({}): {}", status, message).into()
             );
         }
 
-        let content = data["candidates"][0]["content"]["parts"][0]["text"]
+        let content = data["choices"][0]["message"]["content"]
             .as_str()
-            .ok_or("Gemini response did not contain any content")?
+            .ok_or("OpenAI response did not contain any content")?
             .to_string();
 
         Ok(content)

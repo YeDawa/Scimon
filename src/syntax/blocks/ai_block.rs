@@ -16,7 +16,11 @@ use crate::{
     render::render::Render,
     system::markdown::Markdown,
     system::shutdown::Shutdown,
-    addons::openrouter::OpenRouter,
+    addons::{
+        openai::OpenAI,
+        gemini::Gemini,
+        openrouter::OpenRouter,
+    },
     render::render_inject::RenderInject,
     regexp::regex_blocks::BlocksRegExp,
     syntax::macro_handler::MacroHandler,
@@ -128,13 +132,19 @@ impl AiBlock {
             .to_string_lossy()
             .to_string();
 
-        // The (non-`Send`) error is turned into a `String` right after each
-        // `await` so nothing non-`Send` is held across an await point — that
-        // keeps the future `Send`, which `tokio::spawn` requires.
-        let markdown = match OpenRouter::new(entry.model).generate(&entry.prompt).await {
+        let model_name = entry.model.clone().unwrap_or_default();
+        let markdown = if model_name.starts_with("gpt") {
+            OpenAI::new(entry.model.clone()).generate(&entry.prompt).await
+        } else if model_name.starts_with("gemini") {
+            Gemini::new(entry.model.clone()).generate(&entry.prompt).await
+        } else {
+            OpenRouter::new(entry.model.clone()).generate(&entry.prompt).await
+        };
+
+        let markdown = match markdown.map_err(|e| e.to_string()) {
             Ok(markdown) => markdown,
             Err(e) => {
-                ErrorsAlerts::generic(&e.to_string());
+                ErrorsAlerts::generic(&e);
                 return;
             }
         };
