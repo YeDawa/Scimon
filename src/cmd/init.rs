@@ -27,7 +27,6 @@ use crate::{
     },
 };
 
-// The answers collected from the interactive prompts.
 struct Answers {
     name: String,
     description: String,
@@ -40,8 +39,6 @@ pub struct Init;
 
 impl Init {
 
-    // Scaffolds a new Scimon package in its own folder: asks for the manifest
-    // fields and writes `package.yml`, `main.mon`, `README.md` and a `LICENSE`.
     pub async fn create(&self) -> Result<(), Box<dyn Error>> {
         UI::section_header("Init", "normal");
 
@@ -75,8 +72,6 @@ impl Init {
         Ok(())
     }
 
-    // Asks for each field (with a default) and builds the package.yml body,
-    // omitting fields left empty.
     fn prompt() -> Answers {
         let name = Self::ask("Package name", "my-package");
         let description = Self::ask("Description", "A Scimon package.");
@@ -108,9 +103,6 @@ impl Init {
         Answers { name, description, author, license, body }
     }
 
-    // Downloads the chosen license text from the SPDX license list and fills in
-    // the copyright year and holder. Returns `None` if the license is unknown or
-    // the download fails.
     async fn license_text(license: &str, author: &str) -> Option<String> {
         let url = Addons::SPDX_LICENSE_TEXT.replace("%s", license);
 
@@ -136,8 +128,6 @@ impl Init {
         Some(text)
     }
 
-    // Prints a prompt (showing the default) and reads a trimmed line, falling
-    // back to the default when the input is empty.
     fn ask(label: &str, default: &str) -> String {
         let label = format!("{}:", label).blue().bold();
 

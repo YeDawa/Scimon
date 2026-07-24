@@ -140,7 +140,6 @@ impl Monset {
             }
 
             let scripts = Self::commands_scripts(&contents);
-
             let mut serve = Serve::new(path, port)
                 .with_source(name, contents.clone())
                 .with_files(files)

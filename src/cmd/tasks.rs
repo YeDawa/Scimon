@@ -23,11 +23,6 @@ use crate::{
         file::FileUtils,
         file_name_remote::FileNameRemote,
     },
-
-    system::{
-        latex::LaTex,
-        providers::Providers,
-    },
     
     syntax::{
         vars::Vars,
@@ -35,8 +30,10 @@ use crate::{
     },
 
     system::{
+        latex::LaTex,
         markdown::Markdown,
         reporting::Reporting,
+        providers::Providers,
         make_download::MakeDownload,
     },
 };
