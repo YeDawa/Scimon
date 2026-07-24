@@ -35,15 +35,15 @@ use crate::{
     configs::package::Package,
     syntax::blocks::readme_block::ReadMeBlock,
 
-    cmd::{
-        copy::Copy,
-        monset::Monset,
-    },
-
     ui::{
         ui_base::UI,
         errors_alerts::ErrorsAlerts,
         success_alerts::SuccessAlerts,
+    },
+
+    cmd::{
+        copy::Copy,
+        monset::Monset,
     },
 };
 
@@ -51,7 +51,6 @@ pub struct Bundle;
 
 impl Bundle {
 
-    // Every package's entry list is named `main.mon`.
     const ENTRY: &'static str = "main.mon";
 
     pub fn pack(&self) -> Result<PathBuf, Box<dyn Error>> {
@@ -123,7 +122,6 @@ impl Bundle {
         Ok(output)
     }
 
-    // Prints a bundle's metadata, entry and file list without extracting it.
     pub fn info(&self, bundle: &str) -> Result<(), Box<dyn Error>> {
         UI::section_header("Package Info", "normal");
 
@@ -177,13 +175,11 @@ impl Bundle {
         Ok(())
     }
 
-    // Prints a left-aligned, coloured "Label: value" row.
     fn row(label: &str, value: &str) {
         let label = format!("{:<12}", format!("{}:", label));
         println!("  {} {}", label.blue().bold(), value);
     }
 
-    // Reads a manifest field as a string, joining a list into a comma list.
     fn manifest_field(data: &Value, key: &str) -> Option<String> {
         let value = &data[key];
 
