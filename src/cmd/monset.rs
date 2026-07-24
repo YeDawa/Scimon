@@ -19,12 +19,11 @@ use std::{
 
 use crate::{
     args_cli::Flags,
+    cmd::tasks::Tasks,
     server::serve::Serve,
     configs::package::Package,
     utils::validation::Validate,
     ui::errors_alerts::ErrorsAlerts,
-
-    cmd::tasks::Tasks,
 
     syntax::{
         vars::Vars,
