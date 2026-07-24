@@ -13,15 +13,18 @@ use std::{
 use crate::{
     system::latex::LaTex,
     generator::epub::Epub,
-    render::render::Render,
     consts::global::Global,
     system::markdown::Markdown,
-    render::render_inject::RenderInject,
 
     ui::{
         ui_base::UI,
         errors_alerts::ErrorsAlerts,
         success_alerts::SuccessAlerts,
+    },
+
+    render::{
+        render::Render,
+        render_inject::RenderInject,
     },
 
     utils::{
