@@ -1,13 +1,12 @@
 use is_url::is_url;
+use image::ImageFormat;
 
 use std::{
+    path::Path,
     borrow::Cow,
     io::BufRead,
-    path::Path,
     error::Error,
 };
-
-use image::ImageFormat;
 
 use crate::{
     args_cli::Flags,
