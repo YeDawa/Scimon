@@ -60,7 +60,6 @@ impl Compress {
         if let Some(zip_file) = Vars.get_compress(&self.contents) {
             UI::section_header("Compressing files", "normal");
 
-            // Don't overwrite an existing archive — skip it.
             if Path::new(&zip_file).exists() {
                 SuccessAlerts::skipped(&zip_file);
                 return Ok(());
