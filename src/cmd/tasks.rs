@@ -11,18 +11,15 @@ use image::ImageFormat;
 
 use crate::{
     args_cli::Flags,
+    ui::ui_base::UI,
     configs::settings::Settings,
     generator::qr_code::GenQrCode,
+    ui::success_alerts::SuccessAlerts,
 
     system::{
         latex::LaTex,
         providers::Providers,
     },
-
-
-    
-    ui::ui_base::UI,
-    ui::success_alerts::SuccessAlerts,
 
     utils::{
         file::FileUtils,
@@ -59,13 +56,8 @@ impl Tasks {
     pub async fn qr_codes(&self, contents: &str, _custom_name: Option<&str>) -> Result<(), Box<dyn Error>> {
         if let Some(qrcode_path) = Vars.get_qrcode(contents) {
             UI::section_header("QR Codes", "normal");
-
-            // Honor the same focus mode as downloads: with `!only` in play, only
-            // the marked lines get a QR code.
             let only_mode = MacroHandler::any(contents, "only");
 
-            // Depth tracks nested `group { ... }` blocks so their closing brace
-            // doesn't end the downloads block early.
             let mut depth = 0;
             for line in contents.lines() {
                 let trimmed = line.trim();
@@ -97,23 +89,22 @@ impl Tasks {
                 }
 
                 let url = trimmed.split_whitespace().next().unwrap_or("");
-                if !MacroHandler::handle_check_macro_line(line, "ignore")
-                    && !url.is_empty() && is_url(url) {
-                        FileUtils.create_path(&qrcode_path);
-            
-                        let value = Settings.get("general.qrcode_size", "INT");
-                        let qrcode_size = value.as_i64().expect("Invalid qrcode_size value. Must be an integer.") as usize;
-            
-                        let qr_code_name = FileNameRemote::new(url).get();
-                        let name_pdf = FileUtils.replace_extension(&qr_code_name, "png");
-                        let file_path = format!("{}{}", qrcode_path, name_pdf);
+                if !MacroHandler::handle_check_macro_line(line, "ignore") && !url.is_empty() && is_url(url) {
+                    FileUtils.create_path(&qrcode_path);
+        
+                    let value = Settings.get("general.qrcode_size", "INT");
+                    let qrcode_size = value.as_i64().expect("Invalid qrcode_size value. Must be an integer.") as usize;
+        
+                    let qr_code_name = FileNameRemote::new(url).get();
+                    let name_pdf = FileUtils.replace_extension(&qr_code_name, "png");
+                    let file_path = format!("{}{}", qrcode_path, name_pdf);
 
-                        if Path::new(&file_path).exists() {
-                            SuccessAlerts::skipped(&file_path);
-                        } else {
-                            GenQrCode::new(url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
-                        }
+                    if Path::new(&file_path).exists() {
+                        SuccessAlerts::skipped(&file_path);
+                    } else {
+                        GenQrCode::new(url, qrcode_size, ImageFormat::Png).png(&file_path).unwrap();
                     }
+                }
             }
         }
 
@@ -144,8 +135,6 @@ impl Tasks {
         if line_url.ends_with(".tex") {
             output_path = LaTex.create_pdf(path, &line_url, custom_name).await?;
         }
-
-
 
         if !Providers::new(&line_url).check_provider_domain() {
             let mut candidates: Vec<String> = vec![line_url.to_string()];
