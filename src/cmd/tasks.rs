@@ -11,20 +11,23 @@ use image::ImageFormat;
 
 use crate::{
     args_cli::Flags,
-    ui::ui_base::UI,
     configs::settings::Settings,
     generator::qr_code::GenQrCode,
-    ui::success_alerts::SuccessAlerts,
 
-    system::{
-        latex::LaTex,
-        providers::Providers,
+    ui::{
+        ui_base::UI,
+        success_alerts::SuccessAlerts,
     },
 
     utils::{
         file::FileUtils,
         remote::Remote,
         file_name_remote::FileNameRemote,
+    },
+
+    system::{
+        latex::LaTex,
+        providers::Providers,
     },
     
     syntax::{
