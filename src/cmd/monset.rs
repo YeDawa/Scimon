@@ -73,8 +73,6 @@ impl Monset {
 
             let mut file = File::open(&self.run)?;
             file.read_to_end(&mut buffer)?;
-
-            // Metadata lives in `package.yml`; the author is reused for EPUBs.
             Package.load(&self.run);
         }
 
