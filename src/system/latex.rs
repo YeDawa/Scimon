@@ -36,6 +36,16 @@ pub struct LaTex;
 
 impl LaTex {
 
+    const PAGINATION_CSS: &'static str = "\
+        .document-container p { orphans: 3; widows: 3; }\n\
+        h1, h2, h3, h4, .title-block, .bib-title, .acronym-title {\n\
+            break-after: avoid-page; page-break-after: avoid;\n\
+        }\n\
+        .latex-table, .latex-theorem, .latex-tikz, .latex-pgfplot,\n\
+        .latex-image, .caption, pre, blockquote, .footnote-list li {\n\
+            break-inside: avoid; page-break-inside: avoid;\n\
+        }\n";
+
     pub async fn render(&self, content: &str) -> String {
         let force_active = !content.contains("\\begin{document}");
 
@@ -79,20 +89,9 @@ impl LaTex {
             RenderInjectFiles.latex_css_style().await,
             Self::PAGINATION_CSS,
         );
-        
         let js_script = RenderInjectFiles.latex_js_script().await;
         TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
     }
-
-    const PAGINATION_CSS: &'static str = "\
-        .document-container p { orphans: 3; widows: 3; }\n\
-        h1, h2, h3, h4, .title-block, .bib-title, .acronym-title {\n\
-            break-after: avoid-page; page-break-after: avoid;\n\
-        }\n\
-        .latex-table, .latex-theorem, .latex-tikz, .latex-pgfplot,\n\
-        .latex-image, .caption, pre, blockquote, .footnote-list li {\n\
-            break-inside: avoid; page-break-inside: avoid;\n\
-        }\n";
 
     fn mathjax_preamble(user_macros: &HashMap<String, MacroDef>) -> String {
         let mut definitions: Vec<String> = user_macros.iter()
