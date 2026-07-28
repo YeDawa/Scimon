@@ -79,6 +79,7 @@ impl LaTex {
             RenderInjectFiles.latex_css_style().await,
             Self::PAGINATION_CSS,
         );
+        
         let js_script = RenderInjectFiles.latex_js_script().await;
         TemplateLaTex.base(&html_body, &header_html, &css_style, &js_script)
     }
