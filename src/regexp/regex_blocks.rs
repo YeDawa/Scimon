@@ -63,4 +63,6 @@ impl BlocksRegExp {
 
     pub const GET_WATERMARK_VAR: &'static str = r#"watermark\s+"([^"]+)"\s+(?:(image)\s+)?"([^"]+)"\s*>\s*['"]?([^'"\s]+)['"]?"#;
 
+    pub const GET_LOG_VAR: &'static str = r#"(?im)^\s*log\s+"([^"]+)""#;
+
 }

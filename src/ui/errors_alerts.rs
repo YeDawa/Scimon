@@ -87,4 +87,14 @@ impl ErrorsAlerts {
         );
     }
 
+    pub fn catch_log(msg: &str) {
+        let current_datetime = General.date_time();
+
+        eprintln!(
+            "{} [catch] {}",
+            current_datetime.yellow().bold(),
+            msg.yellow()
+        );
+    }
+
 }

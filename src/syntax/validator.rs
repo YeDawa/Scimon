@@ -200,6 +200,22 @@ impl Validator {
                 }
             }
 
+            "catch" => {
+                if matches(r"(?i)^catch\s*\{") {
+                    None
+                } else {
+                    Some("expected: catch { ... } (after a downloads block)".to_string())
+                }
+            }
+
+            "log" => {
+                if matches(BlocksRegExp::GET_LOG_VAR) {
+                    None
+                } else {
+                    Some("expected: log \"message\"".to_string())
+                }
+            }
+
             _ => None,
         }
     }
