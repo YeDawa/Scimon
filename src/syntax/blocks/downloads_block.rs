@@ -57,7 +57,6 @@ use crate::{
     },
 };
 
-// Stops the step sequence early when a graceful shutdown has been requested.
 macro_rules! stop_if_cancelled {
     () => {
         if Shutdown.cancelled() {
@@ -70,9 +69,6 @@ pub struct DownloadsBlock;
 
 impl DownloadsBlock {
 
-    /// Runs all download lines inside a block body. Returns the number of
-    /// downloads that failed so the caller can decide whether to run a `catch`
-    /// block.
     async fn block(&self, contents: &str, downloads_content: &str, path: &str, flags: &Flags) -> Result<u32, Box<dyn Error>> {
         let mut seen_urls = HashSet::new();
         let mut tasks = Vec::new();
@@ -82,12 +78,8 @@ impl DownloadsBlock {
         let group_open = Regex::new(BlocksRegExp::GET_GROUP_BLOCK).unwrap();
         let log_re = Regex::new(BlocksRegExp::GET_LOG_VAR).unwrap();
 
-        // Nesting of `group "name" { ... }` blocks; files inside go to the
-        // matching subdirectory of `path`.
         let mut groups: Vec<String> = Vec::new();
-
         for raw_line in downloads_content.lines() {
-            // Stop queuing new downloads once a shutdown has been requested.
             if Shutdown.cancelled() {
                 break;
             }
@@ -98,7 +90,6 @@ impl DownloadsBlock {
                 continue;
             }
 
-            // Handle `log "message"` lines (used inside catch blocks).
             if let Some(caps) = log_re.captures(trimmed) {
                 ErrorsAlerts::catch_log(&caps[1]);
                 continue;
@@ -111,8 +102,6 @@ impl DownloadsBlock {
             }
 
             if trimmed.starts_with('}') {
-                // A group's closing brace pops the stack; the downloads block's
-                // own closing brace (stack empty) ends the loop.
                 if groups.is_empty() {
                     break;
                 }
@@ -126,8 +115,6 @@ impl DownloadsBlock {
             }
 
             let group_path = Self::group_path(path, &groups);
-
-            // A `{A..B}` range expands one line into several, one per value.
             for line in Ranges.expand_line(raw_line) {
                 let parts: Vec<&str> = line.split('|').collect();
                 let download_part = parts[0].trim();
@@ -148,7 +135,6 @@ impl DownloadsBlock {
                 }
 
                 seen_urls.insert(primary.clone());
-
                 if !MacroHandler::handle_check_macro_line(download_part, "ignore") {
                     let final_name = if let Some(custom_name) = Extended.rename_on_the_fly(download_part) {
                         custom_name
@@ -238,8 +224,6 @@ impl DownloadsBlock {
         Ok(())
     }
 
-    // Joins the base path with the current group nesting, keeping a trailing
-    // slash so downstream `path + filename` concatenation stays valid.
     fn group_path(path: &str, groups: &[String]) -> String {
         if groups.is_empty() {
             path.to_string()
@@ -247,10 +231,7 @@ impl DownloadsBlock {
             format!("{}/{}/", path.trim_end_matches('/'), groups.join("/"))
         }
     }
-
-    /// Finds the end of a brace-delimited block starting right after the
-    /// opening `{`. Returns the byte offset of the matching `}` relative to
-    /// the start of `text`, or `None` if braces are unbalanced.
+    
     fn find_block_end(text: &str) -> Option<usize> {
         let mut depth: u32 = 1;
         for (i, ch) in text.char_indices() {
@@ -265,22 +246,18 @@ impl DownloadsBlock {
                 _ => {}
             }
         }
+
         None
     }
 
-    /// Parses the `downloads { ... } catch { ... }` structure from the full
-    /// script contents. Returns `(downloads_body, Option<catch_body>)` as
-    /// string slices.
     fn parse_downloads_and_catch(contents: &str) -> Option<(String, Option<String>)> {
-        // Find "downloads {" or "downloads{"
         let dl_keyword = Regex::new(r"(?i)downloads\s*\{").unwrap();
         let m = dl_keyword.find(contents)?;
-        let body_start = m.end(); // right after the opening `{`
-
+        let body_start = m.end();
+        
         let body_end = Self::find_block_end(&contents[body_start..])?;
         let downloads_body = contents[body_start..body_start + body_end].to_string();
 
-        // After the closing `}`, look for an optional `catch {`
         let after_close = &contents[body_start + body_end + 1..];
         let catch_re = Regex::new(r"(?i)^\s*catch\s*\{").unwrap();
 
@@ -301,7 +278,6 @@ impl DownloadsBlock {
         let path = Vars.get_path(&contents);
 
         let mut downloaded = false;
-
         if let Some((downloads_body, catch_body)) = Self::parse_downloads_and_catch(&contents) {
             if !downloads_body.trim().starts_with("commands {") {
                 FileUtils.create_path(&path);
@@ -309,7 +285,6 @@ impl DownloadsBlock {
                 let failures = self.block(&contents, &downloads_body, &path, flags).await?;
                 downloaded = true;
 
-                // If any download failed and a catch block exists, run it.
                 if failures > 0 {
                     if let Some(ref catch_content) = catch_body {
                         UI::section_header("catch", "warning");
