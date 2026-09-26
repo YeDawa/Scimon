@@ -126,7 +126,8 @@ with `as "name"` and with each other.
 | `!only`      | Focus mode — when **any** line carries `!only`, only the marked lines run (others skip).|
 | `!no-qr`     | Exclude this line from QR code generation (when the `qrcode` directive is set).         |
 | `!retry(N)`  | Re-attempt the download up to `N` extra times if it fails.                              |
-| `!unzip`     | Extract the downloaded archive (`.zip`, `.tar.gz`, `.tgz`, `.tar`). Alias: `!extract`.  |
+| `!unzip`           | Extract the downloaded archive (`.zip`, `.tar.gz`, `.tgz`, `.tar`). Alias: `!extract`.  |
+| `!sha256("hash")`  | Verify SHA-256 hash integrity after downloading. Re-attempts or triggers `catch` on mismatch. |
 
 #### `!only` (focus mode)
 
@@ -194,6 +195,24 @@ The archive is downloaded, then extracted into a folder named after it next to
 the file — `dataset.zip` unpacks into `dataset/`. `!unzip` also forces the
 download of non-PDF archives (which are otherwise skipped), and combines with
 `as "name"`, `!retry(N)` and `||` fallbacks. The archive itself is kept.
+
+#### `!sha256("hash")`
+
+Verify the SHA-256 integrity hash of a downloaded file automatically:
+
+```scimon
+downloads {
+    https://example.com/dataset.zip as "dataset.zip" !sha256("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+}
+```
+
+If the calculated SHA-256 checksum does not match the expected hash:
+- The invalid file is automatically removed from disk.
+- An error notice is displayed.
+- If `!retry(N)` is set, retries are attempted.
+- If `||` mirror URLs are provided, fallback candidates are attempted.
+- If all attempts fail, the entry is marked as failed (which can trigger a `catch` block).
+
 
 List mirrors for the same file by separating URLs with `||`. Scimon tries them
 left to right and stops at the first one that downloads successfully:
@@ -286,6 +305,24 @@ In this example:
 - The file is downloaded and compiled/saved as `final.pdf`.
 - It is then rotated by 90 degrees.
 - Finally, it is stamped with a semi-transparent text watermark reading `"CONFIDENTIAL"`.
+
+### Error Handling & Catch Block (`catch { ... }`)
+
+Appended directly after a `downloads { ... }` block, an optional `catch` block executes fallback commands or alternative downloads whenever **any** download in the primary block fails:
+
+```scimon
+downloads {
+    https://primary.example/file.pdf as "file.pdf" !sha256("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+} catch {
+    log "Primary download or SHA256 validation failed. Attempting mirror..."
+    https://mirror.example/file.pdf as "file.pdf"
+}
+```
+
+- **`log "message"`**: Prints a formatted yellow warning notice (`[catch] message`) to the console.
+- **Conditional Execution**: If all downloads in the primary block succeed, the `catch` block is completely skipped.
+
+
 
 ### Summary
 

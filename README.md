@@ -27,7 +27,7 @@ between **variables** (single-line, e.g. `path "..."`) and **blocks**
 ## Features
 
 - 📥 **Batch downloads** — list URLs and fetch them all, with per-line renaming (`as "name.pdf"`), skipping (`!ignore`), archive extraction (`!unzip`) and subfolders via `group "name" { ... }`.
-- 🔁 **Ranges & fallbacks** — expand a numeric range into many downloads (`{2203.08877..08880}`), list mirror URLs with `||`, and retry flaky ones with `!retry(3)`.
+- 🔁 **Ranges, fallbacks & error handling** — expand numeric ranges (`{2203.08877..08880}`), list mirror URLs with `||`, retry flaky ones with `!retry(3)`, verify SHA-256 hashes (`!sha256("...")`), and run block-level fallbacks with `catch { ... }`.
 - 🧩 **Variables, functions, loops & conditionals** — keep lists DRY with `@var name "..."` (used as `${name}`), reusable `fn name(args) { ... }` templates, `for x in [...] { ... }` expansion, and `if / else` conditional blocks.
 - 🌐 **Smart providers** — Arxiv, Sci-Hub, Wikipedia/Wikisource, GitHub/GitLab and more are handled automatically.
 - 💬 **AI conversations to PDF** — paste a ChatGPT or Gemini *share link* and Scimon scrapes, cleans, and prints it (images inlined).
