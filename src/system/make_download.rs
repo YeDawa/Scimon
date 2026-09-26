@@ -13,6 +13,7 @@ use std::{
 
 use crate::{
     cmd::extract::Extract,
+    generator::checksum::Checksum,
 
     ui::{
         ui_base::UI,
@@ -76,7 +77,7 @@ impl MakeDownload {
         Ok(filename)
     }
 
-    pub async fn download_line(&self, urls: &[String], url: &str, path: &str, final_name: Option<&str>, retries: u32, unzip: bool) -> Result<String, Box<dyn Error>> {
+    pub async fn download_line(&self, urls: &[String], url: &str, path: &str, final_name: Option<&str>, retries: u32, unzip: bool, expected_sha256: Option<&str>) -> Result<String, Box<dyn Error>> {
         let total = urls.len();
 
         // `urls` holds the primary plus any `||` fallbacks, in order. The first
@@ -107,6 +108,44 @@ impl MakeDownload {
                 match self.make(line_url, path, &name).await {
                     Ok(file) => {
                         let file_path = &format!("{}{}", &path, &file);
+
+                        if let Some(expected_hash) = expected_sha256 {
+                            let expected_clean = expected_hash.trim().trim_matches('"');
+                            if !expected_clean.is_empty() {
+                                match Checksum::new(None).hash(file_path) {
+                                    Ok(actual_hash) => {
+                                        if !actual_hash.eq_ignore_ascii_case(expected_clean) {
+                                            let _ = std::fs::remove_file(file_path);
+                                            ErrorsAlerts::generic(&format!("SHA256 mismatch for {}: expected {}, got {}", url, expected_clean, actual_hash));
+
+                                            if attempt < retries {
+                                                attempt += 1;
+                                                ErrorsAlerts::retrying(url, attempt, retries);
+                                                continue;
+                                            }
+
+                                            if is_last {
+                                                ErrorsAlerts::generic(&format!("Failed SHA256 validation for {}", url));
+                                            } else {
+                                                ErrorsAlerts::fallback(line_url, &urls[index + 1]);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        let _ = std::fs::remove_file(file_path);
+                                        ErrorsAlerts::generic(&format!("Failed to calculate SHA256 for {}: {}", file_path, e));
+                                        if attempt < retries {
+                                            attempt += 1;
+                                            ErrorsAlerts::retrying(url, attempt, retries);
+                                            continue;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
                         let password = Pdf.is_pdf_encrypted(file_path);
 
                         SuccessAlerts::download(&file, url, password);

@@ -150,6 +150,7 @@ impl DownloadsBlock {
                         let fallbacks: Vec<String> = candidates[1..].to_vec();
                         let unzip = MacroHandler::handle_check_macro_line(download_part, "unzip")
                             || MacroHandler::handle_check_macro_line(download_part, "extract");
+                        let expected_sha256 = MacroHandler::macro_arg(download_part, "sha256");
 
                         let fail_count = Arc::clone(&fail_count);
 
@@ -158,7 +159,8 @@ impl DownloadsBlock {
                                 return;
                             }
 
-                            match Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks, unzip).await {
+                            let sha256_ref = expected_sha256.as_deref();
+                            match Tasks.download(Some(&contents), &primary, &path, Some(&final_name), &flags, retries, &fallbacks, unzip, sha256_ref).await {
                                 Ok(file_path) => {
                                     if file_path.is_empty() {
                                         // An empty path means no file was

@@ -110,7 +110,7 @@ impl Tasks {
         Ok(())
     }
 
-    pub async fn download(&self, contents: Option<&str>, url: &str, path: &str, custom_name: Option<&str>, flags: &Flags, retries: u32, fallbacks: &[String], unzip: bool) -> Result<String, Box<dyn Error>> {
+    pub async fn download(&self, contents: Option<&str>, url: &str, path: &str, custom_name: Option<&str>, flags: &Flags, retries: u32, fallbacks: &[String], unzip: bool, expected_sha256: Option<&str>) -> Result<String, Box<dyn Error>> {
         let mut line_url = Cow::Borrowed(
             url.trim()
         );
@@ -139,7 +139,7 @@ impl Tasks {
             let mut candidates: Vec<String> = vec![line_url.to_string()];
             candidates.extend_from_slice(fallbacks);
 
-            let download_path = MakeDownload.download_line(&candidates, url, path, custom_name, retries, unzip).await?;
+            let download_path = MakeDownload.download_line(&candidates, url, path, custom_name, retries, unzip, expected_sha256).await?;
             if !download_path.is_empty() {
                 output_path = download_path;
             }
