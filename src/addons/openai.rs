@@ -1,13 +1,13 @@
 use reqwest;
 
-use serde_json::{
-    json,
-    Value,
-};
-
 use std::{
     env,
     error::Error,
+};
+
+use serde_json::{
+    json,
+    Value,
 };
 
 use crate::consts::{
